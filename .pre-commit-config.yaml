@@ -1,0 +1,123 @@
+# CUIC Quant Fund - Pre-commit Configuration
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # ==========================================================================
+  # General hooks
+  # ==========================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # Prevent large files from being committed
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+
+      # Check for files that would conflict on case-insensitive filesystems
+      - id: check-case-conflict
+
+      # Check for merge conflict markers
+      - id: check-merge-conflict
+
+      # Check that executables have shebangs
+      - id: check-executables-have-shebangs
+
+      # Check YAML syntax
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+
+      # Check TOML syntax
+      - id: check-toml
+
+      # Check JSON syntax
+      - id: check-json
+        exclude: '.ipynb$'
+
+      # Ensure files end with a newline
+      - id: end-of-file-fixer
+        exclude: '.ipynb$'
+
+      # Remove trailing whitespace
+      - id: trailing-whitespace
+        exclude: '.ipynb$'
+
+      # Don't commit directly to main
+      - id: no-commit-to-branch
+        args: [--branch, main]
+
+      # Detect private keys
+      - id: detect-private-key
+
+  # ==========================================================================
+  # Python - Ruff (linting + formatting)
+  # ==========================================================================
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      # Linter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi]
+
+      # Formatter (replaces black)
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  # ==========================================================================
+  # Python - Type checking
+  # ==========================================================================
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pandas-stubs>=2.0.0
+          - types-requests>=2.31.0
+          - types-PyYAML>=6.0.0
+          - pydantic>=2.0.0
+        args: [--config-file, pyproject.toml]
+        # Only run on src/ to avoid issues with research notebooks
+        files: ^src/
+
+  # ==========================================================================
+  # Security checks
+  # ==========================================================================
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package.lock.json
+
+  # ==========================================================================
+  # Jupyter notebooks
+  # ==========================================================================
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.6.1
+    hooks:
+      # Strip output from notebooks before committing
+      - id: nbstripout
+        args:
+          - --extra-keys
+          - "metadata.kernelspec metadata.language_info"
+
+  # ==========================================================================
+  # Markdown
+  # ==========================================================================
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint-fix
+        args: [--disable, MD013, MD033, MD041, --]
+
+# =============================================================================
+# Configuration
+# =============================================================================
+default_language_version:
+  python: python3.10
+
+# Skip hooks in CI for speed (run full suite separately)
+ci:
+  skip: [mypy]
+  autofix_prs: true
+  autoupdate_schedule: weekly

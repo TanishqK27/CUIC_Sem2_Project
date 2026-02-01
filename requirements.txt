@@ -1,0 +1,69 @@
+# CUIC Quant Fund - Python Dependencies
+# Generated from pyproject.toml
+# Install with: pip install -r requirements.txt
+# Or for full install: pip install -e .[all]
+
+# =============================================================================
+# Core Dependencies
+# =============================================================================
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# API clients
+requests>=2.28.0
+aiohttp>=3.8.0
+httpx>=0.24.0
+
+# Data validation
+pydantic>=2.0.0
+
+# Configuration
+python-dotenv>=1.0.0
+pyyaml>=6.0
+
+# Utilities
+tqdm>=4.65.0
+tenacity>=8.2.0
+
+# =============================================================================
+# Development Dependencies
+# =============================================================================
+
+# Testing
+pytest>=7.3.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+
+# Code quality
+ruff>=0.1.0
+mypy>=1.4.0
+pre-commit>=3.3.0
+
+# Type stubs
+pandas-stubs>=2.0.0
+types-requests>=2.31.0
+types-PyYAML>=6.0.0
+
+# =============================================================================
+# Research Dependencies
+# =============================================================================
+
+# Jupyter
+jupyter>=1.0.0
+jupyterlab>=4.0.0
+ipywidgets>=8.0.0
+
+# Visualization
+matplotlib>=3.7.0
+plotly>=5.15.0
+seaborn>=0.12.0
+
+# Machine Learning
+scikit-learn>=1.3.0
+scipy>=1.11.0
+statsmodels>=0.14.0
+
+# Data I/O
+pyarrow>=12.0.0

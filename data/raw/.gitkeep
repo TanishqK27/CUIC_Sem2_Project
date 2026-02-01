@@ -1,0 +1,2 @@
+# This file ensures the directory is tracked by git
+# Raw data files are gitignored - do not commit data here

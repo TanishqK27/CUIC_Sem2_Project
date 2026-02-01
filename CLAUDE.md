@@ -1,0 +1,202 @@
+# CUIC Quant Fund - Project Context
+
+## Project Overview
+
+Cardiff University Investment Club (CUIC) quantitative research project focused on **sports betting and prediction markets** (Polymarket, Kalshi) for alpha generation through arbitrage, mean reversion, and systematic strategies.
+
+**Semester:** Spring 2025
+**Focus Areas:** Prediction Markets, Sports Betting, Quantitative Strategies
+
+---
+
+## Team Roster
+
+| Member     | Folder          | Focus Area (TBD) |
+|------------|-----------------|------------------|
+| Tan        | `team/tan/`     | Lead / Infrastructure |
+| Andrii     | `team/andrii/`  | - |
+| Dietrich   | `team/dietrich/`| - |
+| Ben        | `team/ben/`     | - |
+| Alfie      | `team/alfie/`   | - |
+| Max        | `team/max/`     | - |
+| Miran      | `team/miran/`   | - |
+| Mya        | `team/mya/`     | - |
+| Isameel    | `team/isameel/` | - |
+| Vansheeka  | `team/vansheeka/`| - |
+
+---
+
+## Common Commands
+
+```bash
+# Environment setup
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+pip install -e .[dev,research]
+
+# Run tests
+pytest tests/ -v
+
+# Code quality
+pre-commit run --all-files
+ruff check src/
+ruff format src/
+
+# Start Jupyter
+jupyter lab
+
+# Sync team logs to PROJECT_LOG.md
+python scripts/sync_logs.py
+```
+
+---
+
+## Code Standards
+
+- **Python Version:** 3.10+
+- **Type Hints:** Required for all functions
+- **Docstrings:** Google style
+- **Formatting:** ruff format (Black-compatible)
+- **Linting:** ruff check
+- **Testing:** pytest with fixtures in `tests/conftest.py`
+
+### Example Function
+
+```python
+def calculate_kelly_fraction(
+    win_probability: float,
+    odds: float,
+    bankroll_fraction: float = 1.0,
+) -> float:
+    """Calculate optimal Kelly Criterion bet size.
+
+    Args:
+        win_probability: Estimated probability of winning (0-1).
+        odds: Decimal odds offered by bookmaker.
+        bankroll_fraction: Fraction of Kelly to use (default full Kelly).
+
+    Returns:
+        Optimal fraction of bankroll to bet.
+
+    Raises:
+        ValueError: If win_probability not in [0, 1].
+
+    Example:
+        >>> calculate_kelly_fraction(0.6, 2.0)
+        0.2
+    """
+    if not 0 <= win_probability <= 1:
+        raise ValueError("win_probability must be between 0 and 1")
+
+    q = 1 - win_probability
+    kelly = (win_probability * odds - q) / odds
+    return max(0, kelly * bankroll_fraction)
+```
+
+---
+
+## Workflow Instructions
+
+### Daily Workflow
+1. Pull latest changes: `git pull origin main`
+2. Create feature branch: `git checkout -b <name>/<feature>`
+3. Update your `team/<name>/LOG.md` with progress
+4. Run tests before committing: `pytest tests/ -v`
+5. Create PR when ready for review
+
+### Research Workflow
+1. Use `/research-template <category> <name>` to create notebook from template
+2. Document findings in notebook markdown cells
+3. Move successful experiments to `src/cuic_quant/`
+4. Update `research/ideas/README.md` with new ideas
+
+### Log Updates
+Use the `/update-log` skill to add entries:
+```
+/update-log tan Completed Polymarket API client implementation
+```
+
+---
+
+## Key File Locations
+
+| Purpose | Location |
+|---------|----------|
+| Main package | `src/cuic_quant/` |
+| API clients | `src/cuic_quant/data/` |
+| Trading strategies | `src/cuic_quant/strategies/` |
+| Research notebooks | `research/notebooks/` |
+| Team logs | `team/<name>/LOG.md` |
+| Project log | `team/PROJECT_LOG.md` |
+| Documentation | `docs/` |
+| Configuration | `configs/` |
+
+---
+
+## Platform Quick Reference
+
+### Polymarket
+- **Type:** Decentralized prediction market on Polygon
+- **Currency:** USDC
+- **Docs:** https://docs.polymarket.com/
+- **Client:** `src/cuic_quant/data/polymarket_client.py`
+
+### Kalshi
+- **Type:** CFTC-regulated event contracts exchange
+- **Currency:** USD
+- **Docs:** https://docs.kalshi.com/
+- **Client:** `src/cuic_quant/data/kalshi_client.py`
+
+### Sports Betting (The Odds API)
+- **Type:** Aggregated odds from bookmakers
+- **Docs:** https://the-odds-api.com/
+- **Client:** `src/cuic_quant/data/odds_api.py`
+
+---
+
+## Security Warnings
+
+> **CRITICAL: Never commit API keys, passwords, or credentials!**
+
+- Use `.env` files for secrets (already in `.gitignore`)
+- Reference `configs/example.env` for required variables
+- See `docs/setup/api-keys.md` for configuration guide
+
+---
+
+## Custom Skills
+
+| Skill | Usage | Description |
+|-------|-------|-------------|
+| `/update-log` | `/update-log <name> <message>` | Updates personal LOG.md and PROJECT_LOG.md |
+| `/research-template` | `/research-template <category> <name>` | Creates notebook from template |
+| `/weekly-standup` | `/weekly-standup` | Generates weekly progress summary |
+
+---
+
+## Dependencies Overview
+
+**Core:**
+- pandas, numpy - Data manipulation
+- requests, aiohttp, httpx - API clients
+- pydantic - Data validation
+
+**Research:**
+- jupyter, jupyterlab - Notebooks
+- matplotlib, plotly - Visualization
+- scikit-learn - ML models
+
+**Development:**
+- pytest - Testing
+- ruff - Linting/formatting
+- mypy - Type checking
+- pre-commit - Git hooks
+
+---
+
+## Getting Help
+
+1. Check `docs/` for platform guides and setup instructions
+2. Review `research/papers/README.md` for academic references
+3. Ask in team chat or update `research/ideas/README.md`
+4. See `docs/setup/claude-code-guide.md` for Claude Code usage

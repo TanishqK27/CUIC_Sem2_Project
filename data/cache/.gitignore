@@ -1,0 +1,4 @@
+# Ignore all files in cache directory
+*
+# Except this file
+!.gitignore
