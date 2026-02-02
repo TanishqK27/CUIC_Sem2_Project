@@ -172,6 +172,8 @@ Use the `/update-log` skill to add entries:
 | `/research-template` | `/research-template <category> <name>` | Creates notebook from template |
 | `/weekly-standup` | `/weekly-standup` | Generates weekly progress summary |
 
+> **Full documentation:** See [docs/setup/skills-reference.md](docs/setup/skills-reference.md) for detailed usage and examples.
+
 ---
 
 ## Dependencies Overview

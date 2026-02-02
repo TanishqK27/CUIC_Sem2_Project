@@ -212,16 +212,36 @@ pytest tests/test_strategies.py -v
 
 ---
 
-## Workflow
+## Development Workflow
 
-### Daily Workflow
-1. `git pull origin main`
-2. Create feature branch: `git checkout -b <name>/<feature>`
-3. Make changes, run tests
-4. Update `team/<name>/LOG.md`
-5. Create PR for review
+### Daily Checklist
+
+1. **Pull latest:** `git pull origin main`
+2. **Create branch:** `git checkout -b <name>/<feature>`
+3. **Do work, run tests:** `pytest tests/ -v`
+4. **Update your log:** `/update-log <name> <summary>`
+5. **Commit & push:** `git add . && git commit -m "message"`
+6. **Create PR** when ready for review
+
+### Slash Commands
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `/update-log` | Update your work log | `/update-log tan Fixed API bug` |
+| `/research-template` | Create research notebook | `/research-template polymarket price-discovery` |
+| `/weekly-standup` | Generate team summary | `/weekly-standup` |
+
+See [Skills Reference](docs/setup/skills-reference.md) for detailed documentation.
+
+### Task Management
+
+We use markdown files for task tracking:
+
+- **[PROJECT_TASKS.md](team/PROJECT_TASKS.md)** - Project milestones and shared tasks
+- **`team/<name>/TASKS.md`** - Individual to-do lists
 
 ### Weekly Standup
+
 Run `/weekly-standup` to generate a summary from all team logs.
 
 ---
