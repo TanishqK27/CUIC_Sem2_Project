@@ -15,6 +15,8 @@ Personal task tracking for the CUIC Quant Fund project.
 
 | Task | Priority | Notes |
 |------|----------|-------|
+| Complete environment setup | High | See docs/setup/environment-setup.md |
+| Review platform documentation | Medium | docs/platforms/ |
 
 ---
 
