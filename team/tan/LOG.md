@@ -22,6 +22,7 @@ Or use Tan's personal skill (no name needed):
 
 ### 2026-02-02
 
+- Added 25 research tasks to PROJECT_TASKS.md covering data sources, strategies, platforms, and literature reviews
 - Added James to the team - created team/james/ folder with LOG.md and TASKS.md, updated all config files
 
 ### 2026-02-01

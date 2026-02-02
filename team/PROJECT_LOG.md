@@ -20,6 +20,7 @@ This will update both your personal `team/<name>/LOG.md` and this PROJECT_LOG.md
 
 ### 2026-02-02
 
+- **[tan]** Added 25 research tasks to PROJECT_TASKS.md covering data sources, strategies, platforms, and literature reviews
 - **[tan]** Added James to the team - created team/james/ folder with LOG.md and TASKS.md, updated all config files
 
 ### 2026-02-01
