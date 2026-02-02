@@ -20,6 +20,10 @@ Or use Tan's personal skill (no name needed):
 
 ## Log Entries
 
+### 2026-02-02
+
+- Added James to the team - created team/james/ folder with LOG.md and TASKS.md, updated all config files
+
 ### 2026-02-01
 
 - Initialized project repository with complete structure

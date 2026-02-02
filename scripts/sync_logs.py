@@ -32,6 +32,7 @@ TEAM_MEMBERS = [
     "mya",
     "isameel",
     "vansheeka",
+    "james",
 ]
 
 # Project root (relative to this script)

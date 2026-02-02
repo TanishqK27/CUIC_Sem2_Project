@@ -18,6 +18,10 @@ This will update both your personal `team/<name>/LOG.md` and this PROJECT_LOG.md
 
 ## Log Entries
 
+### 2026-02-02
+
+- **[tan]** Added James to the team - created team/james/ folder with LOG.md and TASKS.md, updated all config files
+
 ### 2026-02-01
 
 - **[tan]** Initialized project repository with complete structure, documentation, and tooling

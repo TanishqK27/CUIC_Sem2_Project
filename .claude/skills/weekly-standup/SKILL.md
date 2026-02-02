@@ -38,6 +38,7 @@ When this skill is invoked with `/weekly-standup`:
    - `team/mya/LOG.md`
    - `team/isameel/LOG.md`
    - `team/vansheeka/LOG.md`
+   - `team/james/LOG.md`
 
 3. **Extract entries from the past week**:
    - Find date headers (### YYYY-MM-DD) within the date range
@@ -72,7 +73,7 @@ When this skill is invoked with `/weekly-standup`:
 ## Summary Statistics
 
 - **Total entries:** X
-- **Active members:** Y / 10
+- **Active members:** Y / 11
 - **Most active:** <name> (Z entries)
 
 ---

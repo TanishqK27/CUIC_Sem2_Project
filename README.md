@@ -107,6 +107,7 @@ CUIC_Sem2_Project/
 | Mya       | TBD |
 | Isameel   | TBD |
 | Vansheeka | TBD |
+| James     | TBD |
 
 ---
 
