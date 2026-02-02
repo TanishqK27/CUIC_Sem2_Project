@@ -14,10 +14,13 @@ Personal task tracking for the CUIC Quant Fund project.
 
 ## To Do
 
-| Task | Priority | Notes |
-|------|----------|-------|
-| Review API client implementations | Medium | After initial implementations |
-| Set up CI/CD pipeline | Low | GitHub Actions |
+| Task | Priority | Due | Notes |
+|------|----------|-----|-------|
+| Speak to team members about research task preferences | High | 2026-02-04 | Gauge interest and expertise |
+| Assign research tasks from PROJECT_TASKS.md | High | 2026-02-04 | Match tasks to team member interests |
+| Follow up on task assignments | High | 2026-02-04 | Ensure everyone has a task claimed |
+| Review API client implementations | Medium | - | After initial implementations |
+| Set up CI/CD pipeline | Low | - | GitHub Actions |
 
 ---
 
