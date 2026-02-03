@@ -18,6 +18,8 @@ Personal task tracking for the CUIC Quant Fund project.
 |------|----------|-------|
 | Complete environment setup | High | See docs/setup/environment-setup.md |
 | Review platform documentation | Medium | docs/platforms/ |
+| Add prior research to codebase | High | research/ideas/ |
+| Present the findings on Thursday | Medium | |
 
 ---
 
