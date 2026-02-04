@@ -77,10 +77,9 @@ class CollectionScheduler:
                 collection runs. Default is 5 minutes.
         """
         self._scheduler = BackgroundScheduler()
-        self.collector = PolymarketCollector()
+        self.collector: PolymarketCollector = PolymarketCollector()
         self.market_interval_minutes = market_interval_minutes
         self.orderbook_interval_minutes = orderbook_interval_minutes
-        self._is_running = False
 
     def start(self) -> None:
         """Start the scheduler with configured collection jobs.
@@ -96,6 +95,10 @@ class CollectionScheduler:
             >>> scheduler.start()
             >>> print(f"Scheduler is running: {scheduler.is_running}")
         """
+        if self._scheduler.running:
+            logger.warning("Scheduler already running, skipping start")
+            return
+
         # Add market collection job
         self._scheduler.add_job(
             self._collect_markets_job,
@@ -116,7 +119,6 @@ class CollectionScheduler:
 
         # Start the scheduler
         self._scheduler.start()
-        self._is_running = True
 
         logger.info(
             f"CollectionScheduler started - markets every {self.market_interval_minutes}m, "
@@ -137,7 +139,6 @@ class CollectionScheduler:
             >>> print(f"Scheduler stopped: {not scheduler.is_running}")
         """
         self._scheduler.shutdown(wait=True)
-        self._is_running = False
         logger.info("CollectionScheduler stopped")
 
     def run_now(self) -> dict[str, Any]:
@@ -176,7 +177,7 @@ class CollectionScheduler:
                 f"{result.get('markets_saved', 0)} markets saved"
             )
         except Exception as e:
-            logger.error(f"Scheduled market collection job failed: {e}")
+            logger.error(f"Scheduled market collection job failed: {e}", exc_info=True)
 
     def _collect_orderbooks_job(self) -> None:
         """Private job function for scheduled orderbook collection.
@@ -192,7 +193,7 @@ class CollectionScheduler:
                 f"{result.get('price_points_saved', 0)} price points saved"
             )
         except Exception as e:
-            logger.error(f"Scheduled orderbook collection job failed: {e}")
+            logger.error(f"Scheduled orderbook collection job failed: {e}", exc_info=True)
 
     @property
     def is_running(self) -> bool:
@@ -208,7 +209,7 @@ class CollectionScheduler:
             >>> scheduler.start()
             >>> print(scheduler.is_running)  # True
         """
-        return self._is_running
+        return self._scheduler.running
 
     def get_jobs(self) -> list[dict[str, Any]]:
         """Get information about all scheduled jobs.
