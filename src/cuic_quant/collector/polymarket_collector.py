@@ -22,16 +22,13 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING
 
+import requests
 from sqlalchemy import Engine
 
 from cuic_quant.data.polymarket_client import Market, PolymarketClient
 from cuic_quant.database.connection import get_default_engine, get_session
 from cuic_quant.database.models import CollectionRun, MarketSnapshot, PricePoint
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +167,7 @@ class PolymarketCollector:
                 collection_run.completed_at = datetime.utcnow()
                 collection_run.status = "completed"
                 collection_run.markets_collected = markets_saved
+                session.flush()
 
             logger.info(f"Successfully saved {markets_saved} market snapshots")
 
@@ -177,6 +175,29 @@ class PolymarketCollector:
                 "markets_fetched": markets_fetched,
                 "markets_saved": markets_saved,
                 "status": "success",
+            }
+
+        except requests.HTTPError as e:
+            error_msg = str(e)
+            logger.error(f"HTTP error during market collection: {error_msg}")
+
+            # Try to save the failed collection run
+            try:
+                with get_session(self.engine) as session:
+                    collection_run.completed_at = datetime.utcnow()
+                    collection_run.status = "failed"
+                    collection_run.error_message = error_msg
+                    collection_run.markets_collected = markets_saved
+                    session.add(collection_run)
+                    session.flush()
+            except Exception as save_error:
+                logger.error(f"Failed to save collection run: {save_error}")
+
+            return {
+                "markets_fetched": markets_fetched,
+                "markets_saved": markets_saved,
+                "status": "error",
+                "error": error_msg,
             }
 
         except Exception as e:
@@ -191,6 +212,7 @@ class PolymarketCollector:
                     collection_run.error_message = error_msg
                     collection_run.markets_collected = markets_saved
                     session.add(collection_run)
+                    session.flush()
             except Exception as save_error:
                 logger.error(f"Failed to save collection run: {save_error}")
 
@@ -292,10 +314,16 @@ class PolymarketCollector:
                         session.add(price_point)
                         price_points_saved += 1
 
+                    except requests.HTTPError as e:
+                        logger.warning(f"HTTP error fetching orderbook for {token_id}: {e}")
+                        errors += 1
+                        continue
                     except Exception as e:
                         logger.warning(f"Failed to fetch orderbook for {token_id}: {e}")
                         errors += 1
                         continue
+
+                session.flush()
 
             logger.info(
                 f"Orderbook collection complete: {price_points_saved} saved, {errors} errors"
