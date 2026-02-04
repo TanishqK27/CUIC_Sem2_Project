@@ -105,6 +105,8 @@ def calculate_kelly_fraction(
 4. Run tests before committing: `pytest tests/ -v`
 5. Create PR when ready for review
 
+> **Full Git guide:** See [docs/setup/git-workflow.md](docs/setup/git-workflow.md) for branching, PRs, and common commands.
+
 ### Research Workflow
 1. Use `/research-template <category> <name>` to create notebook from template
 2. Document findings in notebook markdown cells
@@ -203,3 +205,4 @@ Use the `/update-log` skill to add entries:
 2. Review `research/papers/README.md` for academic references
 3. Ask in team chat or update `research/ideas/README.md`
 4. See `docs/setup/claude-code-guide.md` for Claude Code usage
+5. See `docs/setup/git-workflow.md` for Git/GitHub workflow
