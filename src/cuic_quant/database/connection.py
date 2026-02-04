@@ -32,20 +32,19 @@ Functions:
 from __future__ import annotations
 
 import os
+import threading
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator
+from typing import Generator
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from cuic_quant.database.models import Base
 
-if TYPE_CHECKING:
-    pass
-
 # Module-level singleton for the default engine
 _default_engine: Engine | None = None
+_default_engine_lock = threading.Lock()
 
 # Default database path relative to project root
 DEFAULT_DB_PATH = "data/polymarket.db"
@@ -215,7 +214,8 @@ def get_default_engine() -> Engine:
 
     This function implements the singleton pattern to avoid creating
     multiple engine instances for the default database, which is
-    more efficient for resource management.
+    more efficient for resource management. Thread-safe via double-checked
+    locking.
 
     Returns:
         The default SQLAlchemy Engine instance.
@@ -230,7 +230,9 @@ def get_default_engine() -> Engine:
     global _default_engine
 
     if _default_engine is None:
-        _default_engine = get_engine()
-        init_db(_default_engine)
+        with _default_engine_lock:
+            if _default_engine is None:  # Double-check inside lock
+                _default_engine = get_engine()
+                init_db(_default_engine)
 
     return _default_engine
