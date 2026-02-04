@@ -5,14 +5,19 @@ persisting prediction market data including events, market snapshots,
 and price time series.
 
 Example:
-    >>> from cuic_quant.database import Base, MarketSnapshot, init_db
+    >>> from cuic_quant.database import get_engine, get_session, init_db, Event
     >>>
     >>> # Initialize database
-    >>> engine = init_db("sqlite:///polymarket.db")
+    >>> engine = get_engine("data/polymarket.db")
+    >>> init_db(engine)
     >>>
     >>> # Use session for queries
-    >>> with get_session() as session:
-    ...     snapshots = session.query(MarketSnapshot).all()
+    >>> with get_session(engine) as session:
+    ...     events = session.query(Event).all()
+    >>>
+    >>> # Or use the default singleton engine
+    >>> from cuic_quant.database import get_default_engine
+    >>> engine = get_default_engine()  # Auto-initializes
 
 Models:
     - Base: SQLAlchemy declarative base
@@ -21,12 +26,19 @@ Models:
     - PricePoint: Time series price data
     - CollectionRun: Data collection job metadata
 
-Connection Functions (implemented in Task 3):
-    - get_engine: Get SQLAlchemy engine instance
-    - get_session: Get database session context manager
+Connection Functions:
+    - get_engine: Create SQLAlchemy engine instance
+    - get_session: Context manager for database sessions
     - init_db: Initialize database with schema
+    - get_default_engine: Singleton engine with auto-initialization
 """
 
+from cuic_quant.database.connection import (
+    get_default_engine,
+    get_engine,
+    get_session,
+    init_db,
+)
 from cuic_quant.database.models import (
     Base,
     CollectionRun,
@@ -43,8 +55,9 @@ __all__ = [
     "MarketSnapshot",
     "PricePoint",
     "CollectionRun",
-    # Connection functions (to be implemented in Task 3)
-    # "get_engine",
-    # "get_session",
-    # "init_db",
+    # Connection functions
+    "get_engine",
+    "get_session",
+    "init_db",
+    "get_default_engine",
 ]
