@@ -115,6 +115,7 @@ CUIC_Sem2_Project/
 
 ### Getting Started
 - [Environment Setup](docs/setup/environment-setup.md) - Python, dependencies, IDE
+- [Git Workflow](docs/setup/git-workflow.md) - Branches, PRs, and collaboration
 - [Claude Code Guide](docs/setup/claude-code-guide.md) - AI assistant setup
 - [API Keys Setup](docs/setup/api-keys.md) - Configuring API access
 
@@ -131,21 +132,36 @@ CUIC_Sem2_Project/
 
 ---
 
+## Polymarket API (Quick Start)
+
+**No database setup required** - fetch live data directly from the API:
+
+```python
+from cuic_quant.notebook import pm
+
+# Fetch live markets
+df = pm.fetch_markets(limit=100, active=True)
+print(df[['question', 'yes_price', 'volume']].head())
+
+# Fetch order book
+orderbook = pm.fetch_orderbook("token_id")
+```
+
+See the [Polymarket API Guide](research/notebooks/polymarket/API_GUIDE.md) and [example notebook](research/notebooks/polymarket/data_exploration.ipynb) for more.
+
+---
+
 ## Key Features
 
 ### API Clients
 Ready-to-use clients for major platforms:
 
 ```python
-from cuic_quant.data import PolymarketClient, KalshiClient, OddsAPIClient
+from cuic_quant.data import PolymarketClient, KalshiClient
 
 # Fetch prediction market data
 polymarket = PolymarketClient()
 markets = polymarket.get_markets()
-
-# Get sports odds
-odds_client = OddsAPIClient(api_key="your_key")
-nba_odds = odds_client.get_odds(sport="basketball_nba")
 ```
 
 ### Strategies
