@@ -34,13 +34,13 @@ Central task tracking for the entire project. Individual tasks are managed in `t
 
 ## Research Task Categories
 
-1. [Data Sources & Collection](#category-1-data-sources--collection) (5 tasks)
+1. [Data Sources & Collection](#category-1-data-sources--collection) (6 tasks)
 2. [Strategy Research](#category-2-strategy-research) (8 tasks)
 3. [Platform Deep Dives](#category-3-platform-deep-dives) (4 tasks)
 4. [Academic Literature Reviews](#category-4-academic-literature-reviews) (4 tasks)
 5. [Sport/Event Specific](#category-5-sportevent-specific) (4 tasks)
 
-**Total Research Tasks: 25**
+**Total Research Tasks: 26**
 
 ---
 
@@ -208,6 +208,61 @@ Historical odds data sourcing guide with recommendations based on sport, time pe
 
 #### Notes
 Key sources: Football-Data.co.uk (free, soccer), Kaggle datasets, Odds Portal, SportingIndex, BetBrain historical.
+
+---
+
+### [TASK-026] OddsHarvester Integration (Replace Odds API)
+
+**Assigned:** Alfie, Max
+**Status:** Planned
+**Priority:** High
+**Plan Document:** `team/tan/plans_for_team_tasks/oddsharvester-integration-plan.md`
+
+#### Description
+Replace The Odds API with [OddsHarvester](https://github.com/jordantete/OddsHarvester), a free open-source scraper for oddsportal.com. Build a data warehouse architecture mirroring the Polymarket infrastructure to enable cross-platform analysis between prediction markets and traditional sportsbooks.
+
+#### Hypothesis
+Free unlimited scraping via OddsHarvester provides better historical coverage than The Odds API (500 req/month free tier), enabling comprehensive backtesting and cross-platform arbitrage detection with Polymarket.
+
+#### Data Required
+- Historical NBA odds (2021-2025, matching Polymarket's sports market history)
+- All bookmakers (~30-50 per match)
+- All markets (1x2, over/under, spreads, Asian handicap)
+- Opening and closing odds
+
+#### Architecture
+```
+Collection:  OddsHarvesterCollector (8 parallel workers, proxy rotation)
+Storage:     SQLite (sports_odds.db) → PostgreSQL-ready schema
+Query:       SportsOddsRepository (DataFrame methods for notebooks)
+Analysis:    UnifiedOddsClient (cross-platform Polymarket + sports odds)
+```
+
+#### Implementation Phases
+
+| Phase | Tasks | Effort |
+|-------|-------|--------|
+| **1. Core Infrastructure** | CLI wrapper, models, repository | ~15 hours |
+| **2. Collection System** | Collector, scheduler, CLI commands | ~23 hours |
+| **3. Historical Backfill** | NBA 2021-2025 data (~5,200 matches) | ~8 hours runtime |
+| **4. Unified Interface** | Cross-platform queries, market linking | ~16 hours |
+| **5. Production Hardening** | Error handling, monitoring, docs | ~12 hours |
+
+#### Expected Outcome
+- `sports_odds.db` with ~7-10 million odds rows (~1-2 GB)
+- `SportsOddsRepository` for notebook-friendly queries
+- `UnifiedOddsClient` for Polymarket ↔ sports odds correlation
+- Cross-platform arbitrage detection capability
+
+#### Dependencies
+- OddsHarvester CLI (`pip install oddsharvester`)
+- Playwright browsers (installed by OddsHarvester)
+- Optional: Proxy service for parallel scraping
+
+#### Notes
+- Detailed implementation plan at: `team/tan/plans_for_team_tasks/oddsharvester-integration-plan.md`
+- Mirrors existing Polymarket collector architecture for consistency
+- Start with NBA, extensible to other sports (schema is sport-agnostic)
 
 ---
 
@@ -887,7 +942,7 @@ Reference: Vanderbilt study on Polymarket/Kalshi accuracy; SSRN price discovery 
 |------|-------|--------|-----|
 | Complete Polymarket API client | TBD | Not Started | Feb 15 |
 | Complete Kalshi API client | TBD | Not Started | Feb 15 |
-| Complete Odds API client | TBD | Not Started | Feb 15 |
+| [TASK-026] OddsHarvester Integration | Alfie, Max | Planned | Feb 28 |
 
 ### Medium Priority
 
