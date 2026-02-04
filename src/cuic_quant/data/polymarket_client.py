@@ -53,7 +53,14 @@ class Market:
         Returns:
             Market instance.
         """
+        # outcomePrices may be a JSON string or a list
         prices = data.get("outcomePrices", ["0", "0"])
+        if isinstance(prices, str):
+            import json
+            try:
+                prices = json.loads(prices)
+            except (json.JSONDecodeError, TypeError):
+                prices = ["0", "0"]
         yes_price = float(prices[0]) if prices else 0.0
         no_price = float(prices[1]) if len(prices) > 1 else 1 - yes_price
 
