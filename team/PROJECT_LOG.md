@@ -18,6 +18,14 @@ This will update both your personal `team/<name>/LOG.md` and this PROJECT_LOG.md
 
 ## Log Entries
 
+### 2026-02-04
+
+- **[tan]** Set up CockroachDB cloud database (AWS) for team-shared data storage - all members can now query the same data
+- **[tan]** Created historic Polymarket data collection pipeline (scripts/collect_historic_data.py)
+- **[tan]** Set up cron job for nightly data collection, running initial NBA collection now
+- **[tan]** Enhanced Polymarket collector with price history and events API support
+- **[tan]** Next task: Build continuous orderbook collector for live market snapshots
+
 ### 2026-02-02
 
 - **[tan]** Updated personal TASKS.md with team coordination tasks (speak to members, assign research tasks) due 4th Feb

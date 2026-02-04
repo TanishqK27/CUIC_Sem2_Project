@@ -1,7 +1,10 @@
 """Database connection manager for Polymarket data storage.
 
 This module provides SQLAlchemy engine and session management utilities
-for connecting to the SQLite database that stores prediction market data.
+for connecting to the database that stores prediction market data.
+
+Supports both SQLite (local development) and PostgreSQL/CockroachDB (production).
+Set DATABASE_URL environment variable for cloud database, or leave unset for SQLite.
 
 Example:
     >>> from cuic_quant.database.connection import get_engine, get_session, init_db
@@ -21,7 +24,7 @@ Example:
     >>> engine = get_default_engine()  # Auto-initializes database
 
 Functions:
-    - get_database_url: Build SQLite connection URL from path
+    - get_database_url: Build database connection URL
     - get_engine: Create SQLAlchemy engine instance
     - get_session_factory: Create session factory for engine
     - init_db: Initialize database schema
@@ -46,36 +49,40 @@ from cuic_quant.database.models import Base
 _default_engine: Engine | None = None
 _default_engine_lock = threading.Lock()
 
-# Default database path relative to project root
+# Default database path relative to project root (for SQLite fallback)
 DEFAULT_DB_PATH = "data/polymarket.db"
 
 
 def get_database_url(db_path: str | Path | None = None) -> str:
-    """Build SQLite database URL from file path.
+    """Build database connection URL.
 
-    Constructs a SQLAlchemy-compatible SQLite connection URL. If no path
-    is provided, uses the POLYMARKET_DB_PATH environment variable or
-    falls back to the default path (data/polymarket.db).
-
-    Parent directories are created automatically if they don't exist.
+    Priority:
+    1. DATABASE_URL environment variable (for CockroachDB/PostgreSQL)
+    2. db_path argument (for SQLite)
+    3. POLYMARKET_DB_PATH environment variable (for SQLite)
+    4. Default SQLite path (data/polymarket.db)
 
     Args:
-        db_path: Path to the SQLite database file. Can be a string or
-            Path object. If None, uses POLYMARKET_DB_PATH env var or
-            defaults to "data/polymarket.db".
+        db_path: Path to SQLite database file. Ignored if DATABASE_URL is set.
 
     Returns:
-        SQLite connection URL in the format "sqlite:///path/to/file.db".
+        Database connection URL.
 
     Example:
+        >>> # With DATABASE_URL set, returns that URL
+        >>> # Without DATABASE_URL, returns SQLite URL
         >>> get_database_url("data/test.db")
         'sqlite:///data/test.db'
-        >>> get_database_url(Path("data/markets.db"))
-        'sqlite:///data/markets.db'
-        >>> # Uses POLYMARKET_DB_PATH if set, else default
-        >>> get_database_url()  # doctest: +SKIP
-        'sqlite:///data/polymarket.db'
     """
+    # Check for cloud database URL first (CockroachDB/PostgreSQL)
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
+        # Convert postgresql:// to cockroachdb:// for CockroachDB hosts
+        if "cockroachlabs.cloud" in database_url or "cockroachdb" in database_url.lower():
+            database_url = database_url.replace("postgresql://", "cockroachdb://", 1)
+        return database_url
+
+    # Fall back to SQLite
     if db_path is None:
         db_path = os.environ.get("POLYMARKET_DB_PATH", DEFAULT_DB_PATH)
 
@@ -91,32 +98,39 @@ def get_database_url(db_path: str | Path | None = None) -> str:
 def get_engine(db_path: str | Path | None = None, echo: bool = False) -> Engine:
     """Create a SQLAlchemy engine for the database.
 
-    Creates a new SQLAlchemy engine configured for SQLite. The engine
-    is configured with `check_same_thread=False` to allow multi-threaded
-    access, which is necessary for web applications and async contexts.
+    Automatically detects whether to use SQLite or PostgreSQL/CockroachDB
+    based on the DATABASE_URL environment variable.
 
     Args:
-        db_path: Path to the SQLite database file. If None, uses the
-            default path from get_database_url().
-        echo: If True, logs all SQL statements to stdout. Useful for
-            debugging but verbose for production.
+        db_path: Path to SQLite database file. Ignored if DATABASE_URL is set.
+        echo: If True, logs all SQL statements to stdout.
 
     Returns:
         SQLAlchemy Engine instance configured for the database.
 
     Example:
         >>> engine = get_engine("data/test.db")
-        >>> engine.url.database
-        'data/test.db'
         >>> engine = get_engine(echo=True)  # Logs SQL statements
     """
     url = get_database_url(db_path)
 
-    engine = create_engine(
-        url,
-        echo=echo,
-        connect_args={"check_same_thread": False},  # SQLite-specific
-    )
+    # Configure based on database type
+    if url.startswith("sqlite"):
+        # SQLite-specific configuration
+        engine = create_engine(
+            url,
+            echo=echo,
+            connect_args={"check_same_thread": False},
+        )
+    else:
+        # PostgreSQL/CockroachDB configuration
+        engine = create_engine(
+            url,
+            echo=echo,
+            pool_size=5,
+            max_overflow=10,
+            pool_pre_ping=True,  # Verify connections before use
+        )
 
     return engine
 
