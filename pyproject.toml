@@ -44,6 +44,13 @@ dependencies = [
     # Utilities
     "tqdm>=4.65.0",
     "tenacity>=8.2.0",  # Retry logic
+
+    # Database
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0",
+
+    # Background jobs
+    "apscheduler>=3.10.0",
 ]
 
 [project.optional-dependencies]
@@ -84,8 +91,13 @@ research = [
     "pyarrow>=12.0.0",  # Fast parquet I/O
 ]
 
+server = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+]
+
 all = [
-    "cuic-quant[dev,research]",
+    "cuic-quant[dev,research,server]",
 ]
 
 [project.urls]
