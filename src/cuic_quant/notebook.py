@@ -80,13 +80,19 @@ class PolymarketNotebook:
         Returns:
             PolymarketClient instance for API requests.
 
+        Raises:
+            RuntimeError: If the client cannot be imported or instantiated.
+
         Example:
             >>> pm.client.get_market("market_id")
         """
         if self._client is None:
-            from cuic_quant.data import PolymarketClient
+            try:
+                from cuic_quant.data import PolymarketClient
 
-            self._client = PolymarketClient()
+                self._client = PolymarketClient()
+            except Exception as e:
+                raise RuntimeError(f"Failed to initialize Polymarket client: {e}") from e
         return self._client
 
     @property
@@ -96,13 +102,19 @@ class PolymarketNotebook:
         Returns:
             MarketRepository instance for database queries.
 
+        Raises:
+            RuntimeError: If the repository cannot be imported or instantiated.
+
         Example:
             >>> pm.repo.get_market_by_id("market_id")
         """
         if self._repo is None:
-            from cuic_quant.database.repositories import MarketRepository
+            try:
+                from cuic_quant.database.repositories import MarketRepository
 
-            self._repo = MarketRepository()
+                self._repo = MarketRepository()
+            except Exception as e:
+                raise RuntimeError(f"Failed to initialize market repository: {e}") from e
         return self._repo
 
     # ==================== Live API Methods ====================
@@ -122,11 +134,21 @@ class PolymarketNotebook:
             DataFrame with columns: id, question, yes_price, no_price,
             volume, liquidity, status, end_date.
 
+        Raises:
+            ValueError: If limit is not greater than 0.
+            RuntimeError: If the API request fails.
+
         Example:
             >>> df = pm.fetch_markets(limit=50, active=True)
             >>> df.sort_values('volume', ascending=False).head(10)
         """
-        markets = self.client.get_markets(limit=limit, active=active)
+        if limit <= 0:
+            raise ValueError("limit must be greater than 0")
+
+        try:
+            markets = self.client.get_markets(limit=limit, active=active)
+        except Exception as e:
+            raise RuntimeError(f"API request failed: {e}") from e
 
         if not markets:
             return pd.DataFrame(
@@ -170,6 +192,10 @@ class PolymarketNotebook:
         Returns:
             DataFrame with columns: price, size, side (bid/ask).
 
+        Raises:
+            ValueError: If token_id is empty or whitespace-only.
+            RuntimeError: If the API request fails.
+
         Example:
             >>> orderbook = pm.fetch_orderbook("0x123...")
             >>> bids = orderbook[orderbook['side'] == 'bid']
@@ -177,7 +203,13 @@ class PolymarketNotebook:
             >>> print(f"Best bid: {bids['price'].max()}")
             >>> print(f"Best ask: {asks['price'].min()}")
         """
-        orderbook = self.client.get_orderbook(token_id)
+        if not token_id or not token_id.strip():
+            raise ValueError("token_id cannot be empty")
+
+        try:
+            orderbook = self.client.get_orderbook(token_id)
+        except Exception as e:
+            raise RuntimeError(f"API request failed: {e}") from e
 
         if not orderbook.bids and not orderbook.asks:
             return pd.DataFrame(columns=["price", "size", "side"])
@@ -211,11 +243,17 @@ class PolymarketNotebook:
             DataFrame with columns: polymarket_id, question, yes_price, no_price,
             volume, volume_24h, liquidity, status, active, end_date, snapshot_at.
 
+        Raises:
+            ValueError: If limit is not greater than 0.
+
         Example:
             >>> df = pm.load_markets(limit=500, active_only=True)
             >>> high_volume = df[df['volume'] > 100000]
             >>> print(f"Found {len(high_volume)} high-volume markets")
         """
+        if limit <= 0:
+            raise ValueError("limit must be greater than 0")
+
         return self.repo.get_markets_df(limit=limit, active_only=active_only)
 
     def load_prices(
@@ -265,10 +303,16 @@ class PolymarketNotebook:
             DataFrame with columns: id, question, yes_price, no_price,
             volume, liquidity.
 
+        Raises:
+            ValueError: If limit is not greater than 0.
+
         Example:
             >>> top = pm.load_top_markets(limit=10)
             >>> print(top[['question', 'volume']].to_string())
         """
+        if limit <= 0:
+            raise ValueError("limit must be greater than 0")
+
         markets = self.repo.get_top_markets_by_volume(limit=limit)
 
         if not markets:
@@ -303,11 +347,28 @@ class PolymarketNotebook:
         Returns:
             DataFrame with columns: id, question, yes_price, volume.
 
+        Raises:
+            ValueError: If limit is not greater than 0, or if query exceeds 500 characters.
+
         Example:
             >>> results = pm.search("bitcoin", limit=20)
             >>> results = pm.search("election 2024")
             >>> results = pm.search("World Cup")
         """
+        if limit <= 0:
+            raise ValueError("limit must be greater than 0")
+
+        # Strip whitespace from query
+        query = query.strip() if query else ""
+
+        # Return empty DataFrame for empty/whitespace-only query
+        if not query:
+            return pd.DataFrame(columns=["id", "question", "yes_price", "volume"])
+
+        # Validate query length
+        if len(query) > 500:
+            raise ValueError("query cannot exceed 500 characters")
+
         markets = self.repo.search_markets(query=query, limit=limit)
 
         if not markets:
@@ -369,6 +430,9 @@ class PolymarketNotebook:
                 - status: "success" or "error"
                 - error: Error message if status is "error"
 
+        Raises:
+            ValueError: If limit is not greater than 0.
+
         Example:
             >>> result = pm.collect_now(limit=100)
             >>> if result['status'] == 'success':
@@ -376,6 +440,9 @@ class PolymarketNotebook:
             ... else:
             ...     print(f"Error: {result.get('error')}")
         """
+        if limit <= 0:
+            raise ValueError("limit must be greater than 0")
+
         from cuic_quant.collector import PolymarketCollector
 
         collector = PolymarketCollector()
