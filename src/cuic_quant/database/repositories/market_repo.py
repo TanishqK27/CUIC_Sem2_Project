@@ -304,8 +304,9 @@ class MarketRepository:
             active_only: If True, only return active markets. Defaults to True.
 
         Returns:
-            DataFrame with columns: polymarket_id, question, yes_price, no_price,
-            volume, volume_24h, liquidity, status, active, end_date, snapshot_at.
+            DataFrame with columns: polymarket_id, question, yes_token_id, no_token_id,
+            yes_price, no_price, volume, volume_24h, liquidity, status, active,
+            end_date, snapshot_at.
 
         Example:
             >>> repo = MarketRepository()
@@ -319,6 +320,8 @@ class MarketRepository:
                 columns=[
                     "polymarket_id",
                     "question",
+                    "yes_token_id",
+                    "no_token_id",
                     "yes_price",
                     "no_price",
                     "volume",
@@ -335,6 +338,8 @@ class MarketRepository:
             {
                 "polymarket_id": m.polymarket_id,
                 "question": m.question,
+                "yes_token_id": m.yes_token_id,
+                "no_token_id": m.no_token_id,
                 "yes_price": m.yes_price,
                 "no_price": m.no_price,
                 "volume": m.volume,
