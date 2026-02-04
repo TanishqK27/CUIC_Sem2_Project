@@ -25,13 +25,27 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from cuic_quant.collector import PolymarketCollector
 from cuic_quant.database import MarketRepository
 
 router = APIRouter(tags=["markets"])
+
+
+# -----------------------------------------------------------------------------
+# Dependency Injection
+# -----------------------------------------------------------------------------
+
+
+def get_repository() -> MarketRepository:
+    """Dependency to get MarketRepository instance.
+
+    Returns:
+        MarketRepository instance for database operations.
+    """
+    return MarketRepository()
 
 
 # -----------------------------------------------------------------------------
@@ -134,6 +148,7 @@ class CollectionResponse(BaseModel):
 def list_markets(
     limit: Annotated[int, Query(ge=1, le=1000, description="Maximum number of markets to return")] = 50,
     active_only: Annotated[bool, Query(description="Only return active markets")] = True,
+    repo: MarketRepository = Depends(get_repository),
 ) -> list[MarketResponse]:
     """List the most recently updated market snapshots.
 
@@ -143,6 +158,7 @@ def list_markets(
     Args:
         limit: Maximum number of markets to return (1-1000). Default 50.
         active_only: If True, only return active markets. Default True.
+        repo: MarketRepository instance (injected via Depends).
 
     Returns:
         List of MarketResponse objects.
@@ -150,7 +166,6 @@ def list_markets(
     Example:
         GET /api/v1/markets?limit=10&active_only=true
     """
-    repo = MarketRepository()
     markets = repo.get_latest_markets(limit=limit, active_only=active_only)
     return [MarketResponse.model_validate(m) for m in markets]
 
@@ -158,6 +173,7 @@ def list_markets(
 @router.get("/markets/top", response_model=list[MarketResponse])
 def list_top_markets(
     limit: Annotated[int, Query(ge=1, le=100, description="Maximum number of markets to return")] = 20,
+    repo: MarketRepository = Depends(get_repository),
 ) -> list[MarketResponse]:
     """List markets with the highest trading volume.
 
@@ -166,6 +182,7 @@ def list_top_markets(
 
     Args:
         limit: Maximum number of markets to return (1-100). Default 20.
+        repo: MarketRepository instance (injected via Depends).
 
     Returns:
         List of MarketResponse objects ordered by volume descending.
@@ -173,7 +190,6 @@ def list_top_markets(
     Example:
         GET /api/v1/markets/top?limit=10
     """
-    repo = MarketRepository()
     markets = repo.get_top_markets_by_volume(limit=limit)
     return [MarketResponse.model_validate(m) for m in markets]
 
@@ -182,6 +198,7 @@ def list_top_markets(
 def search_markets(
     q: Annotated[str, Query(min_length=2, description="Search query (min 2 characters)")],
     limit: Annotated[int, Query(ge=1, le=100, description="Maximum number of results")] = 20,
+    repo: MarketRepository = Depends(get_repository),
 ) -> list[MarketResponse]:
     """Search markets by question text.
 
@@ -191,6 +208,7 @@ def search_markets(
     Args:
         q: Search query string (minimum 2 characters).
         limit: Maximum number of results (1-100). Default 20.
+        repo: MarketRepository instance (injected via Depends).
 
     Returns:
         List of MarketResponse objects matching the search query.
@@ -198,13 +216,15 @@ def search_markets(
     Example:
         GET /api/v1/markets/search?q=election&limit=10
     """
-    repo = MarketRepository()
     markets = repo.search_markets(query=q, limit=limit)
     return [MarketResponse.model_validate(m) for m in markets]
 
 
 @router.get("/markets/{market_id}", response_model=MarketResponse)
-def get_market(market_id: str) -> MarketResponse:
+def get_market(
+    market_id: str,
+    repo: MarketRepository = Depends(get_repository),
+) -> MarketResponse:
     """Get a specific market by its Polymarket ID.
 
     Returns the most recent snapshot for the given market. Raises 404
@@ -212,6 +232,7 @@ def get_market(market_id: str) -> MarketResponse:
 
     Args:
         market_id: The Polymarket market identifier.
+        repo: MarketRepository instance (injected via Depends).
 
     Returns:
         MarketResponse for the requested market.
@@ -222,7 +243,6 @@ def get_market(market_id: str) -> MarketResponse:
     Example:
         GET /api/v1/markets/abc123
     """
-    repo = MarketRepository()
     market = repo.get_market_by_id(market_id)
 
     if market is None:
@@ -239,6 +259,7 @@ def get_price_history(
     token_id: str,
     start_date: Annotated[datetime | None, Query(description="Filter prices after this date")] = None,
     end_date: Annotated[datetime | None, Query(description="Filter prices before this date")] = None,
+    repo: MarketRepository = Depends(get_repository),
 ) -> list[PricePointResponse]:
     """Get price history for a specific token.
 
@@ -249,6 +270,7 @@ def get_price_history(
         token_id: The token identifier to get prices for.
         start_date: Optional start date filter (inclusive).
         end_date: Optional end date filter (inclusive).
+        repo: MarketRepository instance (injected via Depends).
 
     Returns:
         List of PricePointResponse objects ordered by timestamp.
@@ -256,7 +278,6 @@ def get_price_history(
     Example:
         GET /api/v1/prices/token_abc?start_date=2024-01-01T00:00:00
     """
-    repo = MarketRepository()
     points = repo.get_price_history(
         token_id=token_id,
         start_date=start_date,
@@ -266,11 +287,16 @@ def get_price_history(
 
 
 @router.get("/stats", response_model=StatsResponse)
-def get_stats() -> StatsResponse:
+def get_stats(
+    repo: MarketRepository = Depends(get_repository),
+) -> StatsResponse:
     """Get collection statistics.
 
     Returns aggregate statistics about the collected data including
     total counts and date ranges.
+
+    Args:
+        repo: MarketRepository instance (injected via Depends).
 
     Returns:
         StatsResponse with collection statistics.
@@ -278,7 +304,6 @@ def get_stats() -> StatsResponse:
     Example:
         GET /api/v1/stats
     """
-    repo = MarketRepository()
     stats = repo.get_collection_stats()
 
     return StatsResponse(
@@ -300,15 +325,24 @@ def trigger_collection() -> CollectionResponse:
     Returns:
         CollectionResponse with collection results.
 
+    Raises:
+        HTTPException: 500 if collection fails due to an unexpected error.
+
     Example:
         POST /api/v1/collect
     """
-    collector = PolymarketCollector()
-    result = collector.collect_markets()
+    try:
+        collector = PolymarketCollector()
+        result = collector.collect_markets()
 
-    return CollectionResponse(
-        markets_fetched=result.get("markets_fetched", 0),
-        markets_saved=result.get("markets_saved", 0),
-        status=result.get("status", "error"),
-        error=result.get("error"),
-    )
+        return CollectionResponse(
+            markets_fetched=result.get("markets_fetched", 0),
+            markets_saved=result.get("markets_saved", 0),
+            status=result.get("status", "error"),
+            error=result.get("error"),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Collection failed: {str(e)}",
+        )

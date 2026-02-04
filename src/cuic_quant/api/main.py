@@ -101,13 +101,17 @@ def create_app() -> FastAPI:
 
     Creates and configures a FastAPI application with:
         - Title, description, and version metadata
-        - CORS middleware allowing all origins (for development)
+        - CORS middleware with configurable origins via CORS_ORIGINS env var
         - Markets API router at /api/v1 prefix
         - Root endpoint with API information
         - Health check endpoint
 
     Returns:
         Configured FastAPI application instance.
+
+    Environment Variables:
+        - CORS_ORIGINS: Comma-separated list of allowed origins.
+          Defaults to "http://localhost:3000,http://localhost:8000" for development.
 
     Example:
         >>> app = create_app()
@@ -129,10 +133,17 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Add CORS middleware (allow all origins for development)
+    # Get CORS origins from environment variable for security
+    # Default to localhost origins for development
+    cors_origins_str = os.environ.get(
+        "CORS_ORIGINS", "http://localhost:3000,http://localhost:8000"
+    )
+    cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+
+    # Add CORS middleware with configured origins
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
