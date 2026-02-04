@@ -46,6 +46,7 @@ from cuic_quant.database.models import (
     MarketSnapshot,
     PricePoint,
 )
+from cuic_quant.database.repositories import MarketRepository
 
 __all__ = [
     # Base class
@@ -60,4 +61,6 @@ __all__ = [
     "get_session",
     "init_db",
     "get_default_engine",
+    # Repositories
+    "MarketRepository",
 ]
