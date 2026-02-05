@@ -12,32 +12,32 @@ Three parallel streams converge into the final deliverable. Each node shows **wh
 ```mermaid
 flowchart LR
     subgraph Stream1["Stream 1: Data Collection"]
-        MAX[("Max\n─────────\nNBA Stats\n3 CSVs")]
-        ALFIE[("Alfie\n─────────\nOdds Data\n2 CSVs")]
-        DIETRICH_DB[("Dietrich\n─────────\nDatabase\n5 Tables")]
+        MAX["Max<br/>NBA Stats<br/>3 CSVs"]
+        ALFIE["Alfie<br/>Odds Data<br/>2 CSVs"]
+        DIETRICH_DB["Dietrich<br/>Database<br/>5 Tables"]
     end
 
     subgraph Stream2["Stream 2: Analysis Tools"]
-        MYA_TEST[("Mya\n─────────\nTest Data\n1 CSV")]
-        JAMES[("James\n─────────\nBacktester\nModule")]
-        BEN[("Ben\n─────────\nMetrics\nModule")]
-        ISAMEEL[("Ismaeel\n─────────\nQA Testing\nBug Reports")]
+        MYA_TEST["Mya<br/>Test Data<br/>1 CSV"]
+        JAMES["James<br/>Backtester"]
+        BEN["Ben<br/>Metrics"]
+        ISMAEEL["Ismaeel<br/>QA Testing"]
     end
 
     subgraph Stream3["Stream 3: Research & EDA"]
-        DIETRICH_EDA[("Dietrich\n─────────\nPolymarket\nEDA")]
-        MYA_EDA[("Mya\n─────────\nSportsbook\nEDA")]
-        MIRAN[("Miran\n─────────\nPaper\nSummaries")]
+        DIETRICH_EDA["Dietrich<br/>Polymarket EDA"]
+        MYA_EDA["Mya<br/>Sportsbook EDA"]
+        MIRAN["Miran<br/>Papers"]
     end
 
-    MAX -->|"CSVs by Sun"| DIETRICH_DB
-    ALFIE -->|"CSVs by Sun"| DIETRICH_DB
+    MAX -->|"CSVs Sun"| DIETRICH_DB
+    ALFIE -->|"CSVs Sun"| DIETRICH_DB
     ALFIE -->|"Odds CSV"| MYA_EDA
-    MYA_TEST -->|"test_games.csv\nby Fri!"| JAMES
-    JAMES -->|"backtester"| ISAMEEL
-    BEN -->|"metrics"| ISAMEEL
-    DIETRICH_DB -->|"DB ready Mon"| DIETRICH_EDA
-    DIETRICH_DB -->|"DB ready Mon"| MYA_EDA
+    MYA_TEST -->|"Fri!"| JAMES
+    JAMES -->|"backtester"| ISMAEEL
+    BEN -->|"metrics"| ISMAEEL
+    DIETRICH_DB -->|"Mon"| DIETRICH_EDA
+    DIETRICH_DB -->|"Mon"| MYA_EDA
 ```
 
 ---
@@ -51,43 +51,43 @@ gantt
     axisFormat  %a %d
 
     section Data Collection
-    Max: NBA stats collection       :max1, 2026-02-06, 3d
-    Max: Validate & send CSVs       :max2, after max1, 1d
-    Alfie: OddsHarvester setup      :alf1, 2026-02-06, 1d
-    Alfie: Scrape odds data         :alf2, after alf1, 2d
-    Alfie: Validate & send CSVs     :alf3, after alf2, 1d
+    NBA stats collection       :max1, 2026-02-06, 3d
+    Validate & send CSVs       :max2, after max1, 1d
+    OddsHarvester setup        :alf1, 2026-02-06, 1d
+    Scrape odds data           :alf2, after alf1, 2d
+    Validate & send CSVs       :alf3, after alf2, 1d
 
     section Database
-    Dietrich: Create tables         :diet1, 2026-02-06, 2d
-    Dietrich: Load CSVs             :diet2, after max2, 1d
-    Dietrich: Verify joins          :diet3, after diet2, 1d
+    Create tables              :diet1, 2026-02-06, 2d
+    Load CSVs                  :diet2, after max2, 1d
+    Verify joins               :diet3, after diet2, 1d
 
     section Analysis Tools
-    Mya: Test data generator        :crit, mya1, 2026-02-06, 1d
-    James: Backtester with dummy    :jam1, 2026-02-06, 2d
-    James: Integrate test data      :jam2, after mya1, 1d
-    James: Document interface       :jam3, after jam2, 1d
-    Ben: Metrics module             :ben1, 2026-02-06, 3d
-    Ben: Integration + docs         :ben2, after ben1, 1d
-    Ismaeel: Test backtester        :isa1, after jam2, 2d
-    Ismaeel: Test metrics           :isa2, after ben1, 2d
+    Test data generator        :crit, mya1, 2026-02-06, 1d
+    Backtester with dummy      :jam1, 2026-02-06, 2d
+    Integrate test data        :jam2, after mya1, 1d
+    Document interface         :jam3, after jam2, 1d
+    Metrics module             :ben1, 2026-02-06, 3d
+    Integration + docs         :ben2, after ben1, 1d
+    Test backtester            :isa1, after jam2, 2d
+    Test metrics               :isa2, after ben1, 2d
 
     section EDA & Research
-    Dietrich: Polymarket EDA        :diet4, after diet3, 2d
-    Mya: Sportsbook EDA             :mya2, after alf3, 2d
-    Miran: Find papers              :mir1, 2026-02-06, 3d
-    Miran: Write summaries          :mir2, after mir1, 2d
+    Polymarket EDA             :diet4, after diet3, 2d
+    Sportsbook EDA             :mya2, after alf3, 2d
+    Find papers                :mir1, 2026-02-06, 3d
+    Write summaries            :mir2, after mir1, 2d
 
     section Coordination
-    Miran: Daily check-ins          :mir3, 2026-02-06, 7d
-    Vansheeka: Data inventory       :van1, 2026-02-08, 3d
-    Ismaeel: Meeting notes          :isa3, 2026-02-06, 7d
+    Daily check-ins            :mir3, 2026-02-06, 7d
+    Data inventory             :van1, 2026-02-08, 3d
+    Meeting notes              :isa3, 2026-02-06, 7d
 
     section Milestones
-    Test data to James              :milestone, crit, m1, 2026-02-07, 0d
-    CSVs to Dietrich                :milestone, m2, 2026-02-09, 0d
-    Database ready                  :milestone, m3, 2026-02-10, 0d
-    Presentation                    :milestone, crit, m4, 2026-02-12, 0d
+    Test data ready            :milestone, m1, 2026-02-07, 0d
+    CSVs delivered             :milestone, m2, 2026-02-09, 0d
+    Database ready             :milestone, m3, 2026-02-10, 0d
+    Presentation               :milestone, m4, 2026-02-12, 0d
 ```
 
 ---
