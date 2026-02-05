@@ -1,4 +1,4 @@
-# Week 1: Database Setup
+# Week 1: Database Setup + Polymarket EDA
 
 **Owner:** Dietrich
 **Deadline:** Thursday Feb 12
@@ -16,91 +16,73 @@ You own Railway PostgreSQL. People give you formatted CSVs, you load them. Wrong
 
 ### Tables to Create
 
-Create these 4 tables in Railway. Use Claude Code to help generate the SQL:
+| Table | Key Columns | Constraints |
+|-------|-------------|-------------|
+| sportsbook_matches | external_id, home_team, away_team, commence_time | external_id UNIQUE |
+| sportsbook_odds | match_id (FK), bookmaker, home_odds, away_odds | FK to matches |
+| nba_team_stats | team_name, season, wins, losses, win_pct, ppg | UNIQUE(team_name, season) |
+| nba_player_stats | player_name, team_abbr, season, ppg, rpg, apg | UNIQUE(player_name, season) |
 
-1. **sportsbook_matches** - Games with external_id (unique), home_team, away_team, commence_time
-2. **sportsbook_odds** - Odds per match per bookmaker (FK to matches)
-3. **nba_team_stats** - Team stats by season (unique on team_name + season)
-4. **nba_player_stats** - Player stats by season (unique on player_name + season)
-
-**Prompt for Claude:** "Create PostgreSQL tables for sportsbook matches, odds, NBA team stats, and player stats with appropriate indexes and constraints"
-
-### CSV Loader Script
-
-Create `scripts/load_csv_to_railway.py` that:
-- Takes CSV type and path as args
-- Loads matches, odds, team_stats, player_stats
-- Handles duplicates with ON CONFLICT
-- Prints row counts
-
-**Prompt for Claude:** "Write a Python script using psycopg2 to load CSVs into PostgreSQL with upsert logic"
-
-### Document CSV Formats
-
-Create `docs/reference/csv-formats.md` specifying exact columns for each CSV type. This is the contract - Alfie/others must match this exactly.
+**Indexes:** Add on foreign keys and commonly queried columns (commence_time, team names)
 
 ---
 
-## Task 2: Polymarket Data Analysis (Tue-Thu)
+### CSV Loader Script
 
-**While waiting for CSVs**, analyze the existing Polymarket data in Railway.
+**Location:** `scripts/load_csv_to_railway.py`
 
-### What To Explore
+**CLI:** `python load_csv_to_railway.py <type> <csv_path>`
 
-Use the existing `price_snapshots` data (90K+ rows) to find:
+**Required Functions:**
 
-1. **Price movement patterns**
-   - How do probabilities change over time for a typical event?
-   - Do prices move smoothly or in jumps?
-   - Is there mean reversion? (prices that spike tend to come back?)
+| Function | Expected CSV Columns |
+|----------|---------------------|
+| `load_sportsbook_matches(path)` | external_id, home_team, away_team, commence_time |
+| `load_sportsbook_odds(path)` | external_id, bookmaker, home_odds, away_odds |
+| `load_nba_team_stats(path)` | team_name, season, games_played, wins, losses, win_pct, ppg |
+| `load_nba_player_stats(path)` | player_name, team_abbr, season, games_played, ppg, rpg, apg |
 
-2. **Volatility analysis**
-   - Which types of events have most price movement?
-   - Time of day effects? (more volatility at certain hours?)
-   - How does volatility change as event approaches?
+**All loaders must:**
+- Handle duplicates with ON CONFLICT
+- Print row counts
+- Use `DATABASE_URL` env var
 
-3. **Gap persistence**
-   - When PM price differs from implied fair value, how long does gap last?
-   - Do gaps close gradually or suddenly?
+---
 
-### What To Document
+### Document CSV Formats
 
-Create `research/notebooks/analysis/polymarket_eda.ipynb`:
+**Location:** `docs/reference/csv-formats.md`
 
-```markdown
-# Polymarket Exploratory Data Analysis
+Document exact columns, types, and examples for each CSV type. This is the contract.
 
-## Key Findings
-- [Bullet points of interesting patterns]
+---
 
-## Visualizations
-- Price paths for sample events
-- Volatility over time
-- Gap distribution histogram
+## Task 2: Polymarket EDA (Tue-Thu)
 
-## Intuition
-- Why might these patterns exist?
-- How could this inform trading? (speculation only)
+While waiting for CSVs, analyze existing `price_snapshots` data.
 
-## Questions for Team
-- [Things that need more investigation]
-```
+### Analysis Areas
 
-### IMPORTANT: Stay In Your Lane
+| Area | Questions |
+|------|-----------|
+| Price movement | Mean reversion? Smooth or jumpy? |
+| Volatility | Time of day effects? Event proximity? |
+| Gap persistence | How long do price gaps last? |
 
-**DO:**
-- Descriptive statistics
-- Visualizations
-- Document interesting patterns
-- Hypothesize why patterns exist
+### Deliverable
 
-**DON'T:**
-- Build predictive models
-- Create trading strategies
-- Backtest anything
-- Go down rabbit holes
+**Location:** `research/notebooks/analysis/polymarket_eda.ipynb`
 
-This is EDA only. Models come in Week 4.
+**Sections:**
+1. Key Findings (bullet points)
+2. Visualizations (price paths, volatility, gaps)
+3. Intuition (why might this happen?)
+4. Questions for team
+
+### STAY IN YOUR LANE
+
+**DO:** Descriptive stats, visualizations, hypothesize
+**DON'T:** Build models, create strategies, backtest
 
 ---
 
@@ -110,7 +92,6 @@ This is EDA only. Models come in Week 4.
 |--------|-------------|------|
 | Alfie | Receives his CSVs | Wed |
 | Max | He validates after you load | After load |
-| Miran | She confirms CSVs are ready | Wed |
 
 ---
 
@@ -119,41 +100,28 @@ This is EDA only. Models come in Week 4.
 **Required Reading:**
 - `docs/SOPs/file-structure.md`
 - `docs/SOPs/modularity-upgrades.md`
-- `docs/SOPs/team-sops.md`
 
-**For DB Setup:**
-- Railway docs: https://docs.railway.app/databases/postgresql
+**Libraries:**
 - psycopg2: https://www.psycopg.org/docs/
-
-**For Analysis:**
-- Existing PM data: query `price_snapshots` table
-- pandas/matplotlib for analysis
-
-**Claude Code Prompts:**
-- "Create PostgreSQL schema for sports betting data"
-- "Write CSV loader with upsert for PostgreSQL"
-- "Analyze time series data for mean reversion patterns"
-- "Create volatility analysis for price data"
+- Railway: https://docs.railway.app/databases/postgresql
 
 ---
 
 ## Done Checklist
 
 **Database:**
-- [ ] 4 tables created in Railway
+- [ ] 4 tables created
 - [ ] Loader script works
 - [ ] CSV formats documented
-- [ ] Test load with Alfie's dummy CSV
 
-**Analysis:**
-- [ ] EDA notebook created
-- [ ] 3+ interesting findings documented
+**EDA:**
+- [ ] Notebook created
+- [ ] 3+ findings documented
 - [ ] Visualizations included
-- [ ] Stayed descriptive (no models)
 
 ---
 
 ## Thursday Presentation (3 min)
 
-1. Show tables exist, run one load (1 min)
-2. Show 2-3 interesting Polymarket findings (2 min)
+1. Show tables, run one load (1 min)
+2. Show 2-3 Polymarket findings (2 min)
