@@ -22,7 +22,8 @@
 ### Completed
 | Task | Completed | Notes |
 |------|-----------|-------|
-| | | |
+| Complete environment setup | 2026-02-05 | Verified the setup and confirmed git hooks are working |
+| Review platform documentation | 2026-02-05 | Read `docs/platforms/kalshi.md`, `docs/platforms/polymarket.md`, `docs/platforms/sports-betting-basics.md` |
 
 ---
 
