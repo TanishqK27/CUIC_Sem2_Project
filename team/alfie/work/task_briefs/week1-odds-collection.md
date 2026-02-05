@@ -83,6 +83,7 @@ If OddsHarvester setup is slow, you still deliver:
 | Miran | She checks your data quality | Tue-Wed |
 | Max | He validates your CSVs | Wed |
 | Dietrich | He loads your CSVs | Thu |
+| Mya | Send her CSVs for EDA analysis | Tue-Wed |
 
 ---
 
