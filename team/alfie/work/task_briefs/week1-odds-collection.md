@@ -24,8 +24,53 @@ Create a fake JSON matching OddsHarvester's output format with 3-5 games. Use th
 
 If OddsHarvester setup is slow, you still deliver:
 1. Working conversion script (tested against dummy JSON)
-2. Dummy CSVs in correct format (validated by Max)
+2. Dummy CSVs in correct format
 3. Fallback plan: use The Odds API instead
+
+---
+
+## ⚠️ STANDARDIZE FOR MATCHING — COORDINATE WITH MAX
+
+**All your CSVs must use `team_abbr` (3-letter code) as the standard team identifier.**
+
+Max's NBA data will also use `team_abbr`. This lets Dietrich join everything easily.
+
+OddsHarvester may output full team names — your conversion script must map them to standard abbreviations.
+
+### Standard Team Abbreviations (use EXACTLY these)
+
+| team_abbr | team_name |
+|-----------|-----------|
+| ATL | Atlanta Hawks |
+| BOS | Boston Celtics |
+| BKN | Brooklyn Nets |
+| CHA | Charlotte Hornets |
+| CHI | Chicago Bulls |
+| CLE | Cleveland Cavaliers |
+| DAL | Dallas Mavericks |
+| DEN | Denver Nuggets |
+| DET | Detroit Pistons |
+| GSW | Golden State Warriors |
+| HOU | Houston Rockets |
+| IND | Indiana Pacers |
+| LAC | Los Angeles Clippers |
+| LAL | Los Angeles Lakers |
+| MEM | Memphis Grizzlies |
+| MIA | Miami Heat |
+| MIL | Milwaukee Bucks |
+| MIN | Minnesota Timberwolves |
+| NOP | New Orleans Pelicans |
+| NYK | New York Knicks |
+| OKC | Oklahoma City Thunder |
+| ORL | Orlando Magic |
+| PHI | Philadelphia 76ers |
+| PHX | Phoenix Suns |
+| POR | Portland Trail Blazers |
+| SAC | Sacramento Kings |
+| SAS | San Antonio Spurs |
+| TOR | Toronto Raptors |
+| UTA | Utah Jazz |
+| WAS | Washington Wizards |
 
 ---
 
@@ -36,8 +81,9 @@ If OddsHarvester setup is slow, you still deliver:
 | Column | Type | Example |
 |--------|------|---------|
 | external_id | string | "nba_20260210_lal_bos" |
-| home_team | string | "Los Angeles Lakers" |
-| away_team | string | "Boston Celtics" |
+| game_date | date | "2026-02-10" |
+| home_team_abbr | string | "LAL" |
+| away_team_abbr | string | "BOS" |
 | commence_time | datetime | "2026-02-10 19:00:00" |
 
 ### sportsbook_odds.csv
@@ -48,6 +94,8 @@ If OddsHarvester setup is slow, you still deliver:
 | bookmaker | string | "fanduel" |
 | home_odds | decimal | 1.95 |
 | away_odds | decimal | 2.05 |
+
+**Note:** `external_id` format is `nba_{YYYYMMDD}_{away_abbr}_{home_abbr}` (lowercase)
 
 ---
 

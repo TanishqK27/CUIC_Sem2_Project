@@ -18,6 +18,49 @@ Collect **every NBA stat possible** at maximum granularity. You and Alfie are th
 
 ---
 
+## ⚠️ STANDARDIZE FOR MATCHING — COORDINATE WITH ALFIE
+
+**All your CSVs must use `team_abbr` (3-letter code) as the standard team identifier.**
+
+Alfie's odds data will also use `team_abbr`. This lets Dietrich join everything easily.
+
+### Standard Team Abbreviations (use EXACTLY these)
+
+| team_abbr | team_name |
+|-----------|-----------|
+| ATL | Atlanta Hawks |
+| BOS | Boston Celtics |
+| BKN | Brooklyn Nets |
+| CHA | Charlotte Hornets |
+| CHI | Chicago Bulls |
+| CLE | Cleveland Cavaliers |
+| DAL | Dallas Mavericks |
+| DEN | Denver Nuggets |
+| DET | Detroit Pistons |
+| GSW | Golden State Warriors |
+| HOU | Houston Rockets |
+| IND | Indiana Pacers |
+| LAC | Los Angeles Clippers |
+| LAL | Los Angeles Lakers |
+| MEM | Memphis Grizzlies |
+| MIA | Miami Heat |
+| MIL | Milwaukee Bucks |
+| MIN | Minnesota Timberwolves |
+| NOP | New Orleans Pelicans |
+| NYK | New York Knicks |
+| OKC | Oklahoma City Thunder |
+| ORL | Orlando Magic |
+| PHI | Philadelphia 76ers |
+| PHX | Phoenix Suns |
+| POR | Portland Trail Blazers |
+| SAC | Sacramento Kings |
+| SAS | San Antonio Spurs |
+| TOR | Toronto Raptors |
+| UTA | Utah Jazz |
+| WAS | Washington Wizards |
+
+---
+
 ## Scope: MAXIMUM GRANULARITY
 
 Pull **every stat available** from the 2021-22 season onwards (when Polymarket started NBA markets).

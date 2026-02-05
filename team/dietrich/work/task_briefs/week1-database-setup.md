@@ -40,6 +40,29 @@ Build and test your loader with dummy data Monday-Tuesday. When Alfie's real CSV
 
 ## Task 1: Database Setup (Mon-Tue)
 
+### How Data Links Together
+
+**Alfie and Max are standardizing on `team_abbr` (LAL, BOS, etc.) so joining is easy:**
+
+```
+sportsbook_matches.home_team_abbr ──┐
+sportsbook_matches.away_team_abbr ──┼── JOIN ON team_abbr
+nba_game_logs.home_team_abbr ───────┤
+nba_game_logs.away_team_abbr ───────┤
+nba_team_stats.team_abbr ───────────┤
+nba_player_stats.team_abbr ─────────┘
+```
+
+**To get full game context:**
+```sql
+SELECT * FROM sportsbook_matches m
+JOIN sportsbook_odds o ON m.external_id = o.external_id
+JOIN nba_game_logs g ON m.home_team_abbr = g.home_team_abbr
+                    AND m.game_date = g.game_date
+JOIN nba_team_stats ht ON g.home_team_abbr = ht.team_abbr
+JOIN nba_team_stats at ON g.away_team_abbr = at.team_abbr
+```
+
 ### Tables to Create
 
 **5 tables total** — 2 from Alfie (odds), 3 from Max (NBA stats)
