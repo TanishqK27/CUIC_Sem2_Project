@@ -50,43 +50,42 @@ gantt
     axisFormat  %a %d
 
     section Data Collection
-    NBA stats collection       :max1, 2026-02-06, 3d
-    Validate & send CSVs       :max2, after max1, 1d
-    OddsHarvester setup        :alf1, 2026-02-06, 1d
-    Scrape odds data           :alf2, after alf1, 2d
-    Validate & send CSVs       :alf3, after alf2, 1d
+    Max - Collect NBA stats          :max1, 2026-02-06, 2d
+    Max - Validate and send          :max2, after max1, 1d
+    Alfie - Setup scraper            :alf1, 2026-02-06, 1d
+    Alfie - Scrape odds              :alf2, after alf1, 1d
+    Alfie - Validate and send        :alf3, after alf2, 1d
 
     section Database
-    Create tables              :diet1, 2026-02-06, 2d
-    Load CSVs                  :diet2, after max2, 1d
-    Verify joins               :diet3, after diet2, 1d
+    Dietrich - Create tables         :diet1, 2026-02-06, 2d
+    Dietrich - Load data             :diet2, 2026-02-09, 1d
+    Dietrich - Verify joins          :diet3, after diet2, 1d
 
     section Analysis Tools
-    Test data generator        :crit, mya1, 2026-02-06, 1d
-    Backtester with dummy      :jam1, 2026-02-06, 2d
-    Integrate test data        :jam2, after mya1, 1d
-    Document interface         :jam3, after jam2, 1d
-    Metrics module             :ben1, 2026-02-06, 3d
-    Integration + docs         :ben2, after ben1, 1d
-    Test backtester            :isa1, after jam2, 2d
-    Test metrics               :isa2, after ben1, 2d
+    Mya - Test data                  :crit, mya1, 2026-02-06, 1d
+    James - Build backtester         :jam1, 2026-02-06, 3d
+    James - Document interface       :jam3, after jam1, 1d
+    Ben - Build metrics              :ben1, 2026-02-06, 3d
+    Ben - Documentation              :ben2, after ben1, 1d
+    Ismaeel - Test backtester        :isa1, 2026-02-10, 2d
+    Ismaeel - Test metrics           :isa2, 2026-02-10, 2d
 
-    section EDA & Research
-    Polymarket EDA             :diet4, after diet3, 2d
-    Sportsbook EDA             :mya2, after alf3, 2d
-    Find papers                :mir1, 2026-02-06, 3d
-    Write summaries            :mir2, after mir1, 2d
+    section Research
+    Dietrich - Data analysis         :diet4, 2026-02-11, 1d
+    Mya - Odds analysis              :mya2, 2026-02-10, 2d
+    Miran - Find papers              :mir1, 2026-02-06, 3d
+    Miran - Write summaries          :mir2, after mir1, 2d
 
-    section Coordination
-    Daily check-ins            :mir3, 2026-02-06, 7d
-    Data inventory             :van1, 2026-02-08, 3d
-    Meeting notes              :isa3, 2026-02-06, 7d
+    section Support
+    Miran - Daily updates            :mir3, 2026-02-06, 6d
+    Vansheeka - Data inventory       :van1, 2026-02-08, 3d
+    Ismaeel - Meeting notes          :isa3, 2026-02-06, 6d
 
     section Milestones
-    Test data ready            :milestone, m1, 2026-02-07, 0d
-    CSVs delivered             :milestone, m2, 2026-02-09, 0d
-    Database ready             :milestone, m3, 2026-02-10, 0d
-    Presentation               :milestone, m4, 2026-02-12, 0d
+    Test data ready                  :milestone, m1, 2026-02-07, 0d
+    Data delivered                   :milestone, m2, 2026-02-09, 0d
+    Database ready                   :milestone, m3, 2026-02-10, 0d
+    Presentation                     :milestone, m4, 2026-02-12, 0d
 ```
 
 ---
