@@ -20,6 +20,7 @@ This will update both your personal `team/<name>/LOG.md` and this PROJECT_LOG.md
 
 ### 2026-02-05
 
+- **[dietrich]** NBA Polymarket vs Sportsbook Arbitrage Project - Analysis Complete: Built complete trading system comparing Polymarket prediction market prices to traditional sportsbook odds for NBA games. Deployed data collection on Railway (PostgreSQL): 89,664+ price snapshots across 81 games. Implemented 5 trading strategies. Paper trading: 258 closed trades, +$2,592.81 P&L. Real trading: 4 closed trades, -$0.50 realized. Key finding: Gap signal is NOT predictive (24-39% win rate). Deliverables: analysis_results.ipynb, price_dynamics.ipynb, run_analysis.py, full database documentation. Conclusion: Current gap-based strategy not viable, recommending pivot to market making or higher-frequency approaches.
 - **[miran]** Reviewed platform docs (Kalshi, Polymarket, Sports Betting Basics)
 - **[miran]** Finished environment setup checks and confirmed the git hooks are working
 
