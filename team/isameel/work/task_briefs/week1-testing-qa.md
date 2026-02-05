@@ -1,14 +1,16 @@
-# Week 1: Testing & QA
+# Week 1: Testing & QA + Meeting Notes
 
 **Owner:** Isameel
 **Deadline:** Thursday Feb 12
-**Priority:** MEDIUM — ensures things actually work
+**Priority:** MEDIUM
 
 ---
 
 ## Your Role
 
-You are the **tester**. When James builds the backtester and Ben builds metrics, YOU verify they work correctly. You find bugs before they cause problems.
+Two responsibilities:
+1. **Tester** — verify James's backtester and Ben's metrics work correctly
+2. **Meeting Scribe** — record all meetings with Read.ai/Otter and post summaries
 
 **MINIMAL CODING** — mostly running other people's code and documenting results.
 
@@ -212,8 +214,65 @@ jupyter lab
 
 ---
 
+## Task 2: Meeting Notes (Ongoing)
+
+### Setup (Monday)
+
+1. Sign up for **Read.ai** (free) or **Otter.ai** (free tier)
+2. Connect to your calendar / meeting apps
+3. Test it on a short call to make sure transcription works
+
+### For Every Meeting
+
+1. **Start recording** at beginning of meeting
+2. After meeting, export the AI summary
+3. Create a markdown file in the repo
+
+### Meeting Notes Location
+
+**Save to:** `docs/meetings/YYYY-MM-DD-<topic>.md`
+
+**Format:**
+```markdown
+# Meeting: [Topic]
+
+**Date:** YYYY-MM-DD
+**Attendees:** [list]
+**Duration:** X minutes
+
+## Key Decisions
+
+- Decision 1
+- Decision 2
+
+## Action Items
+
+| Owner | Task | Deadline |
+|-------|------|----------|
+| Name | Task description | Date |
+
+## Discussion Summary
+
+[2-3 paragraph summary of main topics discussed]
+
+## Raw Notes
+
+[Paste AI-generated summary here]
+```
+
+### Thursday Meeting Notes
+
+The Thursday presentation meeting is especially important — capture:
+- What each person presented
+- Any blockers raised
+- Decisions made
+- Action items for next week
+
+---
+
 ## Done Checklist
 
+**Testing:**
 - [ ] Got test data from Mya
 - [ ] Ran basic backtester tests
 - [ ] Ran edge case tests
@@ -222,10 +281,15 @@ jupyter lab
 - [ ] Reported bugs to owners
 - [ ] Testing checklist completed
 
+**Meeting Notes:**
+- [ ] Read.ai or Otter.ai set up
+- [ ] Test recording works
+- [ ] Thursday meeting notes posted to `docs/meetings/`
+
 ---
 
 ## Thursday Presentation (1 min)
 
-1. How many tests run
-2. How many bugs found (if any)
-3. Confirm backtester and metrics are working
+1. How many tests run, how many bugs found
+2. Confirm backtester and metrics are working
+3. Confirm meeting notes system is set up
