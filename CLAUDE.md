@@ -105,7 +105,7 @@ def calculate_kelly_fraction(
 4. Run tests before committing: `pytest tests/ -v`
 5. Create PR when ready for review
 
-> **Full Git guide:** See [docs/setup/git-workflow.md](docs/setup/git-workflow.md) for branching, PRs, and common commands.
+> **Full Git guide:** See [docs/guides/git-workflow.md](docs/guides/git-workflow.md) for branching, PRs, and common commands.
 
 ### Research Workflow
 1. Use `/research-template <category> <name>` to create notebook from template
@@ -157,7 +157,7 @@ Use the `/update-log` skill to add entries:
 
 - Use `.env` files for secrets (already in `.gitignore`)
 - Reference `configs/example.env` for required variables
-- See `docs/setup/api-keys.md` for configuration guide
+- See `docs/guides/api-keys.md` for configuration guide
 
 ---
 
@@ -169,7 +169,7 @@ Use the `/update-log` skill to add entries:
 | `/research-template` | `/research-template <category> <name>` | Creates notebook from template |
 | `/weekly-standup` | `/weekly-standup` | Generates weekly progress summary |
 
-> **Full documentation:** See [docs/setup/skills-reference.md](docs/setup/skills-reference.md) for detailed usage and examples.
+> **Full documentation:** See [docs/guides/skills-reference.md](docs/guides/skills-reference.md) for detailed usage and examples.
 
 ---
 

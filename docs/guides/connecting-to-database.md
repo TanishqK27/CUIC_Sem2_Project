@@ -1,8 +1,8 @@
-# Data Infrastructure Setup
+# Connecting to the Database
 
 How to connect to the team's shared Polymarket database.
 
-📖 **What's in the database?** See [DATABASE_GUIDE.md](../../research/notebooks/polymarket/polymarket_data_collection/DATABASE_GUIDE.md)
+📖 **What's in the database?** See [Database Schema](../reference/database-schema.md)
 
 ---
 
@@ -10,7 +10,7 @@ How to connect to the team's shared Polymarket database.
 
 **Recommended for most users** - no IP restrictions, no local setup.
 
-1. Open a notebook: [getting_started.ipynb](../../research/notebooks/polymarket/polymarket_data_collection/getting_started.ipynb)
+1. Open a notebook: [getting-started.ipynb](../../research/notebooks/getting-started.ipynb)
 2. Click the "Open in Colab" badge
 3. Run the first cell
 
@@ -89,8 +89,8 @@ psql 'postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rl
 
 | Notebook | Purpose |
 |----------|---------|
-| [getting_started.ipynb](../../research/notebooks/polymarket/polymarket_data_collection/getting_started.ipynb) | Interactive tutorial with visualizations |
-| [price_dynamics.ipynb](../../research/notebooks/polymarket/polymarket_data_collection/price_dynamics.ipynb) | Advanced price analysis |
+| [getting-started.ipynb](../../research/notebooks/getting-started.ipynb) | Interactive tutorial with visualizations |
+| [price-dynamics.ipynb](../../research/notebooks/price-dynamics.ipynb) | Advanced price analysis |
 
 ---
 
@@ -106,7 +106,7 @@ pip install psycopg2-binary
 ```
 
 ### Empty Results
-Check your SQL syntax and column names in [DATABASE_GUIDE.md](../../research/notebooks/polymarket/polymarket_data_collection/DATABASE_GUIDE.md)
+Check your SQL syntax and column names in [Database Schema](../reference/database-schema.md)
 
 ---
 
@@ -118,4 +118,4 @@ Check your SQL syntax and column names in [DATABASE_GUIDE.md](../../research/not
 | **Kalshi** | 🔧 Framework ready | `from cuic_quant.data import KalshiClient` |
 | **The Odds API** | 🔧 Framework ready | `from cuic_quant.data import OddsAPIClient` |
 
-📖 **API key setup:** See [api-keys.md](api-keys.md)
+📖 **API key setup:** See [API Keys](api-keys.md)

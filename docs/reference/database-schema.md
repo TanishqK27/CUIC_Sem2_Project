@@ -2,7 +2,7 @@
 
 A plain-English guide to our NBA betting database.
 
-🔧 **How to connect:** See [data-infrastructure.md](../../../../docs/setup/data-infrastructure.md)
+🔧 **How to connect:** See [Connecting to Database](../guides/connecting-to-database.md)
 
 ---
 
