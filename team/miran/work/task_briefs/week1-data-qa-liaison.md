@@ -1,178 +1,144 @@
-# Week 1: Data QA & Liaison
+# Week 1: Daily Coordinator + Research
 
 **Owner:** Miran
 **Deadline:** Thursday Feb 12
-**Priority:** MEDIUM — support role
+**Priority:** MEDIUM
 
 ---
 
 ## Your Role
 
-You are the **quality checker and communication bridge** between Alfie (who produces data) and Dietrich (who loads it). You manually check CSVs for obvious errors and ensure handoffs happen smoothly.
+Two tasks:
+1. **Daily Coordinator** — check in with everyone, send Tan a daily progress summary
+2. **Research** — find and summarize sports betting / Polymarket papers
 
-**NO CODING REQUIRED** — this is manual QA and communication work.
-
----
-
-## This Week's Deliverables
-
-### 1. Manual CSV Quality Check
-
-When Alfie produces CSVs, manually open them and check:
-
-**For sportsbook_matches.csv:**
-- [ ] File opens without errors
-- [ ] Has columns: external_id, home_team, away_team, commence_time
-- [ ] Team names look correct (real NBA teams)
-- [ ] Dates make sense (not 1970, not 2099)
-- [ ] No obvious duplicates (same game twice)
-- [ ] Count rows: should be 10+ games
-
-**For sportsbook_odds.csv:**
-- [ ] File opens without errors
-- [ ] Has columns: external_id, bookmaker, home_odds, away_odds
-- [ ] Odds look reasonable (between 1.1 and 10.0)
-- [ ] Bookmaker names are valid (fanduel, draftkings, etc.)
-- [ ] Each external_id has multiple bookmakers
-
-**How to check:**
-```
-# Open in any spreadsheet app (Excel, Google Sheets)
-# Or use command line:
-head -20 data/sportsbook_matches.csv
-wc -l data/sportsbook_matches.csv  # count rows
-```
-
-### 2. Communication Tracking
-
-Create `team/miran/work/notes/handoff-tracker.md`:
-
-```markdown
-# Data Handoff Tracker - Week 1
-
-## Status
-
-| Step | Owner | Status | Date | Notes |
-|------|-------|--------|------|-------|
-| Alfie produces matches.csv | Alfie | ⏳ | | |
-| Miran checks matches.csv | Miran | ⏳ | | |
-| Max validates matches.csv | Max | ⏳ | | |
-| Alfie produces odds.csv | Alfie | ⏳ | | |
-| Miran checks odds.csv | Miran | ⏳ | | |
-| Max validates odds.csv | Max | ⏳ | | |
-| Dietrich receives CSVs | Dietrich | ⏳ | | |
-| Dietrich loads to DB | Dietrich | ⏳ | | |
-| Max validates DB | Max | ⏳ | | |
-
-## Communication Log
-
-| Date | From | To | Message |
-|------|------|-----|---------|
-| | | | |
-
-## Issues Found
-
-| Date | File | Issue | Reported To | Fixed? |
-|------|------|-------|-------------|--------|
-| | | | | |
-```
-
-### 3. Daily Check-ins
-
-Your communication duties:
-- **Monday PM:** Ask Alfie: "Do you have OddsHarvester working?"
-- **Tuesday PM:** Ask Alfie: "When will CSVs be ready?"
-- **Wednesday AM:** Check Alfie's CSVs manually
-- **Wednesday PM:** Tell Max: "CSVs ready for validation" (or report issues)
-- **Thursday AM:** Confirm with Dietrich: "Did loading work?"
-
-### 4. Team Name Verification
-
-Create a list of official NBA team names. Alfie's data must use EXACTLY these:
-
-```markdown
-# Official NBA Team Names
-
-Use EXACTLY these names in CSVs:
-
-1. Atlanta Hawks
-2. Boston Celtics
-3. Brooklyn Nets
-4. Charlotte Hornets
-5. Chicago Bulls
-6. Cleveland Cavaliers
-7. Dallas Mavericks
-8. Denver Nuggets
-9. Detroit Pistons
-10. Golden State Warriors
-11. Houston Rockets
-12. Indiana Pacers
-13. Los Angeles Clippers
-14. Los Angeles Lakers
-15. Memphis Grizzlies
-16. Miami Heat
-17. Milwaukee Bucks
-18. Minnesota Timberwolves
-19. New Orleans Pelicans
-20. New York Knicks
-21. Oklahoma City Thunder
-22. Orlando Magic
-23. Philadelphia 76ers
-24. Phoenix Suns
-25. Portland Trail Blazers
-26. Sacramento Kings
-27. San Antonio Spurs
-28. Toronto Raptors
-29. Utah Jazz
-30. Washington Wizards
-```
-
-Check Alfie's CSV team names against this list.
+**NO CODING** — this is communication and research work.
 
 ---
 
-## Who You Work With
+## Task 1: Daily Coordination (Ongoing)
 
-| Person | Your Job | When |
-|--------|----------|------|
-| Alfie | Check his CSVs, report issues | Tue-Wed |
-| Max | Tell him when CSVs ready | Wed |
-| Dietrich | Confirm he received files | Thu |
-| Vansheeka | Coordinate on team names | Mon-Tue |
+### Daily Check-ins
+
+Message each person once per day (Slack/Discord) and ask:
+- "How's your task going?"
+- "Any blockers or issues?"
+- "On track for Thursday?"
+
+### Daily Report to Tan
+
+**Send by 6pm each day** — a short paragraph covering:
+- Who's on track
+- Who's blocked and why
+- Any issues that need Tan's attention
+
+**Location:** Post in `team/miran/work/notes/daily-reports.md`
+
+**Format:**
+```markdown
+## Monday Feb 10
+
+**On Track:** James (backtester started), Ben (metrics module started), Max (NBA data pulling)
+
+**Blocked:** Alfie — OddsHarvester install failing, trying Docker workaround
+
+**Issues for Tan:** None today
+
+---
+
+## Tuesday Feb 11
+
+...
+```
+
+Also message Tan directly with anything urgent.
+
+### Who to Check In With
+
+| Person | Their Task |
+|--------|------------|
+| Alfie | OddsHarvester + odds CSVs |
+| Max | NBA stats collection |
+| Dietrich | Database tables + Polymarket EDA |
+| James | Backtester engine |
+| Ben | Metrics module |
+| Mya | Test data generator + sportsbook EDA |
+| Isameel | Testing + meeting notes |
+| Vansheeka | Data quality analysis |
+
+---
+
+## Task 2: Research Papers (Tue-Thu)
+
+### Find 3-5 Papers On:
+
+- Sports betting market efficiency
+- Prediction market pricing / Polymarket
+- Arbitrage in betting markets
+- Machine learning for sports prediction
+- Kelly criterion applications
+
+### Where to Search
+
+- Google Scholar: https://scholar.google.com/
+- arXiv: https://arxiv.org/ (search "sports betting", "prediction markets")
+- SSRN: https://www.ssrn.com/
+
+### Deliverable
+
+**Location:** `research/papers/paper-summaries.md`
+
+**Format for each paper:**
+```markdown
+## Paper 1: [Title]
+
+**Authors:** [names]
+**Year:** [year]
+**Link:** [url]
+
+### Key Idea (2-3 sentences)
+What is this paper about? What problem does it solve?
+
+### Relevant Findings
+- Finding 1
+- Finding 2
+- Finding 3
+
+### How We Could Use This
+How might this apply to our project?
+
+---
+```
 
 ---
 
 ## Resources
 
 **Required Reading:**
-- File structure: `docs/SOPs/file-structure.md`
-- Modularity: `docs/SOPs/modularity-upgrades.md`
-- Team SOPs: `docs/SOPs/team-sops.md`
+- `docs/SOPs/file-structure.md`
 
-
-**Tools:**
-- Excel or Google Sheets to open CSVs
-- Terminal commands: `head`, `wc -l`, `grep`
-
-**Internal Docs:**
-- CSV format requirements: `docs/reference/csv-formats.md`
+**Research Tools:**
+- Google Scholar: https://scholar.google.com/
+- Semantic Scholar: https://www.semanticscholar.org/
+- arXiv quantitative finance: https://arxiv.org/list/q-fin/recent
 
 ---
 
 ## Done Checklist
 
-- [ ] Handoff tracker created and maintained
-- [ ] Manually checked Alfie's matches.csv
-- [ ] Manually checked Alfie's odds.csv
-- [ ] Team names verified against official list
-- [ ] Reported any issues to Alfie
-- [ ] Confirmed Max got the files
-- [ ] Confirmed Dietrich loaded successfully
+**Daily Coordination:**
+- [ ] Check in with all 8 team members daily
+- [ ] Daily report posted by 6pm
+- [ ] Urgent issues escalated to Tan
+
+**Research:**
+- [ ] 3-5 papers found
+- [ ] Summaries written in `research/papers/paper-summaries.md`
+- [ ] Key findings highlighted
 
 ---
 
-## Thursday Presentation (1 min)
+## Thursday Presentation (2 min)
 
-1. Show handoff tracker with all statuses
-2. Report any issues found and fixed
-3. Confirm data is in the database
+1. Summary of week's progress/blockers (1 min)
+2. Top 2 interesting paper findings (1 min)

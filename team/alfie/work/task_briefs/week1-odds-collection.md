@@ -168,7 +168,6 @@ Create these to test your validation works:
 
 | Person | Interaction | When |
 |--------|-------------|------|
-| Miran | She spot-checks your data quality | Tue-Wed |
 | Dietrich | He loads your validated CSVs | Thu |
 | Mya | Send her CSVs for EDA analysis | Tue-Wed |
 
