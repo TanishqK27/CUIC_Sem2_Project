@@ -16,22 +16,20 @@ A free, open-source Python tool that scrapes sports betting odds from oddsportal
 
 Build a data pipeline that:
 1. **Collects** historical NBA odds (2021-present) using OddsHarvester
-2. **Stores** the data in a SQLite database (`sports_odds.db`)
-3. **Queries** the data easily from Jupyter notebooks via a `SportsOddsRepository`
+2. **Stores** the data in Dietrich's shared Railway PostgreSQL database
+3. **Queries** the data easily from Jupyter notebooks alongside existing Polymarket data
 
 This replaces The Odds API (which has a 500 request/month limit) with unlimited free scraping.
 
 ### What Success Looks Like
 
-- A SQLite database with ~5,000 NBA matches and ~7-10 million odds rows
-- A Python class that lets you do:
+- Sports odds data integrated into the shared Railway database (~5,000 NBA matches)
+- Data queryable alongside existing Polymarket data for cross-platform analysis
+- Example query pattern:
   ```python
-  from cuic_quant.database.repositories import SportsOddsRepository
-
-  repo = SportsOddsRepository("data/sports_odds.db")
-  df = repo.get_odds_df(league="nba", start_date="2024-01-01")
+  # Connect to shared database (same as Polymarket data)
+  df = query("SELECT * FROM sports_odds WHERE league = 'nba' AND date > '2024-01-01'")
   ```
-- Data that can be joined with Polymarket data for cross-platform analysis
 
 ### Example Steps
 
@@ -45,12 +43,13 @@ This replaces The Odds API (which has a 500 request/month limit) with unlimited 
 ### Resources
 
 - Full plan: `docs/plans/oddsharvester-integration.md`
-- Existing Polymarket collector to reference: `src/cuic_quant/collector/polymarket_collector.py`
-- Existing repository pattern: `src/cuic_quant/database/repositories/market_repo.py`
+- Database guide: `docs/reference/database-guide.md`
+- Connection guide: `docs/guides/connecting-to-database.md`
+- Data exploration tool: `tools/polymarket_data_exploration.ipynb`
 
 ### Notes
 
 - Work with Max on this - split the work between you
-- Work with Dietrich on how to integrate into his Railway database
+- Work with Dietrich on how to integrate into his Railway database (he manages the shared PostgreSQL instance)
 - Ask Tan if you get stuck on architecture decisions
-- Mirror the Polymarket infrastructure patterns where possible
+- Goal is to have sports odds queryable alongside existing Polymarket data
