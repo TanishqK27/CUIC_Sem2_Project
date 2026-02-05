@@ -100,15 +100,18 @@ psql 'postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rl
 ## Troubleshooting
 
 ### Connection Timeout
+
 **Cause:** Your IP isn't whitelisted
 **Fix:** Use Google Colab (recommended) or connect via VPN
 
 ### "No module named psycopg2"
+
 ```bash
 pip install psycopg2-binary
 ```
 
 ### Empty Results
+
 Check your SQL syntax and column names in [Database Schema](../reference/database-guide.md)
 
 ---

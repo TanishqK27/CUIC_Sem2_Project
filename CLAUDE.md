@@ -99,6 +99,7 @@ def calculate_kelly_fraction(
 ## Workflow Instructions
 
 ### Daily Workflow
+
 1. Pull latest changes: `git pull origin main`
 2. Create feature branch: `git checkout -b <name>/<feature>`
 3. Update your `team/<name>/LOG.md` with progress
@@ -108,13 +109,16 @@ def calculate_kelly_fraction(
 > **Full Git guide:** See [docs/guides/git-workflow.md](docs/guides/git-workflow.md) for branching, PRs, and common commands.
 
 ### Research Workflow
+
 1. Use `/research-template <category> <name>` to create notebook from template
 2. Document findings in notebook markdown cells
 3. Move successful experiments to `src/cuic_quant/`
 4. Update `research/ideas/README.md` with new ideas
 
 ### Log Updates
+
 Use the `/update-log` skill to add entries:
+
 ```
 /update-log tan Completed Kalshi API client implementation
 ```
@@ -139,14 +143,16 @@ Use the `/update-log` skill to add entries:
 ## Platform Quick Reference
 
 ### Kalshi
+
 - **Type:** CFTC-regulated event contracts exchange
 - **Currency:** USD
-- **Docs:** https://docs.kalshi.com/
+- **Docs:** <https://docs.kalshi.com/>
 - **Client:** `src/cuic_quant/data/kalshi_client.py`
 
 ### Sports Betting (The Odds API)
+
 - **Type:** Aggregated odds from bookmakers
-- **Docs:** https://the-odds-api.com/
+- **Docs:** <https://the-odds-api.com/>
 - **Client:** `src/cuic_quant/data/odds_api.py`
 
 ---
@@ -176,16 +182,19 @@ Use the `/update-log` skill to add entries:
 ## Dependencies Overview
 
 **Core:**
+
 - pandas, numpy - Data manipulation
 - requests, aiohttp, httpx - API clients
 - pydantic - Data validation
 
 **Research:**
+
 - jupyter, jupyterlab - Notebooks
 - matplotlib, plotly - Visualization
 - scikit-learn - ML models
 
 **Development:**
+
 - pytest - Testing
 - ruff - Linting/formatting
 - mypy - Type checking

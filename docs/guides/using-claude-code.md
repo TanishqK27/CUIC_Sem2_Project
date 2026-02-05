@@ -172,11 +172,13 @@ Skills are predefined workflows invoked with `/skill-name`. This project include
 Updates your personal LOG.md and the project-wide PROJECT_LOG.md.
 
 **Usage:**
+
 ```
 /update-log tan Completed Polymarket API client implementation
 ```
 
 **What it does:**
+
 1. Adds timestamped entry to `team/tan/LOG.md`
 2. Adds attributed entry to `team/PROJECT_LOG.md`
 
@@ -185,15 +187,18 @@ Updates your personal LOG.md and the project-wide PROJECT_LOG.md.
 Creates a new research notebook from the template.
 
 **Usage:**
+
 ```
 /research-template polymarket market-efficiency
 ```
 
 **Arguments:**
+
 - Category: `polymarket`, `kalshi`, `sports`, or `exploratory`
 - Name: Notebook name (kebab-case)
 
 **What it does:**
+
 1. Copies `research/notebooks/templates/research_template.ipynb`
 2. Saves to `research/notebooks/<category>/<name>.ipynb`
 3. Updates notebook metadata
@@ -203,11 +208,13 @@ Creates a new research notebook from the template.
 Generates a weekly summary from all team logs.
 
 **Usage:**
+
 ```
 /weekly-standup
 ```
 
 **What it does:**
+
 1. Reads all `team/<name>/LOG.md` files
 2. Extracts entries from the past week
 3. Generates formatted summary
@@ -398,11 +405,13 @@ Claude: [Generates tests]
 ### 5. Use Skills for Repetitive Tasks
 
 Instead of manually:
+
 ```
 You: "Add an entry to my log saying I completed the API client"
 ```
 
 Use the skill:
+
 ```
 /update-log tan Completed Polymarket API client
 ```

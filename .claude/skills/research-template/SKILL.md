@@ -85,6 +85,7 @@ research/notebooks/
 When copying the template, make these changes:
 
 1. **Cell 1 (Markdown - Title)**:
+
    ```markdown
    # <Title Case Name>
 
@@ -98,6 +99,7 @@ When copying the template, make these changes:
    ```
 
 2. **Metadata** (if present in notebook JSON):
+
    ```json
    {
      "cuic_quant": {

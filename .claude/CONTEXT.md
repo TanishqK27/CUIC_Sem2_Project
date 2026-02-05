@@ -12,6 +12,7 @@
 **Stage:** Alpha v0.1.0 - Infrastructure complete, awaiting team research execution.
 
 **Key Dates:**
+
 - Feb 2025: Phase 1 (Infrastructure) - Mostly Complete
 - Mar 2025: Phase 2 (Research) - Not Started
 - Apr 2025: Phase 3 (Strategy Development) - Not Started
@@ -40,6 +41,7 @@
 ## Code Implementation Status
 
 ### Strategies (src/cuic_quant/strategies/)
+
 | Module | Status | Lines |
 |--------|--------|-------|
 | kelly_criterion.py | Complete | 217 |
@@ -47,6 +49,7 @@
 | mean_reversion.py | Complete | 285 |
 
 ### Data Clients (src/cuic_quant/data/)
+
 | Client | Status | Lines |
 |--------|--------|-------|
 | kalshi_client.py | Framework ready | 476 |
@@ -69,6 +72,7 @@
 **Working tree:** 28 changes
 
 **Recent Commits:**
+
 - f86f161 feat: add auto-generated context file and update script
 - 69102e3 docs: add notebook outputs with live market data
 - 8633fa6 feat: update notebook to fetch live data with comprehensive explanations
@@ -80,22 +84,26 @@
 ## Key File Paths
 
 ### Configuration
+
 - `pyproject.toml` - Dependencies and tool config
 - `configs/example.env` - Environment template
 - `.pre-commit-config.yaml` - Code quality hooks
 
 ### Documentation
+
 - `CLAUDE.md` - Main project context (checked into repo)
 - `docs/setup/` - Environment, API keys, Claude Code guides
 - `docs/platforms/` - Polymarket, Kalshi, sports betting guides
 
 ### Team Management
+
 - `team/PROJECT_LOG.md` - Aggregated activity log
 - `team/PROJECT_TASKS.md` - All research tasks
 - `team/<name>/LOG.md` - Individual work logs
 - `team/<name>/TASKS.md` - Individual task assignments
 
 ### Custom Skills
+
 - `/update-log <name> <message>` - Update team member log
 - `/research-template <category> <name>` - Create research notebook
 - `/weekly-standup` - Generate progress summary

@@ -327,6 +327,7 @@ nbstripout research/notebooks/*.ipynb
 #### "python: command not found"
 
 **macOS/Linux:**
+
 ```bash
 # Use python3 explicitly
 python3 --version
@@ -337,6 +338,7 @@ source ~/.bashrc
 ```
 
 **Windows:**
+
 - Reinstall Python with "Add to PATH" checked
 - Or add manually: Settings → Environment Variables → PATH
 
@@ -353,6 +355,7 @@ python3 -m pip install -e .[all]
 #### Virtual Environment Issues
 
 **Can't activate on Windows PowerShell:**
+
 ```powershell
 # Enable script execution
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
@@ -362,6 +365,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 **Wrong Python version in venv:**
+
 ```bash
 # Delete and recreate with specific version
 rm -rf .venv

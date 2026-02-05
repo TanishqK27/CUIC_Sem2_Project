@@ -7,11 +7,13 @@ Personal work log for the CUIC Quant Fund project. Entries are in reverse chrono
 ## How to Update
 
 Use the `/update-log` skill:
+
 ```
 /update-log tan <description of work>
 ```
 
 Or use Tan's personal skill (no name needed):
+
 ```
 /tan-update-log <description of work>
 ```

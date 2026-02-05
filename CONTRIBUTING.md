@@ -76,7 +76,7 @@ git checkout -b <your-name>/<feature-description>
 ### 2. Make Your Changes
 
 - Write clean, documented code
-- When using AI/Claude/Codex, be thorough and don't just push AI stuff without understanding and checking it first. 
+- When using AI/Claude/Codex, be thorough and don't just push AI stuff without understanding and checking it first.
 - Add tests for new functionality
 - Update relevant documentation
 
@@ -374,9 +374,11 @@ git commit -m "WIP"
 ### Adding a Research Notebook
 
 1. **Create from template**:
+
    ```
    /research-template <category> <name>
    ```
+
    Categories: `polymarket`, `kalshi`, `sports`, `exploratory`
 
 2. **Structure your notebook**:
@@ -429,12 +431,14 @@ What you expect to find.
 ## Security
 
 **Never commit:**
+
 - API keys or secrets
 - `.env` files with real values
 - Credentials or passwords
 - Personal access tokens
 
 If you accidentally commit secrets:
+
 1. Immediately rotate the exposed credentials
 2. Contact the team lead
 3. Use `git filter-branch` or BFG Repo-Cleaner to remove from history

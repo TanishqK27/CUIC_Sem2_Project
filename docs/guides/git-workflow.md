@@ -62,6 +62,7 @@ git checkout -b tan/fix-polymarket-bug
 ```
 
 **Branch naming conventions:**
+
 - Use lowercase
 - Use hyphens, not spaces or underscores
 - Keep it short but descriptive
@@ -87,6 +88,7 @@ git commit -m "feat: add OddsHarvester client wrapper"
 ```
 
 **Commit message format:**
+
 ```
 <type>: <short description>
 
@@ -94,6 +96,7 @@ git commit -m "feat: add OddsHarvester client wrapper"
 ```
 
 Types:
+
 - `feat:` - New feature
 - `fix:` - Bug fix
 - `docs:` - Documentation only
@@ -103,11 +106,13 @@ Types:
 ### 4. Push to GitHub
 
 First time pushing a branch:
+
 ```bash
 git push -u origin alfie/oddsharvester-client
 ```
 
 Subsequent pushes:
+
 ```bash
 git push
 ```
@@ -115,12 +120,14 @@ git push
 ### 5. Create a Pull Request
 
 **Option A: GitHub website**
+
 1. Go to the repository on GitHub
 2. Click "Compare & pull request" (appears after you push)
 3. Fill in title and description
 4. Click "Create pull request"
 
 **Option B: GitHub CLI**
+
 ```bash
 gh pr create --title "Add OddsHarvester client" --body "Description of changes"
 ```
@@ -134,10 +141,12 @@ gh pr create --title "Add OddsHarvester client" --body "Description of changes"
 ### 7. Merge
 
 Once approved:
+
 - Click "Merge pull request" on GitHub
 - Delete the branch after merging (GitHub offers this option)
 
 Locally, clean up:
+
 ```bash
 git checkout main
 git pull origin main
@@ -208,11 +217,13 @@ git stash pop
 ## PR Best Practices
 
 ### Good PR Title
+
 ```
 feat: add OddsHarvester client for sports odds scraping
 ```
 
 ### Good PR Description
+
 ```markdown
 ## Summary
 - Added `OddsHarvesterClient` class that wraps the CLI tool
@@ -231,6 +242,7 @@ feat: add OddsHarvester client for sports odds scraping
 ### PR Checklist
 
 Before requesting review:
+
 - [ ] Code runs without errors
 - [ ] Tests pass (`pytest tests/ -v`)
 - [ ] Linting passes (`ruff check src/`)
@@ -242,6 +254,7 @@ Before requesting review:
 ## Branch Protection
 
 The `main` branch is protected:
+
 - Cannot push directly to main
 - PRs require at least 1 approval
 - All checks must pass before merging

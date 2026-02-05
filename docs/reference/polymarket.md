@@ -74,6 +74,7 @@ $0.50 × 50,000         $0.55 × 8,000
 ### 3. Settlement
 
 When an event resolves:
+
 - **YES shares** pay out **$1.00** if the event occurs
 - **NO shares** pay out **$1.00** if the event doesn't occur
 - Settlement uses UMA's Optimistic Oracle
@@ -217,6 +218,7 @@ GET https://gamma-api.polymarket.com/markets
 ```
 
 Response:
+
 ```json
 {
   "markets": [
@@ -240,6 +242,7 @@ GET https://clob.polymarket.com/book?token_id={token_id}
 ```
 
 Response:
+
 ```json
 {
   "bids": [
@@ -277,6 +280,7 @@ POLY_NONCE: {nonce}
 ## Accessing Polymarket Data
 
 Our team uses a **shared database** with pre-collected Polymarket data rather than direct API access. This gives us:
+
 - Historical price data going back to January 2026
 - Comparison with sportsbook odds
 - Strategy backtesting results

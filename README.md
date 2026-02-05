@@ -114,20 +114,24 @@ CUIC_Sem2_Project/
 ## Documentation
 
 ### Getting Started
+
 - [Environment Setup](docs/setup/environment-setup.md) - Python, dependencies, IDE
 - [Git Workflow](docs/setup/git-workflow.md) - Branches, PRs, and collaboration
 - [Claude Code Guide](docs/setup/claude-code-guide.md) - AI assistant setup
 - [API Keys Setup](docs/setup/api-keys.md) - Configuring API access
 
 ### Platforms
+
 - [Polymarket Guide](docs/platforms/polymarket.md) - Decentralized prediction market
 - [Kalshi Guide](docs/platforms/kalshi.md) - Regulated event contracts
 - [Sports Betting Basics](docs/platforms/sports-betting-basics.md) - Odds and fundamentals
 
 ### Research
+
 - [Methodology](docs/research/methodology.md) - Research workflow and standards
 
 ### Contributing
+
 - [Contribution Guidelines](CONTRIBUTING.md) - How to contribute
 
 ---
@@ -154,6 +158,7 @@ See the [Polymarket API Guide](research/notebooks/polymarket/API_GUIDE.md) and [
 ## Key Features
 
 ### API Clients
+
 Ready-to-use clients for major platforms:
 
 ```python
@@ -165,6 +170,7 @@ markets = polymarket.get_markets()
 ```
 
 ### Strategies
+
 Implemented quantitative strategies:
 
 ```python
@@ -216,6 +222,7 @@ pytest tests/test_strategies.py -v
 ### Adding Research
 
 1. Create a notebook from template:
+
    ```
    /research-template polymarket market-efficiency
    ```
@@ -223,6 +230,7 @@ pytest tests/test_strategies.py -v
 2. Document your work in the notebook's markdown cells
 
 3. Update your personal log:
+
    ```
    /update-log <your-name> Completed market efficiency analysis
    ```
@@ -266,11 +274,13 @@ Run `/weekly-standup` to generate a summary from all team logs.
 ## Resources
 
 ### External Links
+
 - [Polymarket Documentation](https://docs.polymarket.com/)
 - [Kalshi API Documentation](https://docs.kalshi.com/)
 - [The Odds API](https://the-odds-api.com/)
 
 ### Related Projects
+
 - [georgedouzas/sports-betting](https://github.com/georgedouzas/sports-betting)
 - [kyleskom/NBA-ML-Sports-Betting](https://github.com/kyleskom/NBA-Machine-Learning-Sports-Betting)
 - [bloomberg/quant-research](https://github.com/bloomberg/quant-research)

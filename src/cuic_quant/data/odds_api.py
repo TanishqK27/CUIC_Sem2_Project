@@ -222,9 +222,7 @@ class OddsAPIClient:
         response = self._session.get(url, params=request_params, timeout=30)
 
         # Track rate limits from response headers
-        self._requests_remaining = int(
-            response.headers.get("x-requests-remaining", 0)
-        )
+        self._requests_remaining = int(response.headers.get("x-requests-remaining", 0))
         self._requests_used = int(response.headers.get("x-requests-used", 0))
 
         response.raise_for_status()

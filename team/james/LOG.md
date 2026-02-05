@@ -7,6 +7,7 @@ Personal work log for the CUIC Quant Fund project. Entries are in reverse chrono
 ## How to Update
 
 Use the `/update-log` skill:
+
 ```
 /update-log james <description of work>
 ```

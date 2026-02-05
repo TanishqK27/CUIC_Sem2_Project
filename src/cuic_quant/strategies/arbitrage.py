@@ -221,10 +221,7 @@ def find_arbitrage_three_way(
         return None
 
     # Calculate stakes
-    stakes = [
-        total_stake * (1 / o) / implied_sum
-        for o in best_odds
-    ]
+    stakes = [total_stake * (1 / o) / implied_sum for o in best_odds]
 
     guaranteed_return = stakes[0] * best_odds[0]
     profit = guaranteed_return - total_stake

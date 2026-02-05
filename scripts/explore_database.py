@@ -14,18 +14,22 @@ Usage in Colab:
 # Install dependencies (only needed in Colab)
 import subprocess
 import sys
+
 try:
     import psycopg2
 except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "psycopg2-binary"])
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "-q", "psycopg2-binary"]
+    )
     import psycopg2
 
 import json
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 
 # Database connection
-DB_URL = 'postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rlwy.net:44650/railway'
+DB_URL = "postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rlwy.net:44650/railway"
+
 
 def json_serializer(obj):
     """Handle non-serializable types."""
@@ -35,6 +39,7 @@ def json_serializer(obj):
         return float(obj)
     return str(obj)
 
+
 def run_query(query):
     """Run a SQL query and return results as list of dicts."""
     conn = psycopg2.connect(DB_URL, connect_timeout=30)
@@ -43,7 +48,8 @@ def run_query(query):
     cols = [desc[0] for desc in cur.description]
     rows = cur.fetchall()
     conn.close()
-    return [dict(zip(cols, row)) for row in rows]
+    return [dict(zip(cols, row, strict=False)) for row in rows]
+
 
 def run_scalar(query):
     """Run a query and return single value."""
@@ -54,6 +60,7 @@ def run_scalar(query):
     conn.close()
     return result
 
+
 print("=" * 60)
 print("DATABASE EXPLORATION")
 print("=" * 60)
@@ -62,18 +69,20 @@ exploration = {
     "generated_at": datetime.now().isoformat(),
     "database_url": "Railway PostgreSQL (IP restricted)",
     "tables": {},
-    "summary": {}
+    "summary": {},
 }
 
 # Get all tables
 print("\n1. Discovering tables...")
-tables = run_query("""
+tables = run_query(
+    """
     SELECT table_name
     FROM information_schema.tables
     WHERE table_schema = 'public'
     ORDER BY table_name
-""")
-table_names = [t['table_name'] for t in tables]
+"""
+)
+table_names = [t["table_name"] for t in tables]
 print(f"   Found {len(table_names)} tables: {', '.join(table_names)}")
 
 # Get detailed info for each table
@@ -81,20 +90,17 @@ print("\n2. Analyzing each table...")
 for table_name in table_names:
     print(f"\n   [{table_name}]")
 
-    table_info = {
-        "columns": [],
-        "row_count": 0,
-        "sample_data": [],
-        "statistics": {}
-    }
+    table_info = {"columns": [], "row_count": 0, "sample_data": [], "statistics": {}}
 
     # Get columns
-    columns = run_query(f"""
+    columns = run_query(
+        f"""
         SELECT column_name, data_type, is_nullable, column_default
         FROM information_schema.columns
         WHERE table_name = '{table_name}'
         ORDER BY ordinal_position
-    """)
+    """
+    )
     table_info["columns"] = columns
     print(f"      Columns: {len(columns)}")
 
@@ -119,29 +125,33 @@ for table_name in table_names:
     # Get basic statistics for numeric/timestamp columns
     stats = {}
     for col in columns:
-        col_name = col['column_name']
-        col_type = col['data_type']
+        col_name = col["column_name"]
+        col_type = col["data_type"]
 
         try:
-            if col_type in ['integer', 'bigint', 'numeric', 'real', 'double precision']:
-                stat = run_query(f"""
+            if col_type in ["integer", "bigint", "numeric", "real", "double precision"]:
+                stat = run_query(
+                    f"""
                     SELECT
                         MIN({col_name}) as min_val,
                         MAX({col_name}) as max_val,
                         AVG({col_name}::numeric) as avg_val
                     FROM {table_name}
                     WHERE {col_name} IS NOT NULL
-                """)
+                """
+                )
                 if stat:
                     stats[col_name] = stat[0]
-            elif 'timestamp' in col_type or col_type == 'date':
-                stat = run_query(f"""
+            elif "timestamp" in col_type or col_type == "date":
+                stat = run_query(
+                    f"""
                     SELECT
                         MIN({col_name}) as min_val,
                         MAX({col_name}) as max_val
                     FROM {table_name}
                     WHERE {col_name} IS NOT NULL
-                """)
+                """
+                )
                 if stat:
                     stats[col_name] = stat[0]
         except:
@@ -154,12 +164,14 @@ for table_name in table_names:
 print("\n3. Generating summary...")
 exploration["summary"] = {
     "total_tables": len(table_names),
-    "table_row_counts": {name: exploration["tables"][name]["row_count"] for name in table_names}
+    "table_row_counts": {
+        name: exploration["tables"][name]["row_count"] for name in table_names
+    },
 }
 
 # Save to file
 output_file = "db_exploration.json"
-with open(output_file, 'w') as f:
+with open(output_file, "w") as f:
     json.dump(exploration, f, indent=2, default=json_serializer)
 
 print(f"\n{'=' * 60}")
@@ -169,6 +181,7 @@ print(f"{'=' * 60}")
 # Auto-download in Colab
 try:
     from google.colab import files
+
     files.download(output_file)
     print("\nFile download started!")
 except ImportError:

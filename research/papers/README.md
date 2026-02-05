@@ -218,6 +218,7 @@ Add papers using this format:
 ## Contributing
 
 When adding papers:
+
 1. Ensure the paper is relevant to our research
 2. Include a brief summary of key findings
 3. Explain relevance to the project

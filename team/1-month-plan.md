@@ -49,6 +49,7 @@ Every deliverable must meet these criteria before it's considered "done":
 | **Oversight/Support** | Tan, Andrii, Dietrich | Tan |
 
 **Notes:**
+
 - Weaker members paired with stronger ones
 - Dietrich advises Data Team (owns Railway DB)
 - Tan and Andrii float between teams to unblock issues
@@ -77,6 +78,7 @@ Every deliverable must meet these criteria before it's considered "done":
 | Next week assignments | Assign specific tasks for next week |
 
 **Rules:**
+
 - Thursdays are for **demos and deliverables**, not questions and problem-solving
 - Come prepared — no "I didn't have time"
 - Demo working code, not slides
@@ -126,6 +128,7 @@ Week 4: ──────────────── ALL CONVERGE ───�
 | Feature wishlist | Isameel | List of features models will need (price gaps, NBA stats, etc.) |
 
 ### Thursday Meeting (Feb 12)
+
 - [ ] Data Team: Demo query showing OddsHarvester + NBA data in Railway DB
 - [ ] Backtester Team: Present design document
 - [ ] Models Team: Present research notes and feature wishlist
@@ -159,6 +162,7 @@ Week 4: ──────────────── ALL CONVERGE ───�
 | Model interface spec | Isameel | Document defining Input → Output format for all models |
 
 ### Thursday Meeting (Feb 19)
+
 - [ ] Data Team: Demo EDA notebook with key insights
 - [ ] Backtester Team: Demo backtester running dummy strategy
 - [ ] Models Team: Demo baseline model producing predictions
@@ -192,6 +196,7 @@ Week 4: ──────────────── ALL CONVERGE ───�
 | XGBoost model | Mya, Isameel | ML model using combined features, notebook with backtest results |
 
 ### Thursday Meeting (Feb 26)
+
 - [ ] Data Team: Confirm all data needs are met
 - [ ] Backtester Team: Demo comparing multiple strategies
 - [ ] Models Team: Demo each model's performance metrics
@@ -247,6 +252,7 @@ Week 4: ──────────────── ALL CONVERGE ───�
 ```
 
 ### Final Meeting (Mar 5)
+
 - [ ] Full demo of master notebook
 - [ ] Present findings and strategy recommendations
 - [ ] Discuss next iteration improvements
@@ -256,6 +262,7 @@ Week 4: ──────────────── ALL CONVERGE ───�
 ## End State
 
 A Jupyter notebook where you can:
+
 1. Select a strategy (Markov, XGBoost, simple rules-based)
 2. Set date range and parameters
 3. Run cells
@@ -292,17 +299,21 @@ If you're blocked for more than a day without asking for help, that's on you.
 ## Resources
 
 ### Data Collection
+
 - [OddsHarvester](https://github.com/jordantete/OddsHarvester) — Sports odds scraper
 - [nba_api](https://github.com/swar/nba_api) — NBA.com stats API
 
 ### Backtesting
+
 - [sports-betting](https://github.com/georgedouzas/sports-betting) — Backtesting framework reference
 
 ### Models
+
 - [NBA-ML-Sports-Betting](https://github.com/kyleskom/NBA-Machine-Learning-Sports-Betting) — XGBoost reference
 - [NFL Markov Predictor](https://github.com/flancast90/NFL_Markov_Predictor) — Markov chain reference
 
 ### Existing Infrastructure
+
 - Database Guide: `docs/reference/database-guide.md`
 - Connection Guide: `docs/guides/connecting-to-database.md`
 - Data Exploration: `tools/polymarket_data_exploration.ipynb`

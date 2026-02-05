@@ -215,6 +215,7 @@ Query Parameters:
 ```
 
 Response:
+
 ```json
 {
   "markets": [
@@ -246,6 +247,7 @@ Query Parameters:
 ```
 
 Response:
+
 ```json
 {
   "yes": {
@@ -283,6 +285,7 @@ Content-Type: application/json
 ```
 
 Response:
+
 ```json
 {
   "order": {

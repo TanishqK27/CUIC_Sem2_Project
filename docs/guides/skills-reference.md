@@ -11,6 +11,7 @@ Quick reference for all custom Claude Code slash commands available in this proj
 Updates your personal `LOG.md` and the shared `PROJECT_LOG.md` with timestamped entries.
 
 **Usage:**
+
 ```
 /update-log <name> <message>
 ```
@@ -22,6 +23,7 @@ Updates your personal `LOG.md` and the shared `PROJECT_LOG.md` with timestamped 
 | `message` | Description of work completed |
 
 **Examples:**
+
 ```
 /update-log tan Completed Polymarket API client implementation
 /update-log andrii Added unit tests for Kelly criterion
@@ -29,6 +31,7 @@ Updates your personal `LOG.md` and the shared `PROJECT_LOG.md` with timestamped 
 ```
 
 **What it does:**
+
 1. Adds entry to `team/<name>/LOG.md` under today's date
 2. Adds attributed entry to `team/PROJECT_LOG.md`
 3. Creates date section if it doesn't exist
@@ -40,6 +43,7 @@ Updates your personal `LOG.md` and the shared `PROJECT_LOG.md` with timestamped 
 Creates a new Jupyter notebook from the project research template.
 
 **Usage:**
+
 ```
 /research-template <category> <name>
 ```
@@ -51,6 +55,7 @@ Creates a new Jupyter notebook from the project research template.
 | `name` | Notebook name in kebab-case (e.g., `market-efficiency`) |
 
 **Examples:**
+
 ```
 /research-template polymarket market-efficiency
 /research-template kalshi weather-contracts
@@ -59,6 +64,7 @@ Creates a new Jupyter notebook from the project research template.
 ```
 
 **What it does:**
+
 1. Copies `research/notebooks/templates/research_template.ipynb`
 2. Places it in `research/notebooks/<category>/<name>.ipynb`
 3. Updates title, category, and creation date metadata
@@ -78,6 +84,7 @@ Creates a new Jupyter notebook from the project research template.
 Generates a weekly progress summary from all team member logs.
 
 **Usage:**
+
 ```
 /weekly-standup
 ```
@@ -85,6 +92,7 @@ Generates a weekly progress summary from all team member logs.
 **No arguments required.**
 
 **What it does:**
+
 1. Reads all `team/<name>/LOG.md` files
 2. Extracts entries from the past 7 days
 3. Generates a formatted summary with:
@@ -93,6 +101,7 @@ Generates a weekly progress summary from all team member logs.
    - Active member count
 
 **Example output:**
+
 ```markdown
 # Weekly Standup Summary
 
@@ -131,16 +140,19 @@ Generates a weekly progress summary from all team member logs.
 ## Tips
 
 ### When to use /update-log
+
 - After completing a task or milestone
 - When switching to a different task
 - At the end of a work session
 
 ### When to use /research-template
+
 - Starting a new research investigation
 - Exploring a new dataset or API
 - Testing a hypothesis
 
 ### When to use /weekly-standup
+
 - Before team meetings
 - For progress reviews
 - To check team activity levels
@@ -161,13 +173,15 @@ Generates a weekly progress summary from all team member logs.
 ## Troubleshooting
 
 **"Invalid name" error with /update-log:**
+
 - Use lowercase names only
 - Valid names: tan, andrii, dietrich, ben, alfie, max, miran, mya, isameel, vansheeka
 
 **"Invalid category" error with /research-template:**
+
 - Valid categories: polymarket, kalshi, sports, exploratory
 
 **No entries showing in /weekly-standup:**
+
 - Check that LOG.md files use format `### YYYY-MM-DD` for date headers
 - Entries must be from the past 7 days
-

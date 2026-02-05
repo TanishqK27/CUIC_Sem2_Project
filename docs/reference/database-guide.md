@@ -45,11 +45,13 @@ We collect data comparing **Polymarket** (a prediction market) prices to **Sport
 | `has_arb` | True if there's a risk-free arbitrage opportunity |
 
 **How to read it:**
+
 - `pm_home_prob = 0.65` means Polymarket thinks home team has 65% chance to win
 - `diff = 0.05` means Sportsbook thinks home is 5 percentage points more likely than PM does
 - Large gaps (|diff| > 0.05) may indicate mispricing
 
 **Example query:**
+
 ```sql
 -- Latest prices for each game
 SELECT DISTINCT ON (game) game, pm_home_prob, sb_home_prob, diff
@@ -84,6 +86,7 @@ ORDER BY game, timestamp DESC
 | `EXIT_SL` | Closing at a loss (stop loss) |
 
 **Strategy variants:**
+
 - `aggressive` — Lower thresholds, trades more often
 - `safe` — Higher thresholds, fewer but more confident trades
 - `liq_deep_only` — Only trades when there's deep liquidity
@@ -130,6 +133,7 @@ ORDER BY game, timestamp DESC
 | `gap_closing` | Did the gap get smaller? (convergence) |
 
 **Current findings:**
+
 - 86.8% of the time, neither moves significantly
 - Sportsbooks lead 6.9% of the time
 - Polymarket leads 5.1% of the time
@@ -162,6 +166,7 @@ An orderbook shows all the buy orders (bids) and sell orders (asks) waiting to b
 | `slippage_buy_100` | Extra cost to buy $100 worth |
 
 **How to read it:**
+
 - `bid_ask_spread = 0.02` means 2% spread — you lose 2% just to enter and exit
 - `bid_depth_total = 5000` means $5,000 available to sell into
 - Higher depth = easier to trade large amounts
@@ -228,6 +233,7 @@ Converting betting odds to probabilities:
 ## Common Queries
 
 ### Latest prices for all games
+
 ```sql
 SELECT DISTINCT ON (game)
     game, timestamp, pm_home_prob, sb_home_prob,
@@ -238,6 +244,7 @@ ORDER BY game, timestamp DESC
 ```
 
 ### Find large gaps (potential opportunities)
+
 ```sql
 SELECT game, timestamp, pm_home_prob, sb_home_prob, diff
 FROM price_snapshots
@@ -247,6 +254,7 @@ LIMIT 20
 ```
 
 ### Strategy performance
+
 ```sql
 SELECT strategy,
        COUNT(*) as trades,
@@ -258,6 +266,7 @@ ORDER BY total_pnl DESC
 ```
 
 ### Why are trades being skipped?
+
 ```sql
 SELECT decision, COUNT(*) as count
 FROM trade_decisions
@@ -271,6 +280,7 @@ ORDER BY count DESC
 ## SQL Tips
 
 ### Time filters
+
 ```sql
 -- Last 24 hours
 WHERE timestamp > NOW() - INTERVAL '24 hours'
@@ -280,12 +290,14 @@ WHERE timestamp BETWEEN '2026-02-01' AND '2026-02-05'
 ```
 
 ### Text search
+
 ```sql
 -- Contains (case-insensitive)
 WHERE game ILIKE '%lakers%'
 ```
 
 ### Latest row per group
+
 ```sql
 -- PostgreSQL-specific
 SELECT DISTINCT ON (game) *

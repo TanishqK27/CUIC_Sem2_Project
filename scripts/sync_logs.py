@@ -19,7 +19,6 @@ import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
-
 # Team members (lowercase folder names)
 TEAM_MEMBERS = [
     "tan",
@@ -101,9 +100,7 @@ def collect_all_entries(
         # Filter by date if cutoff specified
         if cutoff_date:
             entries = {
-                date: items
-                for date, items in entries.items()
-                if date >= cutoff_date
+                date: items for date, items in entries.items() if date >= cutoff_date
             }
 
         if entries:
@@ -141,7 +138,7 @@ def generate_project_log(
         "",
         "## How to Add Entries",
         "",
-        'Use the `/update-log` skill to automatically add entries:',
+        "Use the `/update-log` skill to automatically add entries:",
         "",
         "```",
         "/update-log <your-name> <description of work>",
@@ -167,20 +164,20 @@ def generate_project_log(
         lines.append("")
 
     # Footer
-    lines.extend([
-        "---",
-        "",
-        "<!-- New entries will be added above this line -->",
-    ])
+    lines.extend(
+        [
+            "---",
+            "",
+            "<!-- New entries will be added above this line -->",
+        ]
+    )
 
     return "\n".join(lines)
 
 
 def main() -> None:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Sync team logs to PROJECT_LOG.md"
-    )
+    parser = argparse.ArgumentParser(description="Sync team logs to PROJECT_LOG.md")
     parser.add_argument(
         "--days",
         type=int,
