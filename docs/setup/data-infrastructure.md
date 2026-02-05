@@ -1,83 +1,22 @@
-# Data Infrastructure Guide
+# Data Infrastructure Setup
 
-This guide covers accessing the team's shared Polymarket database for research and analysis.
+How to connect to the team's shared Polymarket database.
 
----
-
-## Overview
-
-The CUIC Quant team uses a shared PostgreSQL database hosted on Railway for NBA betting data. Another team member runs continuous data collection - you just need to query it.
-
-### Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Team Data Collection Server                   │
-│  ┌──────────────────┐  ┌──────────────────┐                     │
-│  │  Polymarket API  │  │   Sportsbook API │                     │
-│  │  (Prices)        │  │   (Odds)         │                     │
-│  └────────┬─────────┘  └────────┬─────────┘                     │
-│           │                     │                                │
-│           └─────────┬───────────┘                                │
-│                     ▼                                            │
-│           ┌──────────────────┐                                   │
-│           │ Data Collector   │  (runs continuously)              │
-│           └────────┬─────────┘                                   │
-│                    │                                             │
-│                    ▼                                             │
-│           ┌──────────────────┐                                   │
-│           │ Railway PostgreSQL│                                  │
-│           │ (24M+ rows)      │                                   │
-│           └────────┬─────────┘                                   │
-└────────────────────┼─────────────────────────────────────────────┘
-                     │
-                     ▼ (IP-restricted)
-┌─────────────────────────────────────────────────────────────────┐
-│                       Your Access Options                        │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌────────────────┐ │
-│  │  Google Colab    │  │  Local + VPN     │  │  Direct psql   │ │
-│  │  (Recommended)   │  │  (If available)  │  │  (Advanced)    │ │
-│  └──────────────────┘  └──────────────────┘  └────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### What's in the Database?
-
-**Core Trading Data** *(from Dietrich's strategy experimentation):*
-
-| Table | Rows | Description |
-|-------|------|-------------|
-| `price_snapshots` | 90K+ | PM vs Sportsbook probability comparisons |
-| `trade_decisions` | 316K+ | Strategy decision logs with reasoning |
-| `paper_trades` | 258 | Simulated trade results with P&L |
-| `latency_events` | 57K+ | Market lead/lag analysis |
-
-**Orderbook Data:**
-
-| Table | Rows | Description |
-|-------|------|-------------|
-| `orderbook_snapshots` | 116K+ | Liquidity and depth metrics |
-| `ws_book_events` | 24M+ | High-frequency WebSocket data |
-
-📖 **Full schema details:** See [`DATABASE_GUIDE.md`](../../research/notebooks/polymarket/polymarket_data_collection/DATABASE_GUIDE.md)
+📖 **What's in the database?** See [DATABASE_GUIDE.md](../../research/notebooks/polymarket/polymarket_data_collection/DATABASE_GUIDE.md)
 
 ---
 
-## Quick Start
+## Quick Start (Google Colab)
 
-### Option 1: Google Colab (Recommended)
+**Recommended for most users** - no IP restrictions, no local setup.
 
-Best for most users - no IP restrictions, no setup required.
-
-1. Open the getting started notebook: [`research/notebooks/polymarket/getting_started.ipynb`](../../research/notebooks/polymarket/getting_started.ipynb)
+1. Open a notebook: [getting_started.ipynb](../../research/notebooks/polymarket/polymarket_data_collection/getting_started.ipynb)
 2. Click the "Open in Colab" badge
-3. Run the first cell to connect
+3. Run the first cell
 
 ```python
-# This works in Colab without any setup
-import sys
-if 'google.colab' in sys.modules:
-    !pip install -q psycopg2-binary
+# Works in Colab without any setup
+!pip install -q psycopg2-binary
 
 import psycopg2
 import pandas as pd
@@ -94,15 +33,21 @@ def query(sql):
 query("SELECT COUNT(*) FROM price_snapshots")
 ```
 
-### Option 2: Local with VPN
+---
 
-If you have VPN access:
+## Local Setup (Requires VPN)
+
+The database has IP restrictions. If you have VPN access:
+
+### 1. Install dependency
 
 ```bash
-# Install dependency
 pip install psycopg2-binary
+```
 
-# Test connection
+### 2. Test connection
+
+```bash
 python3 -c "
 import psycopg2
 conn = psycopg2.connect('postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rlwy.net:44650/railway')
@@ -111,9 +56,30 @@ conn.close()
 "
 ```
 
-### Option 3: Direct psql
+### 3. Use in Python
+
+```python
+import psycopg2
+import pandas as pd
+
+DB_URL = 'postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rlwy.net:44650/railway'
+
+def query(sql):
+    conn = psycopg2.connect(DB_URL, connect_timeout=30)
+    df = pd.read_sql(sql, conn)
+    conn.close()
+    return df
+
+# Example
+df = query("SELECT * FROM price_snapshots LIMIT 10")
+```
+
+---
+
+## Direct SQL Access
 
 ```bash
+# Using psql (install: brew install postgresql)
 psql 'postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rlwy.net:44650/railway'
 ```
 
@@ -123,109 +89,33 @@ psql 'postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rl
 
 | Notebook | Purpose |
 |----------|---------|
-| [`getting_started.ipynb`](../../research/notebooks/polymarket/getting_started.ipynb) | Interactive tutorial with visualizations |
-| [`price_dynamics.ipynb`](../../research/notebooks/polymarket/price_dynamics.ipynb) | Advanced price analysis |
-
-Both notebooks have Colab badges for easy access.
-
----
-
-## Example Queries
-
-### Latest Prices
-
-```sql
-SELECT DISTINCT ON (game)
-    game, timestamp, pm_home_prob, sb_home_prob,
-    (sb_home_prob - pm_home_prob) * 100 as gap_pp
-FROM price_snapshots
-WHERE pm_home_prob IS NOT NULL
-ORDER BY game, timestamp DESC
-```
-
-### Strategy Performance
-
-```sql
-SELECT strategy, COUNT(*) as trades,
-       ROUND(100.0 * SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) / COUNT(*), 1) as win_rate,
-       ROUND(SUM(pnl)::numeric, 2) as total_pnl
-FROM paper_trades
-GROUP BY strategy
-ORDER BY total_pnl DESC
-```
-
-### Find Large Gaps
-
-```sql
-SELECT game, timestamp, pm_home_prob, sb_home_prob,
-       (sb_home_prob - pm_home_prob) * 100 as gap
-FROM price_snapshots
-WHERE ABS(sb_home_prob - pm_home_prob) > 0.05
-ORDER BY timestamp DESC
-LIMIT 20
-```
-
-📖 **More queries:** See [`docs/DATABASE_GUIDE.md`](../DATABASE_GUIDE.md)
+| [getting_started.ipynb](../../research/notebooks/polymarket/polymarket_data_collection/getting_started.ipynb) | Interactive tutorial with visualizations |
+| [price_dynamics.ipynb](../../research/notebooks/polymarket/polymarket_data_collection/price_dynamics.ipynb) | Advanced price analysis |
 
 ---
 
 ## Troubleshooting
 
 ### Connection Timeout
-
-**Cause:** IP not whitelisted
-
+**Cause:** Your IP isn't whitelisted
 **Fix:** Use Google Colab (recommended) or connect via VPN
 
-### Empty Results
-
-**Cause:** Query syntax issue or no matching data
-
-**Fix:** Check column names in DATABASE_GUIDE.md
-
-### psycopg2 Import Error
-
+### "No module named psycopg2"
 ```bash
 pip install psycopg2-binary
 ```
 
----
-
-## Data Platforms
-
-The project integrates with multiple data sources:
-
-| Platform | Status | Purpose |
-|----------|--------|---------|
-| **Polymarket** | ✅ Team server | NBA betting data (via shared DB) |
-| **Kalshi** | 🔧 Framework ready | CFTC-regulated event contracts |
-| **The Odds API** | 🔧 Framework ready | Aggregated sportsbook odds |
-
-### Kalshi Client
-
-```python
-from cuic_quant.data import KalshiClient
-
-client = KalshiClient(api_key="your-key")
-markets = client.get_markets(category="sports")
-```
-
-### Odds API Client
-
-```python
-from cuic_quant.data import OddsAPIClient
-
-client = OddsAPIClient(api_key="your-key")
-odds = client.get_nba_odds()
-```
-
-📖 **API key setup:** See [`docs/setup/api-keys.md`](api-keys.md)
+### Empty Results
+Check your SQL syntax and column names in [DATABASE_GUIDE.md](../../research/notebooks/polymarket/polymarket_data_collection/DATABASE_GUIDE.md)
 
 ---
 
-## Next Steps
+## Other Data Sources
 
-1. Start with [`getting_started.ipynb`](../../research/notebooks/polymarket/getting_started.ipynb) in Colab
-2. Review [`DATABASE_GUIDE.md`](../DATABASE_GUIDE.md) for full schema
-3. Explore strategy code in `src/cuic_quant/strategies/`
-4. Check research tasks in `team/PROJECT_TASKS.md`
+| Platform | Status | Client |
+|----------|--------|--------|
+| **Polymarket** | ✅ Via shared DB | See above |
+| **Kalshi** | 🔧 Framework ready | `from cuic_quant.data import KalshiClient` |
+| **The Odds API** | 🔧 Framework ready | `from cuic_quant.data import OddsAPIClient` |
+
+📖 **API key setup:** See [api-keys.md](api-keys.md)

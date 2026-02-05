@@ -1,469 +1,306 @@
-# Polymarket Sports Betting Database Guide
+# Database Guide: What's in the Data
 
-> **Team Database:** PostgreSQL on Railway (IP-restricted)
-> **Data:** NBA game prices from Polymarket vs Sportsbooks
-> **Updated:** Live data collection running continuously
+A plain-English guide to our NBA betting database.
 
----
-
-## Quick Start
-
-### Connection Setup
-
-```python
-import psycopg2
-import pandas as pd
-
-# Database URL (requires VPN or whitelisted IP)
-DB_URL = 'postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rlwy.net:44650/railway'
-
-def run_query(query):
-    """Run SQL query and return pandas DataFrame."""
-    conn = psycopg2.connect(DB_URL, connect_timeout=30)
-    df = pd.read_sql(query, conn)
-    conn.close()
-    return df
-
-# Test connection
-df = run_query("SELECT COUNT(*) FROM price_snapshots")
-print(f"Connected! {df.iloc[0,0]:,} price snapshots available")
-```
-
-### Google Colab Setup
-
-If you can't connect locally (IP restrictions), use Google Colab:
-
-```python
-# Run this first in Colab
-!pip install -q psycopg2-binary
-
-import psycopg2
-import pandas as pd
-
-DB_URL = 'postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rlwy.net:44650/railway'
-
-def run_query(query):
-    conn = psycopg2.connect(DB_URL, connect_timeout=30)
-    df = pd.read_sql(query, conn)
-    conn.close()
-    return df
-```
+🔧 **How to connect:** See [data-infrastructure.md](../../../../docs/setup/data-infrastructure.md)
 
 ---
 
-## Database Overview
+## The Big Picture
 
-### Core Data Tables
+We collect data comparing **Polymarket** (a prediction market) prices to **Sportsbook** odds for NBA games. When these prices differ significantly, there may be trading opportunities.
 
-*Generated from Dietrich's strategy experimentation and testing:*
-
-| Table | Rows | Description |
-|-------|------|-------------|
-| `price_snapshots` | 90,456 | Core price data: PM vs SB probabilities |
-| `trade_decisions` | 316,397 | Why trades were made/skipped |
-| `latency_events` | 57,811 | Who moved first: PM or SB? |
-| `paper_trades` | 258 | Simulated trade results |
-| `paper_stats` | 3,799 | Strategy performance over time |
-
-### Orderbook Data
-
-| Table | Rows | Description |
-|-------|------|-------------|
-| `ws_book_events` | 24,099,429 | WebSocket orderbook events (high-frequency) |
-| `orderbook_snapshots` | 116,710 | Aggregated orderbook state |
-| `orderbook_levels` | 2,324,513 | Individual bid/ask levels |
-
-### Trading State
-
-| Table | Rows | Description |
-|-------|------|-------------|
-| `paper_positions` | 0 | Currently open paper positions |
-| `paper_cooldowns` | 59 | Post-trade cooldown periods |
-| `real_orders` | 710 | Actual orders placed |
-| `real_positions` | 3 | Currently open real positions |
-| `real_trades` | 4 | Completed real trades |
-
-**Data Range:** January 26, 2026 - Present (live collection)
-**Games Tracked:** 81 unique NBA games
+**Data source:** Dietrich's strategy experimentation and testing generated the core trading data.
 
 ---
 
-## Table Schemas
+## Tables at a Glance
 
-### price_snapshots (Core Data)
+| Table | What It Contains | Use It For |
+|-------|------------------|------------|
+| `price_snapshots` | PM vs Sportsbook prices over time | Finding price gaps, trend analysis |
+| `trade_decisions` | Why the strategy traded or skipped | Understanding strategy logic |
+| `paper_trades` | Simulated trade results | Evaluating strategy performance |
+| `latency_events` | Which market moves first | Timing analysis |
+| `orderbook_snapshots` | Market depth and liquidity | Assessing trade feasibility |
+| `ws_book_events` | Raw real-time orderbook updates | High-frequency analysis |
 
-The main table for price analysis. Each row is a point-in-time snapshot comparing Polymarket and sportsbook prices.
+---
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | integer | Primary key |
-| `timestamp` | timestamptz | When snapshot was taken |
-| `game` | text | Game name (e.g., "Lakers @ Celtics") |
-| `game_date` | date | Date of the game |
-| `home` | text | Home team name |
-| `away` | text | Away team name |
-| `pm_home_prob` | float | Polymarket home win probability (0-1) |
-| `pm_away_prob` | float | Polymarket away win probability (0-1) |
-| `sb_home_prob` | float | Sportsbook home win probability (0-1) |
-| `sb_away_prob` | float | Sportsbook away win probability (0-1) |
-| `sb_home_ml` | float | Sportsbook moneyline (American odds) |
-| `sb_away_ml` | float | Sportsbook moneyline (American odds) |
-| `diff` | float | Gap: sb_home_prob - pm_home_prob |
-| `has_arb` | boolean | Arbitrage opportunity detected |
-| `arb_profit_pct` | float | Potential arbitrage profit % |
+## Core Tables Explained
 
-**Example Query:**
+### price_snapshots — The Main Table
+
+**What it is:** A snapshot every few seconds comparing Polymarket and Sportsbook prices for each NBA game.
+
+**Key columns:**
+
+| Column | What It Means |
+|--------|---------------|
+| `game` | The matchup, e.g., "Lakers @ Celtics" |
+| `pm_home_prob` | Polymarket's implied probability the home team wins (0.0–1.0) |
+| `sb_home_prob` | Sportsbook's implied probability (0.0–1.0) |
+| `diff` | The gap: `sb_home_prob - pm_home_prob` |
+| `has_arb` | True if there's a risk-free arbitrage opportunity |
+
+**How to read it:**
+- `pm_home_prob = 0.65` means Polymarket thinks home team has 65% chance to win
+- `diff = 0.05` means Sportsbook thinks home is 5 percentage points more likely than PM does
+- Large gaps (|diff| > 0.05) may indicate mispricing
+
+**Example query:**
 ```sql
--- Get latest prices for all active games
-SELECT DISTINCT ON (game)
-    game,
-    timestamp,
-    pm_home_prob,
-    sb_home_prob,
-    (sb_home_prob - pm_home_prob) * 100 as gap_pp
+-- Latest prices for each game
+SELECT DISTINCT ON (game) game, pm_home_prob, sb_home_prob, diff
 FROM price_snapshots
-WHERE pm_home_prob IS NOT NULL
 ORDER BY game, timestamp DESC
 ```
 
 ---
 
-### trade_decisions (Strategy Logic)
+### trade_decisions — Strategy Logic
 
-Logs every decision point for the trading strategies. Essential for understanding why trades happen or don't.
+**What it is:** Every time the strategy evaluates whether to trade, it logs the decision and why.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | integer | Primary key |
-| `timestamp` | timestamptz | Decision time |
-| `strategy` | text | Strategy name |
-| `game` | text | Game being evaluated |
-| `gap` | float | Price gap at decision time |
-| `abs_gap` | float | Absolute gap value |
-| `min_gap_threshold` | float | Required gap to trade |
-| `gap_exceeded` | boolean | Was threshold met? |
-| `has_position` | boolean | Already in a position? |
-| `on_cooldown` | boolean | In post-trade cooldown? |
-| `game_decided` | boolean | Game outcome clear? |
-| `decision` | text | Final decision made |
-| `decision_detail` | text | Explanation of decision |
-| `liquidity_tier` | text | Market liquidity level |
+**Key columns:**
 
-**Decision Types:**
-| Decision | Count | Meaning |
-|----------|-------|---------|
-| `SKIP_LOW_GAP` | 240,198 | Gap too small to trade |
-| `SKIP_NO_LIQUIDITY` | 24,990 | Insufficient orderbook depth |
-| `SKIP_DECIDED` | 24,364 | Game outcome already clear |
-| `HOLD` | 15,943 | Keep existing position |
-| `EXIT_BLOCKED` | 6,337 | Can't exit (no liquidity) |
-| `SKIP_COOLDOWN` | 4,263 | Recently traded, waiting |
-| `EXIT_TP` | 92 | Take profit exit |
-| `ENTER_BUY` | 92 | Open long position |
-| `ENTER_SELL` | 86 | Open short position |
-| `EXIT_SL` | 57 | Stop loss exit |
+| Column | What It Means |
+|--------|---------------|
+| `strategy` | Which strategy variant (aggressive, safe, etc.) |
+| `gap` | Price gap at decision time |
+| `decision` | What the strategy decided to do |
+| `decision_detail` | Human-readable explanation |
+| `liquidity_tier` | Market depth level (deep/medium/shallow/none) |
 
-**Strategies:**
-- `aggressive` - Lower thresholds, more trades
-- `safe` - Higher thresholds, fewer trades
-- `liq_aggressive` - Aggressive + liquidity checks
-- `liq_balanced` - Balanced approach
-- `liq_deep_only` - Only trade deep liquidity
+**Common decisions:**
+
+| Decision | Meaning |
+|----------|---------|
+| `SKIP_LOW_GAP` | Gap too small to be profitable |
+| `SKIP_NO_LIQUIDITY` | Can't trade — not enough buyers/sellers |
+| `ENTER_BUY` | Opening a long position |
+| `EXIT_TP` | Closing for profit (take profit) |
+| `EXIT_SL` | Closing at a loss (stop loss) |
+
+**Strategy variants:**
+- `aggressive` — Lower thresholds, trades more often
+- `safe` — Higher thresholds, fewer but more confident trades
+- `liq_deep_only` — Only trades when there's deep liquidity
 
 ---
 
-### paper_trades (Simulated Results)
+### paper_trades — Simulated Results
 
-Completed paper trades with full P&L tracking.
+**What it is:** Completed simulated trades with full profit/loss tracking. No real money involved.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | integer | Primary key |
-| `strategy` | text | Strategy that made the trade |
-| `game` | text | Game traded |
-| `side` | text | BUY or SELL |
-| `entry_price` | float | Entry probability |
-| `exit_price` | float | Exit probability |
-| `entry_gap` | float | Gap when entering |
-| `exit_gap` | float | Gap when exiting |
-| `entry_time` | timestamptz | When position opened |
-| `exit_time` | timestamptz | When position closed |
-| `hold_snapshots` | integer | How long held (in snapshots) |
-| `pnl` | float | Profit/loss |
-| `fees` | float | Trading fees |
-| `exit_reason` | text | Why position was closed |
-| `clv` | float | Closing line value |
+**Key columns:**
 
-**Strategy Performance:**
-| Strategy | Trades | Win Rate | Total PnL |
+| Column | What It Means |
+|--------|---------------|
+| `strategy` | Which strategy made the trade |
+| `side` | BUY or SELL |
+| `entry_price` / `exit_price` | Prices when opening and closing |
+| `pnl` | Profit or loss in dollars |
+| `exit_reason` | Why the trade was closed (take profit, stop loss, etc.) |
+
+**Current performance:**
+
+| Strategy | Trades | Win Rate | Total P&L |
 |----------|--------|----------|-----------|
-| aggressive | 88 | 73.9% | $1,807.20 |
-| liq_deep_only | 28 | 71.4% | $654.58 |
-| liq_aggressive | 52 | 50.0% | $83.93 |
-| liq_balanced | 44 | 56.8% | $51.01 |
-| safe | 46 | 54.3% | -$3.91 |
+| aggressive | 88 | 73.9% | +$1,807 |
+| liq_deep_only | 28 | 71.4% | +$655 |
+| safe | 46 | 54.3% | -$4 |
 
 ---
 
-### latency_events (Who Moves First?)
+### latency_events — Who Moves First?
 
-Tracks which market (PM or SB) moves first when prices change.
+**What it is:** Tracks when prices change and which market (PM or Sportsbook) moved first.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | integer | Primary key |
-| `timestamp` | timestamptz | Event time |
-| `game` | text | Game name |
-| `pm_home_prev` | float | PM price before move |
-| `pm_home_now` | float | PM price after move |
-| `pm_delta` | float | PM price change |
-| `sb_home_prev` | float | SB price before move |
-| `sb_home_now` | float | SB price after move |
-| `sb_delta` | float | SB price change |
-| `leader` | text | Who moved first |
-| `gap_closing` | boolean | Did gap narrow? |
+**Why it matters:** If sportsbooks consistently move before Polymarket, we might be able to trade on Polymarket before it catches up.
 
-**Leader Breakdown:**
-| Leader | Count | Percentage |
-|--------|-------|------------|
-| none | 50,168 | 86.8% |
-| sb | 4,013 | 6.9% |
-| pm | 2,947 | 5.1% |
-| both | 692 | 1.2% |
+**Key columns:**
+
+| Column | What It Means |
+|--------|---------------|
+| `leader` | Which market moved first: `pm`, `sb`, `both`, or `none` |
+| `pm_delta` | How much Polymarket's price changed |
+| `sb_delta` | How much Sportsbook's price changed |
+| `gap_closing` | Did the gap get smaller? (convergence) |
+
+**Current findings:**
+- 86.8% of the time, neither moves significantly
+- Sportsbooks lead 6.9% of the time
+- Polymarket leads 5.1% of the time
 
 ---
 
-### orderbook_snapshots (Liquidity Data)
+## Orderbook Tables
 
-Aggregated orderbook state with depth and slippage metrics.
+### What's an Orderbook?
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | integer | Primary key |
-| `timestamp` | timestamptz | Snapshot time |
-| `game` | text | Game name |
-| `outcome` | text | HOME or AWAY |
-| `best_bid` | float | Highest buy price |
-| `best_ask` | float | Lowest sell price |
-| `bid_ask_spread` | float | Spread (avg: 1.16%) |
-| `mid_price` | float | Midpoint price |
-| `bid_depth_total` | float | Total bid liquidity |
-| `ask_depth_total` | float | Total ask liquidity |
-| `cost_to_buy_100` | float | Cost to buy $100 |
-| `slippage_buy_100` | float | Slippage on $100 buy |
-| `slip_buy_25/50/250/500/1000` | float | Slippage at various sizes |
+An orderbook shows all the buy orders (bids) and sell orders (asks) waiting to be filled. Think of it like a queue of people wanting to buy or sell at different prices.
 
----
+- **Bid:** "I'll buy at this price"
+- **Ask:** "I'll sell at this price"
+- **Spread:** Gap between best bid and best ask
+- **Depth:** How much money is available at each price level
 
-### ws_book_events (High-Frequency Data)
+### orderbook_snapshots — Aggregated Liquidity
 
-Raw WebSocket orderbook events - very high volume (24M+ rows).
+**What it is:** A summary of the orderbook at regular intervals.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | integer | Primary key |
-| `timestamp` | timestamptz | Event time |
-| `event_type` | text | Type of orderbook event |
-| `asset_id` | text | Polymarket token ID |
-| `game` | text | Game name |
-| `outcome` | text | HOME or AWAY |
-| `best_bid` | float | Best bid at event time |
-| `best_ask` | float | Best ask at event time |
-| `buy_levels` | jsonb | Full bid ladder (JSON) |
-| `sell_levels` | jsonb | Full ask ladder (JSON) |
+**Key columns:**
+
+| Column | What It Means |
+|--------|---------------|
+| `best_bid` | Highest price someone will pay |
+| `best_ask` | Lowest price someone will sell at |
+| `bid_ask_spread` | Gap between bid and ask (lower = more liquid) |
+| `bid_depth_total` | Total $ available on buy side |
+| `slippage_buy_100` | Extra cost to buy $100 worth |
+
+**How to read it:**
+- `bid_ask_spread = 0.02` means 2% spread — you lose 2% just to enter and exit
+- `bid_depth_total = 5000` means $5,000 available to sell into
+- Higher depth = easier to trade large amounts
 
 ---
 
-## Common Queries
+### ws_book_events — Real-Time Updates
 
-### 1. Latest Prices for All Games
+**What it is:** Raw WebSocket feed of every orderbook change. Very high volume (24M+ rows).
+
+**What's a WebSocket?** A live connection that streams data in real-time, like a stock ticker. Every time someone places or cancels an order, we get an update.
+
+**⚠️ Warning:** This table is huge. Always use `LIMIT` and filters:
+
 ```sql
-SELECT DISTINCT ON (game)
-    game,
-    timestamp,
-    pm_home_prob,
-    sb_home_prob,
-    (sb_home_prob - pm_home_prob) * 100 as gap_pp
-FROM price_snapshots
-WHERE pm_home_prob IS NOT NULL
-ORDER BY game, timestamp DESC
-```
+-- DON'T do this (will timeout)
+SELECT * FROM ws_book_events
 
-### 2. Price History for a Specific Game
-```sql
-SELECT timestamp, pm_home_prob, sb_home_prob,
-       (sb_home_prob - pm_home_prob) * 100 as gap
-FROM price_snapshots
+-- DO this instead
+SELECT * FROM ws_book_events
 WHERE game LIKE '%Lakers%'
-ORDER BY timestamp
-```
-
-### 3. Find Large Gaps in Competitive Games
-```sql
-SELECT game, timestamp, pm_home_prob, sb_home_prob,
-       (sb_home_prob - pm_home_prob) * 100 as gap
-FROM price_snapshots
-WHERE ABS(sb_home_prob - pm_home_prob) > 0.05
-  AND sb_home_prob BETWEEN 0.25 AND 0.75
-ORDER BY timestamp DESC
-LIMIT 50
-```
-
-### 4. Strategy Performance Summary
-```sql
-SELECT
-    strategy,
-    COUNT(*) as trades,
-    SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
-    ROUND(100.0 * SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) / COUNT(*), 1) as win_rate,
-    ROUND(SUM(pnl)::numeric, 2) as total_pnl,
-    ROUND(AVG(pnl)::numeric, 4) as avg_pnl
-FROM paper_trades
-GROUP BY strategy
-ORDER BY total_pnl DESC
-```
-
-### 5. Why Were Trades Skipped?
-```sql
-SELECT decision, COUNT(*) as cnt,
-       ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) as pct
-FROM trade_decisions
-WHERE timestamp > NOW() - INTERVAL '24 hours'
-GROUP BY decision
-ORDER BY cnt DESC
-```
-
-### 6. Who Moves First Analysis
-```sql
-SELECT
-    leader,
-    COUNT(*) as events,
-    ROUND(AVG(ABS(gap_delta))::numeric, 4) as avg_gap_change
-FROM latency_events
-WHERE leader IS NOT NULL
-GROUP BY leader
-ORDER BY events DESC
-```
-
-### 7. Orderbook Depth by Game
-```sql
-SELECT
-    game,
-    COUNT(*) as snapshots,
-    ROUND(AVG(bid_depth_total)::numeric, 0) as avg_bid_depth,
-    ROUND(AVG(ask_depth_total)::numeric, 0) as avg_ask_depth,
-    ROUND(AVG(bid_ask_spread)::numeric, 4) as avg_spread
-FROM orderbook_snapshots
-WHERE timestamp > NOW() - INTERVAL '24 hours'
-GROUP BY game
-ORDER BY avg_bid_depth DESC
-```
-
-### 8. Daily Gap Statistics
-```sql
-SELECT
-    DATE(timestamp) as date,
-    COUNT(*) as snapshots,
-    COUNT(DISTINCT game) as games,
-    ROUND(AVG(ABS(diff) * 100)::numeric, 2) as avg_gap_pp,
-    ROUND(MAX(ABS(diff) * 100)::numeric, 1) as max_gap_pp
-FROM price_snapshots
-WHERE pm_home_prob IS NOT NULL
-GROUP BY DATE(timestamp)
-ORDER BY date DESC
-LIMIT 14
-```
-
----
-
-## SQL Patterns Cheat Sheet
-
-### Time Filtering
-```sql
--- Last 24 hours
-WHERE timestamp > NOW() - INTERVAL '24 hours'
-
--- Specific date range
-WHERE timestamp BETWEEN '2026-02-01' AND '2026-02-05'
-
--- Today only
-WHERE DATE(timestamp) = CURRENT_DATE
-```
-
-### Text Matching
-```sql
--- Contains (case-sensitive)
-WHERE game LIKE '%Lakers%'
-
--- Contains (case-insensitive)
-WHERE game ILIKE '%lakers%'
-
--- Starts with
-WHERE game LIKE 'Los Angeles%'
-```
-
-### Latest Row Per Group
-```sql
--- PostgreSQL-specific: DISTINCT ON
-SELECT DISTINCT ON (game) *
-FROM price_snapshots
-ORDER BY game, timestamp DESC
-```
-
-### Window Functions
-```sql
--- Previous and next values
-SELECT *,
-    LAG(pm_home_prob) OVER (PARTITION BY game ORDER BY timestamp) as pm_prev,
-    LEAD(pm_home_prob) OVER (PARTITION BY game ORDER BY timestamp) as pm_next
-FROM price_snapshots
-```
-
-### Conditional Aggregation
-```sql
-SELECT
-    COUNT(*) FILTER (WHERE ABS(diff) > 0.05) as large_gaps,
-    COUNT(*) FILTER (WHERE ABS(diff) <= 0.05) as small_gaps
-FROM price_snapshots
+  AND timestamp > NOW() - INTERVAL '1 hour'
+LIMIT 1000
 ```
 
 ---
 
 ## Key Concepts
 
-### Gap (diff)
-The difference between sportsbook and Polymarket probability:
-- **Positive gap:** SB thinks home team more likely to win than PM
-- **Negative gap:** PM thinks home team more likely to win than SB
-- **Trading signal:** Large gaps may indicate mispricing
+### The Gap (diff)
+
+The difference between what sportsbooks and Polymarket think:
+
+```
+gap = sb_home_prob - pm_home_prob
+```
+
+- **Positive gap (+0.05):** Sportsbooks think home team is 5pp more likely than PM
+- **Negative gap (-0.03):** Polymarket thinks home team is 3pp more likely than SB
+- **Trading thesis:** Gaps tend to close over time → bet on convergence
 
 ### Liquidity Tiers
-- **deep** - High liquidity, low slippage
-- **medium** - Moderate liquidity
-- **shallow** - Low liquidity, high slippage
-- **none** - No orderbook depth
 
-### Exit Reasons
-- **Take profit** - Gap converged, profit target hit
-- **Stop loss** - Gap widened, loss limit hit
-- **Game ended** - Game finished, position closed
-- **Timeout** - Held too long without resolution
+How easy it is to trade:
+
+| Tier | Meaning | Can Trade? |
+|------|---------|------------|
+| `deep` | Lots of buyers and sellers | ✅ Yes, large amounts |
+| `medium` | Moderate activity | ✅ Yes, smaller amounts |
+| `shallow` | Few orders available | ⚠️ High slippage |
+| `none` | No orderbook depth | ❌ Can't trade |
+
+### Implied Probability
+
+Converting betting odds to probabilities:
+
+- **Polymarket:** Price IS the probability (0.65 = 65% chance)
+- **Sportsbook:** Convert from American odds
+  - +150 → 100/(100+150) = 40%
+  - -200 → 200/(200+100) = 67%
 
 ---
 
-## Notebooks
+## Common Queries
 
-| Notebook | Description |
-|----------|-------------|
-| `research/notebooks/polymarket/price_dynamics.ipynb` | Correlation, lead/lag, mean reversion analysis |
-| `research/notebooks/polymarket/data_exploration.ipynb` | Polymarket public API exploration |
+### Latest prices for all games
+```sql
+SELECT DISTINCT ON (game)
+    game, timestamp, pm_home_prob, sb_home_prob,
+    ROUND((sb_home_prob - pm_home_prob) * 100, 1) as gap_pct
+FROM price_snapshots
+WHERE pm_home_prob IS NOT NULL
+ORDER BY game, timestamp DESC
+```
+
+### Find large gaps (potential opportunities)
+```sql
+SELECT game, timestamp, pm_home_prob, sb_home_prob, diff
+FROM price_snapshots
+WHERE ABS(diff) > 0.05
+ORDER BY timestamp DESC
+LIMIT 20
+```
+
+### Strategy performance
+```sql
+SELECT strategy,
+       COUNT(*) as trades,
+       ROUND(100.0 * SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) / COUNT(*), 1) as win_rate,
+       ROUND(SUM(pnl)::numeric, 2) as total_pnl
+FROM paper_trades
+GROUP BY strategy
+ORDER BY total_pnl DESC
+```
+
+### Why are trades being skipped?
+```sql
+SELECT decision, COUNT(*) as count
+FROM trade_decisions
+WHERE timestamp > NOW() - INTERVAL '24 hours'
+GROUP BY decision
+ORDER BY count DESC
+```
 
 ---
 
-## Tips
+## SQL Tips
 
-1. **Start with `price_snapshots`** - It's the core table for most analysis
-2. **Use `trade_decisions` to understand strategy logic** - See why trades happen
-3. **Careful with `ws_book_events`** - 24M+ rows, always use LIMIT and filters
-4. **Check `paper_trades` for backtest results** - Real performance data
-5. **Use Colab if IP-restricted** - Colab IPs usually aren't blocked
+### Time filters
+```sql
+-- Last 24 hours
+WHERE timestamp > NOW() - INTERVAL '24 hours'
+
+-- Specific date range
+WHERE timestamp BETWEEN '2026-02-01' AND '2026-02-05'
+```
+
+### Text search
+```sql
+-- Contains (case-insensitive)
+WHERE game ILIKE '%lakers%'
+```
+
+### Latest row per group
+```sql
+-- PostgreSQL-specific
+SELECT DISTINCT ON (game) *
+FROM price_snapshots
+ORDER BY game, timestamp DESC
+```
+
+---
+
+## Data Stats
+
+| Metric | Value |
+|--------|-------|
+| **Date range** | Jan 26, 2026 – Present |
+| **Games tracked** | 81 NBA games |
+| **Price snapshots** | 90,456 |
+| **Trade decisions** | 316,397 |
+| **Paper trades** | 258 |
+| **WebSocket events** | 24,099,429 |
