@@ -12,6 +12,29 @@ Build THE backtester. This is the most important piece of infrastructure. Every 
 
 ---
 
+## CRITICAL: Output Format (Ben Depends On This)
+
+**Your `backtest()` function MUST return a DataFrame with EXACTLY these columns:**
+
+```python
+# EXACT OUTPUT FORMAT - DO NOT CHANGE
+results_df = pd.DataFrame({
+    'timestamp': [...],      # datetime - when trade happened
+    'game': [...],           # str - "Home vs Away"
+    'action': [...],         # str - 'BUY_HOME' or 'BUY_AWAY'
+    'bet_size': [...],       # float - dollars bet
+    'odds': [...],           # float - decimal odds used
+    'outcome': [...],        # str - 'WIN' or 'LOSS'
+    'pnl': [...],            # float - profit/loss for this trade
+    'cumulative_pnl': [...], # float - running total P&L
+    'bankroll': [...],       # float - current bankroll after trade
+})
+```
+
+**Ben is building metrics against this format with dummy data. Your real output MUST match exactly.**
+
+---
+
 ## This Week's Deliverables
 
 ### 1. Backtester Notebook

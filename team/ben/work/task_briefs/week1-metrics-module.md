@@ -12,6 +12,57 @@ Build the metrics module. When James's backtester outputs trades, your code calc
 
 ---
 
+## DON'T WAIT FOR JAMES - Use Dummy Data
+
+James is building the backtester in parallel. **Create dummy data matching his output format and build against that.** When James delivers, it will match this format.
+
+### Create This Dummy Data First
+
+```python
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+
+def create_dummy_backtest_results(n_trades: int = 50, seed: int = 42) -> pd.DataFrame:
+    """
+    Create dummy backtester output matching James's EXACT format.
+    Use this to build and test your metrics module.
+    """
+    np.random.seed(seed)
+
+    # Generate realistic trades
+    start = datetime(2026, 1, 1, 19, 0)
+    pnls = np.random.normal(5, 50, n_trades)  # Slight positive edge
+
+    cumulative = 0
+    bankroll = 10000
+    trades = []
+
+    for i, pnl in enumerate(pnls):
+        cumulative += pnl
+        bankroll += pnl
+        trades.append({
+            'timestamp': start + timedelta(days=i),
+            'game': f"Team{i*2} vs Team{i*2+1}",
+            'action': np.random.choice(['BUY_HOME', 'BUY_AWAY']),
+            'bet_size': 100.0,
+            'odds': np.random.uniform(1.8, 2.2),
+            'outcome': 'WIN' if pnl > 0 else 'LOSS',
+            'pnl': pnl,
+            'cumulative_pnl': cumulative,
+            'bankroll': bankroll,
+        })
+
+    return pd.DataFrame(trades)
+
+# USE THIS FOR ALL YOUR TESTING
+dummy_results = create_dummy_backtest_results()
+```
+
+**James's real output will have these EXACT columns. Build your metrics against this.**
+
+---
+
 ## This Week's Deliverables
 
 ### 1. Metrics Module

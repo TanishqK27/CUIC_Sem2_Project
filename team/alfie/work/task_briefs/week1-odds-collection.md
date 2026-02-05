@@ -102,20 +102,54 @@ python scripts/validate_csv.py odds data/sportsbook_odds.csv
 
 ---
 
-## CSV Format You Must Produce
+## CRITICAL: CSV Format (Dietrich Loads This EXACTLY)
+
+**Dietrich's loader expects EXACTLY these columns. No extras, no missing.**
 
 **sportsbook_matches.csv:**
-```
+```csv
 external_id,home_team,away_team,commence_time
 nba_123456,Los Angeles Lakers,Boston Celtics,2026-02-10 19:00:00
+nba_789012,Golden State Warriors,Miami Heat,2026-02-10 21:30:00
 ```
 
 **sportsbook_odds.csv:**
-```
+```csv
 external_id,bookmaker,home_odds,away_odds
 nba_123456,fanduel,1.95,2.05
 nba_123456,draftkings,1.92,2.08
+nba_789012,fanduel,1.85,2.15
 ```
+
+### Create Dummy CSVs First (Before OddsHarvester Works)
+
+Even if OddsHarvester isn't working yet, create dummy CSVs in this format so Max and Dietrich can test their code:
+
+```python
+import pandas as pd
+
+# Dummy matches
+matches = pd.DataFrame({
+    'external_id': ['nba_test_001', 'nba_test_002', 'nba_test_003'],
+    'home_team': ['Los Angeles Lakers', 'Boston Celtics', 'Golden State Warriors'],
+    'away_team': ['Miami Heat', 'Brooklyn Nets', 'Phoenix Suns'],
+    'commence_time': ['2026-02-10 19:00:00', '2026-02-10 19:30:00', '2026-02-10 21:00:00'],
+})
+matches.to_csv('data/sportsbook_matches.csv', index=False)
+
+# Dummy odds
+odds = pd.DataFrame({
+    'external_id': ['nba_test_001', 'nba_test_001', 'nba_test_002', 'nba_test_002'],
+    'bookmaker': ['fanduel', 'draftkings', 'fanduel', 'draftkings'],
+    'home_odds': [1.95, 1.92, 2.10, 2.08],
+    'away_odds': [2.05, 2.08, 1.80, 1.82],
+})
+odds.to_csv('data/sportsbook_odds.csv', index=False)
+
+print("Dummy CSVs created - send to Max for validation")
+```
+
+**Send dummy CSVs to Max by Tuesday so the pipeline can be tested before real data.**
 
 ---
 

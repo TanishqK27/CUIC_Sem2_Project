@@ -14,6 +14,48 @@ You are the **tester**. When James builds the backtester and Ben builds metrics,
 
 ---
 
+## DON'T WAIT - Create Test Data Now
+
+You can prepare your test cases before James/Ben deliver. Create dummy data matching the expected formats.
+
+### Dummy Backtester Input (what James expects)
+```python
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+
+# This is what goes INTO the backtester
+test_input = pd.DataFrame({
+    'timestamp': [datetime(2026, 1, 1) + timedelta(days=i) for i in range(10)],
+    'game': [f"Team{i*2} vs Team{i*2+1}" for i in range(10)],
+    'home_team': [f"Team{i*2}" for i in range(10)],
+    'away_team': [f"Team{i*2+1}" for i in range(10)],
+    'home_odds': [2.0] * 10,
+    'away_odds': [2.0] * 10,
+    'home_win': [1, 0, 1, 0, 1, 0, 1, 0, 1, 0],  # Alternating for easy testing
+})
+```
+
+### Dummy Backtester Output (what James produces / Ben consumes)
+```python
+# This is what comes OUT of the backtester
+test_output = pd.DataFrame({
+    'timestamp': [...],
+    'game': [...],
+    'action': ['BUY_HOME', 'BUY_AWAY', ...],
+    'bet_size': [100.0, 100.0, ...],
+    'odds': [2.0, 2.0, ...],
+    'outcome': ['WIN', 'LOSS', ...],
+    'pnl': [100.0, -100.0, ...],
+    'cumulative_pnl': [100.0, 0.0, ...],
+    'bankroll': [10100.0, 10000.0, ...],
+})
+```
+
+**When James/Ben deliver, their code should work with these formats. If it doesn't, that's a bug.**
+
+---
+
 ## This Week's Deliverables
 
 ### 1. Test James's Backtester

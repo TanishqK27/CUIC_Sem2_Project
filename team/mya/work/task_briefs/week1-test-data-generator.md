@@ -12,6 +12,27 @@ Create synthetic test data with KNOWN outcomes. This lets James test his backtes
 
 ---
 
+## CRITICAL: Input Format (James Needs This)
+
+**Your test data MUST have EXACTLY these columns (this is what James's backtester expects as INPUT):**
+
+```python
+# EXACT INPUT FORMAT FOR BACKTESTER
+test_data = pd.DataFrame({
+    'timestamp': [...],     # datetime - game time
+    'game': [...],          # str - "Home vs Away"
+    'home_team': [...],     # str - home team name
+    'away_team': [...],     # str - away team name
+    'home_odds': [...],     # float - decimal odds (e.g., 1.95)
+    'away_odds': [...],     # float - decimal odds (e.g., 2.05)
+    'home_win': [...],      # int - 1 if home won, 0 if away won (KNOWN OUTCOME)
+})
+```
+
+**James will build his backtester to read this EXACT format. Don't change it.**
+
+---
+
 ## This Week's Deliverables
 
 ### 1. Test Data Generator
