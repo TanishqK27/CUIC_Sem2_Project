@@ -5,40 +5,24 @@
 
 ---
 
-## Dependency Overview
-
-Three parallel streams converge into the final deliverable. Each node shows **who delivers what to whom**.
+## Who Delivers What to Whom
 
 ```mermaid
-flowchart LR
-    subgraph Stream1["Stream 1: Data Collection"]
-        MAX["Max<br/>NBA Stats<br/>3 CSVs"]
-        ALFIE["Alfie<br/>Odds Data<br/>2 CSVs"]
-        DIETRICH_DB["Dietrich<br/>Database<br/>5 Tables"]
-    end
+flowchart TD
+    MAX[Max] -->|3 NBA CSVs| DB[(Database)]
+    ALFIE[Alfie] -->|2 Odds CSVs| DB
 
-    subgraph Stream2["Stream 2: Analysis Tools"]
-        MYA_TEST["Mya<br/>Test Data<br/>1 CSV"]
-        JAMES["James<br/>Backtester"]
-        BEN["Ben<br/>Metrics"]
-        ISMAEEL["Ismaeel<br/>QA Testing"]
-    end
+    DB -->|queries| EDA[EDA Notebooks]
 
-    subgraph Stream3["Stream 3: Research & EDA"]
-        DIETRICH_EDA["Dietrich<br/>Polymarket EDA"]
-        MYA_EDA["Mya<br/>Sportsbook EDA"]
-        MIRAN["Miran<br/>Papers"]
-    end
-
-    MAX -->|"CSVs Sun"| DIETRICH_DB
-    ALFIE -->|"CSVs Sun"| DIETRICH_DB
-    ALFIE -->|"Odds CSV"| MYA_EDA
-    MYA_TEST -->|"Fri!"| JAMES
-    JAMES -->|"backtester"| ISMAEEL
-    BEN -->|"metrics"| ISMAEEL
-    DIETRICH_DB -->|"Mon"| DIETRICH_EDA
-    DIETRICH_DB -->|"Mon"| MYA_EDA
+    MYA[Mya] -->|test_games.csv| JAMES[James]
+    JAMES -->|backtester| TEST[Ismaeel Tests]
+    BEN[Ben] -->|metrics| TEST
 ```
+
+**Key Deadlines:**
+- **Fri 6:** Mya → James (test data)
+- **Sun 8:** Max + Alfie → Dietrich (CSVs)
+- **Tue 10:** James + Ben → Ismaeel (modules to test)
 
 ---
 
