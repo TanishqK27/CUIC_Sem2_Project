@@ -27,23 +27,26 @@ Message each person once per day (Slack/Discord) and ask:
 
 ### Daily Report to Tan
 
-**Send by 6pm each day** — a short paragraph covering:
-- Who's on track
-- Who's blocked and why
-- Any issues that need Tan's attention
+**Update by 6pm each day** — fill in the Daily Status table in CURRENT_WEEK.md
 
-**Location:** `team/progress_reports/week1.md` (already set up with daily entries)
+**Location:** `team/CURRENT_WEEK.md` → "Daily Status" section
 
-**Format:**
-```markdown
-## Friday Feb 6
+**How to update:**
+1. Open `team/CURRENT_WEEK.md`
+2. Find today's date table
+3. Fill in each person's row with status emoji and notes
 
-**On Track:** James (backtester started), Ben (metrics module started), Max (NBA data pulling)
+**Status emojis:**
+- ✅ On track
+- ⏳ In progress
+- ❌ Blocked
+- ⚠️ At risk
 
-**Blocked:** Alfie — OddsHarvester install failing, trying Docker workaround
-
-**Issues for Tan:** None today
-```
+**Example:**
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max | ✅ | NBA data pulling, 2 seasons done |
+| Alfie | ❌ | OddsHarvester install failing, trying Docker |
 
 Also message Tan directly with anything urgent.
 

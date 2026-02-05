@@ -1,7 +1,7 @@
 # Week 1 Sprint: Feb 6-12, 2026
 
 **Deadline:** Thursday Feb 12 (Presentation Day)
-**Coordinator:** Miran ([daily reports](progress_reports/week1.md))
+**Coordinator:** Miran (updates Daily Status tables below)
 
 ---
 
