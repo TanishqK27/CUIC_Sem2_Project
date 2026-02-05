@@ -14,45 +14,41 @@ You are the **tester**. When James builds the backtester and Ben builds metrics,
 
 ---
 
-## DON'T WAIT - Create Test Data Now
+## ⚠️ DO NOT WAIT FOR JAMES OR BEN — START MONDAY
 
-You can prepare your test cases before James/Ben deliver. Create dummy data matching the expected formats.
+**You have zero dependencies. Create test cases and dummy data on Day 1.**
 
-### Dummy Backtester Input (what James expects)
-```python
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
+### Dummy Backtester Input (7 columns)
 
-# This is what goes INTO the backtester
-test_input = pd.DataFrame({
-    'timestamp': [datetime(2026, 1, 1) + timedelta(days=i) for i in range(10)],
-    'game': [f"Team{i*2} vs Team{i*2+1}" for i in range(10)],
-    'home_team': [f"Team{i*2}" for i in range(10)],
-    'away_team': [f"Team{i*2+1}" for i in range(10)],
-    'home_odds': [2.0] * 10,
-    'away_odds': [2.0] * 10,
-    'home_win': [1, 0, 1, 0, 1, 0, 1, 0, 1, 0],  # Alternating for easy testing
-})
-```
+| Column | Type | Example |
+|--------|------|---------|
+| timestamp | datetime | 2026-01-01 |
+| game | str | "Lakers vs Celtics" |
+| home_team | str | "Lakers" |
+| away_team | str | "Celtics" |
+| home_odds | float | 2.0 |
+| away_odds | float | 2.0 |
+| home_win | int | 1 or 0 |
 
-### Dummy Backtester Output (what James produces / Ben consumes)
-```python
-# This is what comes OUT of the backtester
-test_output = pd.DataFrame({
-    'timestamp': [...],
-    'game': [...],
-    'action': ['BUY_HOME', 'BUY_AWAY', ...],
-    'bet_size': [100.0, 100.0, ...],
-    'odds': [2.0, 2.0, ...],
-    'outcome': ['WIN', 'LOSS', ...],
-    'pnl': [100.0, -100.0, ...],
-    'cumulative_pnl': [100.0, 0.0, ...],
-    'bankroll': [10100.0, 10000.0, ...],
-})
-```
+**Save as:** `data/test_backtest_input.csv` (10 rows, alternating home_win 1/0)
 
-**When James/Ben deliver, their code should work with these formats. If it doesn't, that's a bug.**
+### Dummy Backtester Output (9 columns)
+
+| Column | Type | Example |
+|--------|------|---------|
+| timestamp | datetime | 2026-01-01 |
+| game | str | "Lakers vs Celtics" |
+| action | str | "BUY_HOME" or "BUY_AWAY" |
+| bet_size | float | 100.0 |
+| odds | float | 2.0 |
+| outcome | str | "WIN" or "LOSS" |
+| pnl | float | 100.0 or -100.0 |
+| cumulative_pnl | float | running total |
+| bankroll | float | 10000 + cumulative_pnl |
+
+**Save as:** `data/test_backtest_output.csv` (10 rows matching input)
+
+**Create both files Monday-Tuesday.** When James/Ben deliver, their code must match these formats exactly — any mismatch is a bug.
 
 ---
 
@@ -60,7 +56,7 @@ test_output = pd.DataFrame({
 
 ### 1. Test James's Backtester
 
-Once James gives you access (Wed), run these tests:
+Run these tests as soon as James has code (don't wait for "done"):
 
 **Test 1: Basic Run**
 ```python

@@ -12,9 +12,27 @@ Build the metrics module. Calculate Sharpe ratio, max drawdown, win rate, etc. f
 
 ---
 
-## DON'T WAIT FOR JAMES
+## ⚠️ DO NOT WAIT FOR JAMES — START MONDAY
 
-Create dummy data matching James's output format (see his brief for 9 columns). Build and test against dummy data. When James delivers, formats will match.
+**You have zero dependencies. Build and test your entire module against dummy data.**
+
+Create this dummy DataFrame on Day 1 and develop against it:
+
+| Column | Example Values |
+|--------|----------------|
+| timestamp | 2026-01-01, 2026-01-02, ... |
+| game | "Lakers vs Celtics", ... |
+| action | "BUY_HOME", "BUY_AWAY" |
+| bet_size | 100.0, 150.0, ... |
+| odds | 1.95, 2.10, ... |
+| outcome | "WIN", "LOSS" |
+| pnl | 95.0, -150.0, ... |
+| cumulative_pnl | 95.0, -55.0, ... |
+| bankroll | 10095.0, 9945.0, ... |
+
+**Save as:** `data/dummy_backtest_output.csv`
+
+Your module must work with this format. When James delivers his backtester, it will output this exact format — plug and play.
 
 ---
 

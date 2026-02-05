@@ -12,6 +12,30 @@ Data quality gatekeeper. Validate CSVs before Dietrich loads them, validate data
 
 ---
 
+## ⚠️ DO NOT WAIT FOR ALFIE'S CSVs — START MONDAY
+
+**Create dummy CSVs to test your validation scripts immediately.**
+
+### Dummy Test CSVs to Create
+
+**1. Valid matches CSV** (`data/test_valid_matches.csv`)
+- 5 rows with correct columns and values
+- Use to test that PASS works
+
+**2. Invalid matches CSV** (`data/test_invalid_matches.csv`)
+- Missing columns, NULL values, bad dates
+- Use to test that FAIL catches issues
+
+**3. Valid odds CSV** (`data/test_valid_odds.csv`)
+- 10 rows with odds in range 1.01-50, overround 100-120%
+
+**4. Invalid odds CSV** (`data/test_invalid_odds.csv`)
+- Odds = 0.5, odds = 100, overround = 150%
+
+Create all 4 test CSVs Monday. Your scripts must catch every invalid case. When Alfie's real CSVs arrive, validation is already proven.
+
+---
+
 ## Required Scripts
 
 ### 1. CSV Validation Script

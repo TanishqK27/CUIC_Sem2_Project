@@ -12,6 +12,14 @@ Create synthetic test data with KNOWN outcomes for backtester testing.
 
 ---
 
+## ⚠️ YOU HAVE ZERO DEPENDENCIES — START MONDAY
+
+**James and Isameel are waiting for you. Get `data/test_games.csv` created Monday so they can start immediately.**
+
+You don't need anything from anyone. Start building Day 1.
+
+---
+
 ## Input Format (James Needs This EXACTLY)
 
 | Column | Type | Description |

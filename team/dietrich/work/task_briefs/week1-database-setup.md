@@ -12,6 +12,32 @@ You own Railway PostgreSQL. People give you formatted CSVs, you load them. Wrong
 
 ---
 
+## ⚠️ DO NOT WAIT FOR ALFIE'S CSVs — START MONDAY
+
+**Create dummy CSVs to test your loader script immediately.**
+
+### Dummy sportsbook_matches.csv (5 rows)
+
+| external_id | home_team | away_team | commence_time |
+|-------------|-----------|-----------|---------------|
+| nba_20260210_lal_bos | Los Angeles Lakers | Boston Celtics | 2026-02-10 19:00:00 |
+| nba_20260210_gsw_mia | Golden State Warriors | Miami Heat | 2026-02-10 20:00:00 |
+| ... | ... | ... | ... |
+
+### Dummy sportsbook_odds.csv (10 rows - 2 bookmakers per match)
+
+| external_id | bookmaker | home_odds | away_odds |
+|-------------|-----------|-----------|-----------|
+| nba_20260210_lal_bos | fanduel | 1.95 | 2.05 |
+| nba_20260210_lal_bos | draftkings | 1.91 | 2.10 |
+| ... | ... | ... | ... |
+
+**Save to:** `data/dummy_matches.csv`, `data/dummy_odds.csv`
+
+Build and test your loader with dummy data Monday-Tuesday. When Alfie's real CSVs arrive Wednesday, they must match this exact format — plug and play.
+
+---
+
 ## Task 1: Database Setup (Mon-Tue)
 
 ### Tables to Create

@@ -12,6 +12,28 @@ Build THE backtester. Every model and strategy will be evaluated using your code
 
 ---
 
+## ⚠️ DO NOT WAIT FOR DATABASE — START MONDAY
+
+**You have zero dependencies. Build and test your entire backtester against dummy data.**
+
+Create this dummy input DataFrame on Day 1 and develop against it:
+
+| Column | Example Values |
+|--------|----------------|
+| timestamp | 2026-01-01, 2026-01-02, ... |
+| game | "Lakers vs Celtics", ... |
+| home_team | "Lakers", "Warriors", ... |
+| away_team | "Celtics", "Heat", ... |
+| home_odds | 1.95, 2.10, ... |
+| away_odds | 2.05, 1.90, ... |
+| home_win | 1, 0, 1, 0, ... |
+
+**Save as:** `data/dummy_backtest_input.csv` (20+ rows)
+
+Mya is also creating `data/test_games.csv` with the same format — get it from her Tuesday and verify your code works with both files.
+
+---
+
 ## Output Format (Ben Depends On This)
 
 Your `backtest()` function MUST return a DataFrame with EXACTLY these columns:

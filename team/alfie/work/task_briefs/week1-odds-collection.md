@@ -12,6 +12,21 @@ Get OddsHarvester running, scrape NBA odds, produce CSVs in Dietrich's exact for
 
 ---
 
+## ⚠️ DO NOT WAIT FOR ODDSHARVESTER TO WORK — CREATE DUMMY CSVs MONDAY
+
+**Build your conversion script against dummy JSON first. Don't block on OddsHarvester setup.**
+
+### Dummy OddsHarvester JSON (`data/dummy_odds_harvester.json`)
+
+Create a fake JSON matching OddsHarvester's output format with 3-5 games. Use this to build and test your conversion script Monday-Tuesday.
+
+If OddsHarvester setup is slow, you still deliver:
+1. Working conversion script (tested against dummy JSON)
+2. Dummy CSVs in correct format (validated by Max)
+3. Fallback plan: use The Odds API instead
+
+---
+
 ## CSV Format (MUST MATCH EXACTLY)
 
 ### sportsbook_matches.csv
