@@ -114,7 +114,7 @@ repos:
 # Configuration
 # =============================================================================
 default_language_version:
-  python: python3.10
+  python: python
 
 # Skip hooks in CI for speed (run full suite separately)
 ci:
