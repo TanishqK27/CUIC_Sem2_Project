@@ -149,7 +149,7 @@ class TestArbitrage:
         """Should correctly calculate bookmaker vig."""
         # Standard -110/-110 line
         vig = calculate_vig([1.91, 1.91])
-        assert vig == pytest.approx(0.0476, rel=0.01)  # ~4.76%
+        assert vig == pytest.approx(0.04712, rel=0.01)  # ~4.712%
 
     def test_remove_vig(self) -> None:
         """Should correctly remove vig from odds."""
