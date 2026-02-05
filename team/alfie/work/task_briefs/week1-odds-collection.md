@@ -1,4 +1,4 @@
-# Week 1: OddsHarvester Setup & Data Collection
+# Week 1: OddsHarvester Setup + Data Collection + Validation
 
 **Owner:** Alfie
 **Deadline:** Thursday Feb 12
@@ -8,7 +8,9 @@
 
 ## Your Role
 
-Get OddsHarvester running, scrape NBA odds, produce CSVs in Dietrich's exact format.
+Two tasks:
+1. Get OddsHarvester running, scrape NBA odds, produce CSVs
+2. Validate your own CSVs before handing to Dietrich
 
 ---
 
@@ -67,11 +69,49 @@ If OddsHarvester setup is slow, you still deliver:
 
 ---
 
+## Task 2: Validate Your Own CSVs
+
+You own the full pipeline: collect → convert → validate → deliver.
+
+### Validation Script
+
+**Location:** `scripts/validate_odds_csv.py`
+
+**CLI:** `python validate_odds_csv.py <type> <path>`
+
+**Functions:**
+
+#### `validate_matches_csv(path) -> list`
+**Checks:**
+- Required columns: `external_id`, `home_team`, `away_team`, `commence_time`
+- No NULL values in required columns
+- No duplicate `external_id`
+- `commence_time` parseable as datetime
+
+**Returns:** List of issue strings (empty = passed)
+
+#### `validate_odds_csv(path) -> list`
+**Checks:**
+- Required columns: `external_id`, `bookmaker`, `home_odds`, `away_odds`
+- Odds in range 1.01 to 50
+- Overround between 100-120%
+
+**Returns:** List of issue strings
+
+### Dummy Test CSVs (Monday)
+
+Create these to test your validation works:
+
+**1. Valid CSVs** - should PASS validation
+**2. Invalid CSVs** - missing columns, bad odds values, should FAIL
+
+---
+
 ## Workflow
 
-1. **Mon-Tue:** Set up OddsHarvester, get it running
-2. **Tue:** Create DUMMY CSVs in correct format, send to Max for validation test
-3. **Wed:** Scrape real data, convert to CSV, validate with Max
+1. **Mon-Tue:** Set up OddsHarvester, build validation script
+2. **Tue:** Create DUMMY CSVs, test validation catches errors
+3. **Wed:** Scrape real data, convert to CSV, self-validate
 4. **Thu:** Hand validated CSVs to Dietrich
 
 ---
@@ -80,9 +120,8 @@ If OddsHarvester setup is slow, you still deliver:
 
 | Person | Interaction | When |
 |--------|-------------|------|
-| Miran | She checks your data quality | Tue-Wed |
-| Max | He validates your CSVs | Wed |
-| Dietrich | He loads your CSVs | Thu |
+| Miran | She spot-checks your data quality | Tue-Wed |
+| Dietrich | He loads your validated CSVs | Thu |
 | Mya | Send her CSVs for EDA analysis | Tue-Wed |
 
 ---
@@ -104,16 +143,22 @@ If OddsHarvester setup is slow, you still deliver:
 
 ## Done Checklist
 
+**Collection:**
 - [ ] OddsHarvester running
 - [ ] Conversion script at `scripts/convert_odds_to_csv.py`
-- [ ] Dummy CSVs created and validated by Max
-- [ ] Real CSVs passed validation
+- [ ] `data/sportsbook_matches.csv` created
+- [ ] `data/sportsbook_odds.csv` created
+
+**Validation:**
+- [ ] Validation script at `scripts/validate_odds_csv.py`
+- [ ] Dummy test CSVs pass/fail correctly
+- [ ] Real CSVs pass validation
 - [ ] CSVs delivered to Dietrich
 
 ---
 
 ## Thursday Presentation (2 min)
 
-1. Show OddsHarvester output
-2. Show both CSV files
-3. Confirm passed validation
+1. Show OddsHarvester output (30 sec)
+2. Run validation on your CSVs, show PASS (30 sec)
+3. Show row counts and data sample (1 min)

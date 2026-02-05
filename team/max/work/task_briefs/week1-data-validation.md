@@ -1,18 +1,14 @@
-# Week 1: NBA Stats Collection + Data Validation
+# Week 1: NBA Stats Collection
 
 **Owner:** Max
 **Deadline:** Thursday Feb 12
-**Priority:** CRITICAL
+**Priority:** CRITICAL — fundamental data for all models
 
 ---
 
 ## Your Role
 
-Two tasks this week:
-1. **NBA Stats Collection** — gather every NBA stat possible at maximum granularity (Mon-Wed)
-2. **Data Validation** — validate CSVs before Dietrich loads them (ongoing)
-
-You and Alfie are the two data collectors. He gets odds, you get NBA stats.
+Collect **every NBA stat possible** at maximum granularity. You and Alfie are the two data collectors — he gets odds, you get NBA stats.
 
 ---
 
@@ -22,15 +18,17 @@ You and Alfie are the two data collectors. He gets odds, you get NBA stats.
 
 ---
 
-## Task 1: NBA Stats Collection (Mon-Wed)
-
-### Scope: MAXIMUM GRANULARITY
+## Scope: MAXIMUM GRANULARITY
 
 Pull **every stat available** from the 2021-22 season onwards (when Polymarket started NBA markets).
 
-### Data to Collect
+**Seasons to collect:** 2021-22, 2022-23, 2023-24, 2024-25 (current)
 
-#### Team Stats (`data/nba_team_stats.csv`)
+---
+
+## Data to Collect
+
+### Team Stats (`data/nba_team_stats.csv`)
 
 | Column | Description |
 |--------|-------------|
@@ -61,7 +59,7 @@ Pull **every stat available** from the 2021-22 season onwards (when Polymarket s
 | net_rating | Net rating |
 | pace | Pace |
 
-#### Player Stats (`data/nba_player_stats.csv`)
+### Player Stats (`data/nba_player_stats.csv`)
 
 | Column | Description |
 |--------|-------------|
@@ -84,7 +82,7 @@ Pull **every stat available** from the 2021-22 season onwards (when Polymarket s
 | plus_minus | Plus/minus |
 | per | Player efficiency rating |
 
-#### Game Logs (`data/nba_game_logs.csv`) — MOST IMPORTANT
+### Game Logs (`data/nba_game_logs.csv`) — MOST IMPORTANT
 
 | Column | Description |
 |--------|-------------|
@@ -107,13 +105,9 @@ Pull **every stat available** from the 2021-22 season onwards (when Polymarket s
 | away_q3 | Away Q3 score |
 | away_q4 | Away Q4 score |
 
-### Historical Range
+---
 
-**Seasons to collect:** 2021-22, 2022-23, 2023-24, 2024-25 (current)
-
-This covers when Polymarket started NBA markets.
-
-### Required Script
+## Required Script
 
 **Location:** `scripts/collect_nba_stats.py`
 
@@ -159,73 +153,11 @@ from nba_api.stats.endpoints import (
 
 ---
 
-## Task 2: Data Validation (Ongoing)
-
-### Dummy Test CSVs to Create Monday
-
-**1. Valid matches CSV** (`data/test_valid_matches.csv`)
-- 5 rows with correct columns and values
-
-**2. Invalid matches CSV** (`data/test_invalid_matches.csv`)
-- Missing columns, NULL values, bad dates
-
-**3. Valid odds CSV** (`data/test_valid_odds.csv`)
-- 10 rows with odds in range 1.01-50
-
-**4. Invalid odds CSV** (`data/test_invalid_odds.csv`)
-- Odds = 0.5, odds = 100, overround = 150%
-
-### Validation Scripts
-
-**Location:** `scripts/validate_csv.py`
-
-**CLI:** `python validate_csv.py <type> <path>`
-
-**Functions:**
-
-#### `validate_matches_csv(path) -> list`
-- Required columns: `external_id`, `home_team`, `away_team`, `commence_time`
-- No NULL values, no duplicate external_id, datetime parseable
-
-#### `validate_odds_csv(path) -> list`
-- Required columns: `external_id`, `bookmaker`, `home_odds`, `away_odds`
-- Odds in range 1.01-50, overround 100-120%
-
-#### `validate_team_stats_csv(path) -> list`
-- Required columns: `team_name`, `season`, `games_played`, `wins`, `losses`, `win_pct`, `ppg`
-- 30 teams per season, win_pct 0-1, ppg 90-140
-
-#### `validate_player_stats_csv(path) -> list`
-- Required columns: `player_name`, `team_abbr`, `season`, `games_played`, `ppg`
-- 200+ players, ppg 0-45
-
-**Location:** `scripts/validate_database.py`
-
-#### `validate_all() -> list`
-- All tables exist and have data
-- No orphaned records
-- Row counts reasonable
-
----
-
-## Data Flow
-
-```
-Max collects NBA stats → Self-validate → Give to Dietrich
-Alfie collects odds → Miran checks → Max validates → Give to Dietrich
-```
-
-**Tracking doc:** `team/max/work/notes/data-flow-status.md`
-
----
-
 ## Who You Work With
 
 | Person | Interaction | When |
 |--------|-------------|------|
-| Alfie | Validate his odds CSVs | Tue-Wed |
-| Miran | She helps check data | Tue-Wed |
-| Dietrich | Give him validated CSVs (yours + Alfie's) | Wed-Thu |
+| Dietrich | Give him your 3 NBA CSVs | Wed-Thu |
 
 ---
 
@@ -239,29 +171,22 @@ Alfie collects odds → Miran checks → Max validates → Give to Dietrich
 **Libraries:**
 - nba_api: https://github.com/swar/nba_api
 - pandas: https://pandas.pydata.org/docs/
-- SQLAlchemy: https://docs.sqlalchemy.org/
 
 ---
 
 ## Done Checklist
 
-**NBA Stats Collection:**
 - [ ] Script at `scripts/collect_nba_stats.py`
-- [ ] `data/nba_team_stats.csv` with 4 seasons
-- [ ] `data/nba_player_stats.csv` with 4 seasons
-- [ ] `data/nba_game_logs.csv` with 4 seasons
+- [ ] `data/nba_team_stats.csv` with 4 seasons (120 rows = 30 teams × 4 seasons)
+- [ ] `data/nba_player_stats.csv` with 4 seasons (2000+ rows)
+- [ ] `data/nba_game_logs.csv` with 4 seasons (5000+ rows)
 - [ ] CSVs match Dietrich's format
-
-**Data Validation:**
-- [ ] CSV validation script at `scripts/validate_csv.py`
-- [ ] Database validation script at `scripts/validate_database.py`
-- [ ] Test CSVs created
-- [ ] Data flow status doc maintained
+- [ ] CSVs delivered to Dietrich
 
 ---
 
-## Thursday Presentation (3 min)
+## Thursday Presentation (2 min)
 
-1. Show NBA data collected — row counts, date ranges (1 min)
-2. Run validation on sample CSV (1 min)
-3. Show data flow status (1 min)
+1. Show row counts for all 3 CSVs (30 sec)
+2. Show date range coverage (30 sec)
+3. Show sample data from game_logs (1 min)
