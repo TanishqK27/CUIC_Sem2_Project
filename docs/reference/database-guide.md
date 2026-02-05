@@ -3,6 +3,7 @@
 A plain-English guide to our NBA betting database.
 
 🔧 **How to connect:** See [Connecting to Database](../guides/connecting-to-database.md)
+🔬 **Explore interactively:** See [Polymarket Data Exploration](../../tools/polymarket_data_exploration.ipynb)
 
 ---
 

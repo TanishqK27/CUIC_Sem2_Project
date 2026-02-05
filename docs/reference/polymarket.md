@@ -299,7 +299,7 @@ def query(sql):
 df = query("SELECT * FROM price_snapshots ORDER BY timestamp DESC LIMIT 10")
 ```
 
-📖 **Full details:** See [Database Schema](database-schema.md) and [Connecting to Database](../guides/connecting-to-database.md)
+📖 **Full details:** See [Database Schema](database-guide.md) and [Connecting to Database](../guides/connecting-to-database.md)
 
 ---
 
@@ -460,6 +460,6 @@ def calculate_mean_reversion_signal(
 ## Next Steps
 
 1. Connect to our shared database (see [Connecting to Database](../guides/connecting-to-database.md))
-2. Explore the data with [getting-started.ipynb](../../research/notebooks/getting-started.ipynb)
-3. Review the full [Database Schema](database-schema.md)
+2. Explore the data with [polymarket_data_exploration.ipynb](../../tools/polymarket_data_exploration.ipynb)
+3. Review the full [Database Schema](database-guide.md)
 4. Check out [Kalshi](kalshi.md) for a regulated alternative

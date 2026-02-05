@@ -15,7 +15,7 @@
 
 | Reference | Description |
 |-----------|-------------|
-| [Database Schema](reference/database-schema.md) | Full schema docs, tables, queries |
+| [Database Guide](reference/database-guide.md) | What's in the database, tables, queries |
 | [Polymarket](reference/polymarket.md) | How Polymarket works |
 | [Kalshi](reference/kalshi.md) | How Kalshi works |
 | [Sports Betting](reference/sports-betting.md) | Odds, betting concepts, formulas |
@@ -27,15 +27,27 @@
 |------|--------|
 | [OddsHarvester Integration](plans/oddsharvester-integration.md) | In progress |
 
+## Tools
+
+Data exploration tools in `tools/`:
+
+| Tool | Description |
+|------|-------------|
+| [polymarket_data_exploration.ipynb](../tools/polymarket_data_exploration.ipynb) | Interactive Polymarket database exploration |
+
 ## Notebooks
 
-Interactive tutorials in `research/notebooks/`:
+Research notebooks in `research/notebooks/`:
 
 | Notebook | Description |
 |----------|-------------|
-| [getting-started.ipynb](../research/notebooks/getting-started.ipynb) | Database tutorial with visualizations |
-| [price-dynamics.ipynb](../research/notebooks/price-dynamics.ipynb) | Price analysis (Dietrich's work) |
 | [_template.ipynb](../research/notebooks/_template.ipynb) | Template for new research |
+
+Team work in `team/<member>/work/`:
+
+| Notebook | Description |
+|----------|-------------|
+| [price_dynamics.ipynb](../team/dietrich/work/price_dynamics.ipynb) | Price analysis (Dietrich) |
 
 ---
 
@@ -43,4 +55,4 @@ Interactive tutorials in `research/notebooks/`:
 
 - **New to the project?** Start with [Environment Setup](guides/environment-setup.md)
 - **Need database access?** See [Connecting to Database](guides/connecting-to-database.md)
-- **Want to understand the data?** See [Database Schema](reference/database-schema.md)
+- **Want to understand the data?** See [Database Guide](reference/database-guide.md)

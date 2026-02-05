@@ -292,11 +292,16 @@ models/*.onnx
 !models/.gitkeep
 
 # =============================================================================
-# Claude Code
+# Claude Code & Internal Files
 # =============================================================================
-# Claude Code stores state in .claude/ but we want to keep skills/agents
-.claude/state/
-.claude/settings.local.json
+# Claude Code directory (internal tool state)
+.claude/
+
+# Project instructions (internal)
+CLAUDE.md
+
+# Implementation plans (internal working docs)
+docs/plans/
 
 # =============================================================================
 # Miscellaneous

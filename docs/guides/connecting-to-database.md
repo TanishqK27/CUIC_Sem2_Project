@@ -1,8 +1,11 @@
-# Connecting to the Database
+# Connecting to the Polymarket Database
 
-How to connect to the team's shared Polymarket database.
+How to connect to the team's shared **Polymarket NBA betting database**.
 
-📖 **What's in the database?** See [Database Schema](../reference/database-schema.md)
+This database contains Polymarket prediction market data compared with sportsbook odds for NBA games. It is maintained by Dietrich and hosted on Railway.
+
+📖 **What's in the database?** See [Database Schema](../reference/database-guide.md)
+🔧 **Explore the data:** See [Polymarket Data Exploration](../../tools/polymarket_data_exploration.ipynb)
 
 ---
 
@@ -10,7 +13,7 @@ How to connect to the team's shared Polymarket database.
 
 **Recommended for most users** - no IP restrictions, no local setup.
 
-1. Open a notebook: [getting-started.ipynb](../../research/notebooks/getting-started.ipynb)
+1. Open a notebook: [polymarket_data_exploration.ipynb](../../research/notebooks/polymarket_data_exploration.ipynb)
 2. Click the "Open in Colab" badge
 3. Run the first cell
 
@@ -89,8 +92,8 @@ psql 'postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rl
 
 | Notebook | Purpose |
 |----------|---------|
-| [getting-started.ipynb](../../research/notebooks/getting-started.ipynb) | Interactive tutorial with visualizations |
-| [price-dynamics.ipynb](../../research/notebooks/price-dynamics.ipynb) | Advanced price analysis |
+| [polymarket_data_exploration.ipynb](../../tools/polymarket_data_exploration.ipynb) | Interactive Polymarket data exploration |
+| [price_dynamics.ipynb](../../team/dietrich/work/price_dynamics.ipynb) | Advanced price analysis (Dietrich) |
 
 ---
 
@@ -106,7 +109,7 @@ pip install psycopg2-binary
 ```
 
 ### Empty Results
-Check your SQL syntax and column names in [Database Schema](../reference/database-schema.md)
+Check your SQL syntax and column names in [Database Schema](../reference/database-guide.md)
 
 ---
 

@@ -461,6 +461,6 @@ git push origin <branch-name>
 ## Next Steps
 
 1. [Configure API Keys](api-keys.md)
-2. [Set up Claude Code](claude-code-guide.md)
+2. [Set up Claude Code](using-claude-code.md)
 3. Review [CONTRIBUTING.md](../../CONTRIBUTING.md)
 4. Start exploring notebooks in `research/notebooks/`
