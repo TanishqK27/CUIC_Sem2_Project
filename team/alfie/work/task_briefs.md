@@ -51,5 +51,6 @@ This replaces The Odds API (which has a 500 request/month limit) with unlimited 
 ### Notes
 
 - Work with Max on this - split the work between you
+- Work with Dietrich on how to integrate into his Railway database
 - Ask Tan if you get stuck on architecture decisions
 - Mirror the Polymarket infrastructure patterns where possible
