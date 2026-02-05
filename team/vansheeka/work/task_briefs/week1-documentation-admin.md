@@ -1,253 +1,230 @@
-# Week 1: Documentation & Admin
+# Week 1: Data Cleanliness Analysis
 
 **Owner:** Vansheeka
 **Deadline:** Thursday Feb 12
-**Priority:** MEDIUM — support role
+**Priority:** MEDIUM
 
 ---
 
 ## Your Role
 
-You handle **documentation and administrative tasks**. You create reference documents that the team needs, and help track project progress.
-
-**NO CODING REQUIRED** — this is documentation and admin work.
+Analyze the Railway database to understand what data we have, what's missing, and whether everything is clean and ready for modeling.
 
 ---
 
-## This Week's Deliverables
+## Task 1: Database Inventory (Mon-Tue)
 
-### 1. NBA Team Reference Document
+### What Data Exists?
 
-Create `docs/reference/nba-teams.md`:
+Connect to Railway and document everything:
 
-```markdown
-# NBA Teams Reference
+```python
+# Connect to Railway
+import pandas as pd
+from sqlalchemy import create_engine
+import os
 
-## All 30 Teams
+engine = create_engine(os.environ['DATABASE_URL'])
 
-| Team Name | Abbreviation | City | Conference |
-|-----------|--------------|------|------------|
-| Atlanta Hawks | ATL | Atlanta | East |
-| Boston Celtics | BOS | Boston | East |
-| Brooklyn Nets | BKN | Brooklyn | East |
-| Charlotte Hornets | CHA | Charlotte | East |
-| Chicago Bulls | CHI | Chicago | East |
-| Cleveland Cavaliers | CLE | Cleveland | East |
-| Dallas Mavericks | DAL | Dallas | West |
-| Denver Nuggets | DEN | Denver | West |
-| Detroit Pistons | DET | Detroit | East |
-| Golden State Warriors | GSW | San Francisco | West |
-| Houston Rockets | HOU | Houston | West |
-| Indiana Pacers | IND | Indianapolis | East |
-| Los Angeles Clippers | LAC | Los Angeles | West |
-| Los Angeles Lakers | LAL | Los Angeles | West |
-| Memphis Grizzlies | MEM | Memphis | West |
-| Miami Heat | MIA | Miami | East |
-| Milwaukee Bucks | MIL | Milwaukee | East |
-| Minnesota Timberwolves | MIN | Minneapolis | West |
-| New Orleans Pelicans | NOP | New Orleans | West |
-| New York Knicks | NYK | New York | East |
-| Oklahoma City Thunder | OKC | Oklahoma City | West |
-| Orlando Magic | ORL | Orlando | East |
-| Philadelphia 76ers | PHI | Philadelphia | East |
-| Phoenix Suns | PHX | Phoenix | West |
-| Portland Trail Blazers | POR | Portland | West |
-| Sacramento Kings | SAC | Sacramento | West |
-| San Antonio Spurs | SAS | San Antonio | West |
-| Toronto Raptors | TOR | Toronto | East |
-| Utah Jazz | UTA | Salt Lake City | West |
-| Washington Wizards | WAS | Washington | East |
-
-## Name Variations to Watch For
-
-Some scrapers use different names. Map these to official names:
-
-| Variation | Official Name |
-|-----------|---------------|
-| LA Lakers | Los Angeles Lakers |
-| LA Clippers | Los Angeles Clippers |
-| GS Warriors | Golden State Warriors |
-| NY Knicks | New York Knicks |
-| NO Pelicans | New Orleans Pelicans |
-| OKC Thunder | Oklahoma City Thunder |
-| SA Spurs | San Antonio Spurs |
-
-## Notes
-
-- Always use full team names in database
-- Abbreviations are for display only
-- If unsure, check NBA.com official roster
+# List all tables
+tables_query = """
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+"""
+tables = pd.read_sql(tables_query, engine)
+print(tables)
 ```
 
-### 2. Project Progress Tracker
+For EACH table, document:
+- Table name
+- Row count
+- Column names and types
+- Date range of data
+- Any obvious gaps
 
-Create `team/PROJECT_STATUS.md`:
+### Create Inventory Document
+
+Create `docs/reference/data-inventory.md`:
+
+```markdown
+# Data Inventory - Railway Database
+
+Last updated: [DATE]
+
+## Tables Overview
+
+| Table | Rows | Date Range | Status |
+|-------|------|------------|--------|
+| price_snapshots | 90,000+ | Jan-Feb 2026 | ✓ Complete |
+| sportsbook_matches | 0 | - | ⏳ Pending (Alfie) |
+| ... | ... | ... | ... |
+
+## Table Details
+
+### price_snapshots
+- **Rows:** X
+- **Columns:** [list]
+- **Date range:** X to Y
+- **Missing data:** [any gaps?]
+
+### sportsbook_matches
+- **Status:** Empty - waiting for Alfie's CSV
+- **Expected:** Wed Feb 12
+```
+
+---
+
+## Task 2: Data Quality Analysis (Tue-Thu)
+
+### Analyze Existing Data
+
+Focus on `price_snapshots` (the Polymarket data). Check:
+
+**1. Completeness**
+- Any NULL values? Which columns?
+- Any events with missing snapshots?
+- Time gaps between snapshots?
+
+**2. Correctness**
+- Probabilities between 0 and 1?
+- Timestamps make sense?
+- Event names consistent?
+
+**3. Consistency**
+- Same event spelled differently?
+- Duplicate rows?
+- Timezone issues?
+
+### Create Analysis Notebook
+
+Create `research/notebooks/analysis/data_quality.ipynb`:
+
+```python
+# Cell 1: Overview
+"""
+# Data Quality Analysis
+
+Checking cleanliness of Railway database for modeling readiness.
+"""
+
+# Cell 2: Connect and count
+import pandas as pd
+from sqlalchemy import create_engine
+import matplotlib.pyplot as plt
+
+engine = create_engine(os.environ['DATABASE_URL'])
+
+# Get row counts for all tables
+# ...
+
+# Cell 3: NULL analysis
+"""
+## Missing Values
+"""
+df = pd.read_sql("SELECT * FROM price_snapshots LIMIT 10000", engine)
+print("NULL counts:")
+print(df.isnull().sum())
+
+# Cell 4: Value ranges
+"""
+## Value Ranges
+"""
+# Check probabilities are 0-1
+# Check timestamps are reasonable
+# ...
+
+# Cell 5: Duplicates
+"""
+## Duplicate Check
+"""
+# Check for duplicate rows
+# ...
+
+# Cell 6: Visualizations
+"""
+## Data Coverage
+"""
+# Plot: snapshots over time (are there gaps?)
+# Plot: events by count
+# Plot: NULL distribution
+```
+
+### Visualizations to Include
+
+1. **Timeline chart** - When do we have data? Any gaps?
+2. **Completeness heatmap** - Which columns have NULLs?
+3. **Distribution plots** - Are values in expected ranges?
+
+---
+
+## Task 3: Status Tracking (Ongoing)
+
+Keep `team/PROJECT_STATUS.md` updated:
 
 ```markdown
 # Project Status - Week 1
 
-Last updated: [DATE]
+## Data Status
+
+| Dataset | Rows | Quality | Owner | Notes |
+|---------|------|---------|-------|-------|
+| price_snapshots | 90K | ✓ Clean | - | Ready |
+| sportsbook_matches | 0 | ⏳ | Alfie | Wed |
+| sportsbook_odds | 0 | ⏳ | Alfie | Wed |
 
 ## Infrastructure Status
 
-| Component | Owner | Status | Notes |
-|-----------|-------|--------|-------|
-| Railway DB schemas | Dietrich | ⏳ | |
-| CSV loader script | Dietrich | ⏳ | |
-| Sportsbook data | Alfie | ⏳ | |
-| Data validation | Max | ⏳ | |
-| Backtester core | James | ⏳ | |
-| Metrics module | Ben | ⏳ | |
-| Test data | Mya | ⏳ | |
-
-## Data Status
-
-| Dataset | Rows | Last Updated | Validated |
-|---------|------|--------------|-----------|
-| sportsbook_matches | 0 | - | No |
-| sportsbook_odds | 0 | - | No |
-| nba_team_stats | 0 | - | No |
-| nba_player_stats | 0 | - | No |
-
-## Blockers
-
-| Blocker | Owner | Blocking | Status |
-|---------|-------|----------|--------|
-| | | | |
-
-## Thursday Meeting Agenda
-
-1. Dietrich - DB setup (2 min)
-2. James - Backtester (2 min)
-3. Ben - Metrics (2 min)
-4. Alfie - Data collection (2 min)
-5. Max - Validation (2 min)
-6. Mya - Test data (2 min)
-7. Miran - Handoffs (1 min)
-8. Vansheeka - Status (1 min)
-9. Isameel - Testing (1 min)
+| Component | Owner | Status |
+|-----------|-------|--------|
+| DB schemas | Dietrich | ⏳ |
+| Backtester | James | ⏳ |
+| ... | ... | ... |
 ```
-
-### 3. Meeting Notes Template
-
-Create `team/meeting-notes/week1-feb12.md`:
-
-```markdown
-# Week 1 Meeting Notes - Feb 12, 2026
-
-## Attendees
-- [ ] Tan
-- [ ] Dietrich
-- [ ] James
-- [ ] Ben
-- [ ] Max
-- [ ] Alfie
-- [ ] Mya
-- [ ] Miran
-- [ ] Vansheeka
-- [ ] Isameel
-
-## Presentations
-
-### Dietrich - Database
-- Status:
-- Demo:
-- Issues:
-
-### James - Backtester
-- Status:
-- Demo:
-- Issues:
-
-### Ben - Metrics
-- Status:
-- Demo:
-- Issues:
-
-### Alfie - Data
-- Status:
-- Demo:
-- Issues:
-
-### Max - Validation
-- Status:
-- Demo:
-- Issues:
-
-### Mya - Test Data
-- Status:
-- Demo:
-- Issues:
-
-### Miran - Handoffs
-- Status:
-
-### Isameel - Testing
-- Status:
-
-## Action Items for Week 2
-
-| Action | Owner | Due |
-|--------|-------|-----|
-| | | |
-
-## Blockers for Tan
-
-| Issue | Who | Notes |
-|-------|-----|-------|
-| | | |
-```
-
-### 4. Daily Status Collection
-
-Every day, ping each person and update PROJECT_STATUS.md:
-- **Monday:** Check who has started
-- **Tuesday:** Check progress
-- **Wednesday:** Check blockers
-- **Thursday AM:** Final status before meeting
 
 ---
 
 ## Who You Work With
 
-| Person | Your Job | When |
-|--------|----------|------|
+| Person | Interaction | When |
+|--------|-------------|------|
+| Dietrich | Ask about table schemas | Mon |
+| Max | Coordinate on validation | Wed |
 | Everyone | Collect status updates | Daily |
-| Miran | Coordinate on team names doc | Mon |
-| Tan | Report blockers | As needed |
 
 ---
 
 ## Resources
 
 **Required Reading:**
-- File structure: `docs/SOPs/file-structure.md`
-- Modularity: `docs/SOPs/modularity-upgrades.md`
-- Team SOPs: `docs/SOPs/team-sops.md`
+- `docs/SOPs/file-structure.md`
+- `docs/SOPs/modularity-upgrades.md`
+- `docs/SOPs/team-sops.md`
 
+**For Analysis:**
+- pandas: https://pandas.pydata.org/docs/
+- matplotlib: https://matplotlib.org/stable/gallery/
 
-**NBA Reference:**
-- Official teams: https://www.nba.com/teams
-- Team abbreviations: https://en.wikipedia.org/wiki/Wikipedia:WikiProject_National_Basketball_Association/National_Basketball_Association_team_abbreviations
-
-**Tools:**
-- Google Docs/Sheets for tracking
-- Slack/Discord for status pings
+**Claude Code Prompts:**
+- "Analyze DataFrame for NULL values and data quality"
+- "Create data completeness visualization"
+- "Check for duplicates and inconsistencies in pandas"
 
 ---
 
 ## Done Checklist
 
-- [ ] NBA teams reference doc created
-- [ ] PROJECT_STATUS.md created and maintained
-- [ ] Meeting notes template ready
-- [ ] Collected status from everyone at least once
-- [ ] Blockers reported to Tan
+- [ ] Connected to Railway, listed all tables
+- [ ] Data inventory document created
+- [ ] Quality analysis notebook with findings
+- [ ] At least 3 visualizations
+- [ ] PROJECT_STATUS.md updated
+- [ ] Reported any data issues found
 
 ---
 
-## Thursday Presentation (1 min)
+## Thursday Presentation (2 min)
 
-1. Show PROJECT_STATUS.md
-2. Highlight any blockers
-3. Confirm meeting notes template ready
+1. Show data inventory (what we have vs missing)
+2. Show 1-2 quality visualizations
+3. Report any issues found (NULLs, gaps, etc.)
