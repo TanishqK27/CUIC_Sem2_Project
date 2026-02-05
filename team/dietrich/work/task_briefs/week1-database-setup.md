@@ -42,14 +42,41 @@ Build and test your loader with dummy data Monday-Tuesday. When Alfie's real CSV
 
 ### Tables to Create
 
+**5 tables total** — 2 from Alfie (odds), 3 from Max (NBA stats)
+
+#### Sportsbook Tables (from Alfie)
+
 | Table | Key Columns | Constraints |
 |-------|-------------|-------------|
 | sportsbook_matches | external_id, home_team, away_team, commence_time | external_id UNIQUE |
 | sportsbook_odds | match_id (FK), bookmaker, home_odds, away_odds | FK to matches |
-| nba_team_stats | team_name, season, wins, losses, win_pct, ppg | UNIQUE(team_name, season) |
-| nba_player_stats | player_name, team_abbr, season, ppg, rpg, apg | UNIQUE(player_name, season) |
 
-**Indexes:** Add on foreign keys and commonly queried columns (commence_time, team names)
+#### NBA Stats Tables (from Max) — MAXIMUM GRANULARITY
+
+**nba_team_stats** — all columns:
+```
+team_id, team_name, team_abbr, season, games_played, wins, losses, win_pct,
+home_wins, home_losses, away_wins, away_losses, ppg, oppg, rpg, apg, spg,
+bpg, topg, fg_pct, fg3_pct, ft_pct, off_rating, def_rating, net_rating, pace
+```
+Constraint: `UNIQUE(team_id, season)`
+
+**nba_player_stats** — all columns:
+```
+player_id, player_name, team_abbr, season, games_played, games_started,
+mpg, ppg, rpg, apg, spg, bpg, topg, fg_pct, fg3_pct, ft_pct, plus_minus, per
+```
+Constraint: `UNIQUE(player_id, season)`
+
+**nba_game_logs** — MOST IMPORTANT:
+```
+game_id, game_date, season, home_team_id, home_team_abbr, away_team_id,
+away_team_abbr, home_score, away_score, home_win, home_q1, home_q2,
+home_q3, home_q4, away_q1, away_q2, away_q3, away_q4
+```
+Constraint: `game_id UNIQUE`
+
+**Indexes:** Add on foreign keys, game_date, season, team names
 
 ---
 
@@ -61,12 +88,13 @@ Build and test your loader with dummy data Monday-Tuesday. When Alfie's real CSV
 
 **Required Functions:**
 
-| Function | Expected CSV Columns |
-|----------|---------------------|
-| `load_sportsbook_matches(path)` | external_id, home_team, away_team, commence_time |
-| `load_sportsbook_odds(path)` | external_id, bookmaker, home_odds, away_odds |
-| `load_nba_team_stats(path)` | team_name, season, games_played, wins, losses, win_pct, ppg |
-| `load_nba_player_stats(path)` | player_name, team_abbr, season, games_played, ppg, rpg, apg |
+| Function | Source |
+|----------|--------|
+| `load_sportsbook_matches(path)` | Alfie |
+| `load_sportsbook_odds(path)` | Alfie |
+| `load_nba_team_stats(path)` | Max |
+| `load_nba_player_stats(path)` | Max |
+| `load_nba_game_logs(path)` | Max |
 
 **All loaders must:**
 - Handle duplicates with ON CONFLICT
@@ -116,8 +144,8 @@ While waiting for CSVs, analyze existing `price_snapshots` data.
 
 | Person | Interaction | When |
 |--------|-------------|------|
-| Alfie | Receives his CSVs | Wed |
-| Max | He validates after you load | After load |
+| Alfie | Receives his odds CSVs (2 files) | Wed |
+| Max | Receives his NBA stats CSVs (3 files), validates DB after | Wed-Thu |
 
 ---
 
@@ -136,8 +164,8 @@ While waiting for CSVs, analyze existing `price_snapshots` data.
 ## Done Checklist
 
 **Database:**
-- [ ] 4 tables created
-- [ ] Loader script works
+- [ ] 5 tables created (2 sportsbook + 3 NBA)
+- [ ] Loader script works for all 5 types
 - [ ] CSV formats documented
 
 **EDA:**
