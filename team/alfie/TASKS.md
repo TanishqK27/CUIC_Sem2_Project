@@ -1,35 +1,31 @@
 # Alfie's Tasks
 
-Personal task tracking for the CUIC Quant Fund project.
+## Week 1: Odds Collection + Validation (Feb 6-12)
 
----
+### To Do
+- [ ] Fork OddsHarvester repo and test locally
+- [ ] Create `scripts/scrape_nba_odds.py` wrapper script
+- [ ] Scrape NBA odds data (at least 2 weeks of games)
+- [ ] Generate `data/raw/sportsbook_matches.csv`
+- [ ] Generate `data/raw/sportsbook_odds.csv`
+- [ ] Run `validate_matches_csv()` - pass all checks
+- [ ] Run `validate_odds_csv()` - pass all checks
+- [ ] Send validated CSVs to Dietrich for database loading
+- [ ] Update `team/alfie/LOG.md` daily
 
-## In Progress
+### In Progress
+| Task | Started | Notes |
+|------|---------|-------|
+| | | |
 
-| Task | Priority | Started | Notes |
-|------|----------|---------|-------|
-| - | - | - | - |
-
----
-
-## To Do
-
-| Task | Priority | Notes |
-|------|----------|-------|
-| **[TASK-026] OddsHarvester Integration** | **High** | See `tasks_brief/oddsharvester-integration.md` |
-| Complete environment setup | High | See docs/setup/environment-setup.md |
-| Review platform documentation | Medium | docs/platforms/ |
-
----
-
-## Completed
-
+### Completed
 | Task | Completed | Notes |
 |------|-----------|-------|
+| | | |
 
 ---
 
 ## Notes
-
-- Add your focus area once assigned
-- Track progress using `/update-log alfie <work done>`
+- CSVs use `team_abbr` (3-letter codes: LAL, BOS, etc.) for database joins
+- external_id format: `nba_{YYYYMMDD}_{away}_{home}`
+- See `team/alfie/work/task_briefs/week1-odds-collection.md` for full spec

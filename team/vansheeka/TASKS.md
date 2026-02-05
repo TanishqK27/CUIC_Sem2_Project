@@ -1,34 +1,31 @@
 # Vansheeka's Tasks
 
-Personal task tracking for the CUIC Quant Fund project.
+## Week 1: Data Quality Analysis (Feb 6-12)
 
----
+### To Do
+- [ ] Connect to Railway database
+- [ ] List all tables and row counts
+- [ ] Create data inventory document at `docs/reference/data-inventory.md`
+- [ ] Analyze price_snapshots for NULL values
+- [ ] Analyze price_snapshots for data completeness
+- [ ] Check for duplicates and consistency issues
+- [ ] Create data quality notebook at `research/notebooks/analysis/data_quality.ipynb`
+- [ ] Create 3+ visualizations (timeline, heatmap, distributions)
+- [ ] Update `team/PROJECT_STATUS.md` with current status
 
-## In Progress
+### In Progress
+| Task | Started | Notes |
+|------|---------|-------|
+| | | |
 
-| Task | Priority | Started | Notes |
-|------|----------|---------|-------|
-| - | - | - | - |
-
----
-
-## To Do
-
-| Task | Priority | Notes |
-|------|----------|-------|
-| Complete environment setup | High | See docs/setup/environment-setup.md |
-| Review platform documentation | Medium | docs/platforms/ |
-
----
-
-## Completed
-
+### Completed
 | Task | Completed | Notes |
 |------|-----------|-------|
+| | | |
 
 ---
 
 ## Notes
-
-- Add your focus area once assigned
-- Track progress using `/update-log vansheeka <work done>`
+- Use DATABASE_URL env var to connect
+- Focus on existing price_snapshots data
+- See `team/vansheeka/work/task_briefs/week1-documentation-admin.md` for full spec

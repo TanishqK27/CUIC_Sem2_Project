@@ -1,35 +1,30 @@
 # Max's Tasks
 
-Personal task tracking for the CUIC Quant Fund project.
+## Week 1: NBA Stats Collection (Feb 6-12)
 
----
+### To Do
+- [ ] Set up nba_api and test connection
+- [ ] Build `collect_team_stats()` for 4 seasons (2021-25)
+- [ ] Build `collect_player_stats()` for 4 seasons
+- [ ] Build `collect_game_logs()` for 4 seasons
+- [ ] Handle rate limiting (sleep between requests)
+- [ ] Save CSVs with standardized team_abbr column
+- [ ] Verify CSV format matches Dietrich's schema
+- [ ] Deliver CSVs to Dietrich (Tue-Wed)
 
-## In Progress
+### In Progress
+| Task | Started | Notes |
+|------|---------|-------|
+| | | |
 
-| Task | Priority | Started | Notes |
-|------|----------|---------|-------|
-| - | - | - | - |
-
----
-
-## To Do
-
-| Task | Priority | Notes |
-|------|----------|-------|
-| **[TASK-026] OddsHarvester Integration** | **High** | See `tasks_brief/oddsharvester-integration.md` |
-| Complete environment setup | High | See docs/setup/environment-setup.md |
-| Review platform documentation | Medium | docs/platforms/ |
-
----
-
-## Completed
-
+### Completed
 | Task | Completed | Notes |
 |------|-----------|-------|
+| | | |
 
 ---
 
 ## Notes
-
-- Add your focus area once assigned
-- Track progress using `/update-log max <work done>`
+- Script location: `scripts/collect_nba_stats.py`
+- Use standard team_abbr (LAL, BOS, etc.) — same as Alfie
+- See `team/max/work/task_briefs/week1-data-validation.md` for full spec

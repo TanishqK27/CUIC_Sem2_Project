@@ -1,34 +1,32 @@
 # Isameel's Tasks
 
-Personal task tracking for the CUIC Quant Fund project.
+## Week 1: Testing + Meeting Notes (Feb 6-12)
 
----
+### To Do
+- [ ] Set up Read.ai or Otter.ai for meeting notes
+- [ ] Test recording on a short call
+- [ ] Create dummy test CSVs (input + output formats)
+- [ ] Get test data from Mya
+- [ ] Test James's backtester - basic run
+- [ ] Test James's backtester - edge cases
+- [ ] Test Ben's metrics module
+- [ ] Document all bugs in `team/isameel/work/notes/bug-report.md`
+- [ ] Report bugs to James/Ben immediately
+- [ ] Post Thursday meeting notes to `docs/meetings/`
 
-## In Progress
+### In Progress
+| Task | Started | Notes |
+|------|---------|-------|
+| | | |
 
-| Task | Priority | Started | Notes |
-|------|----------|---------|-------|
-| - | - | - | - |
-
----
-
-## To Do
-
-| Task | Priority | Notes |
-|------|----------|-------|
-| Complete environment setup | High | See docs/setup/environment-setup.md |
-| Review platform documentation | Medium | docs/platforms/ |
-
----
-
-## Completed
-
+### Completed
 | Task | Completed | Notes |
 |------|-----------|-------|
+| | | |
 
 ---
 
 ## Notes
-
-- Add your focus area once assigned
-- Track progress using `/update-log isameel <work done>`
+- Meeting notes go to: `docs/meetings/YYYY-MM-DD-<topic>.md`
+- Bug report template in task brief
+- See `team/isameel/work/task_briefs/week1-testing-qa.md` for full spec

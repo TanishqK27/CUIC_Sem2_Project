@@ -13,6 +13,45 @@ Central task tracking for the entire project. Individual tasks are managed in `t
 - [ ] API client implementations
 - [ ] Basic backtesting framework
 
+---
+
+## Week 1 Sprint (Feb 6-12, 2026)
+
+**Goal:** Build complete data pipeline + backtesting framework for NBA sports betting research.
+**Deadline:** Thursday Feb 12 (Presentation Day)
+**Coordinator:** Miran (daily progress reports in `team/progress_reports/week1.md`)
+
+### Data Collection
+- [ ] NBA stats collected (4 seasons: 2021-25) - **Max**
+- [ ] Sportsbook odds scraped (OddsHarvester) - **Alfie**
+- [ ] Data validated with standardized `team_abbr` format - **Max + Alfie**
+
+### Infrastructure
+- [ ] Railway PostgreSQL tables created (5 tables) - **Dietrich**
+- [ ] All CSVs loaded to database - **Dietrich**
+- [ ] Tables joinable on `team_abbr` column verified - **Dietrich**
+
+### Analysis Tools
+- [ ] Backtester framework functional with dummy data - **James**
+- [ ] Metrics module complete (Sharpe, drawdown, etc.) - **Ben**
+- [ ] Test data generator ready - **Mya**
+
+### Exploratory Analysis
+- [ ] Polymarket EDA notebook with 5+ visualizations - **Dietrich**
+- [ ] Sportsbook EDA notebook with 3+ findings - **Mya**
+
+### Quality & Coordination
+- [ ] Backtester + metrics tested against edge cases - **Isameel**
+- [ ] Daily progress reports posted - **Miran**
+- [ ] 3-5 research papers summarized - **Miran**
+
+### Documentation
+- [ ] Data inventory document complete - **Vansheeka**
+- [ ] Strategy interface documented - **James**
+- [ ] Meeting notes captured - **Isameel**
+
+---
+
 ### Phase 2: Research (March 2025)
 - [ ] Polymarket data exploration
 - [ ] Kalshi data exploration

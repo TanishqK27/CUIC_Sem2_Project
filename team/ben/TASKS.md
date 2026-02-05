@@ -1,34 +1,30 @@
 # Ben's Tasks
 
-Personal task tracking for the CUIC Quant Fund project.
+## Week 1: Metrics Module (Feb 6-12)
 
----
+### To Do
+- [ ] Create dummy backtester output CSV for testing
+- [ ] Implement `calculate_sharpe_ratio()`
+- [ ] Implement `calculate_max_drawdown()`
+- [ ] Implement `calculate_win_rate()`
+- [ ] Implement `calculate_profit_factor()`
+- [ ] Implement `calculate_all_metrics()` wrapper
+- [ ] Handle edge cases (empty data, all wins, all losses)
+- [ ] Create test notebook at `tools/test_metrics.ipynb`
 
-## In Progress
+### In Progress
+| Task | Started | Notes |
+|------|---------|-------|
+| | | |
 
-| Task | Priority | Started | Notes |
-|------|----------|---------|-------|
-| - | - | - | - |
-
----
-
-## To Do
-
-| Task | Priority | Notes |
-|------|----------|-------|
-| Complete environment setup | High | See docs/setup/environment-setup.md |
-| Review platform documentation | Medium | docs/platforms/ |
-
----
-
-## Completed
-
+### Completed
 | Task | Completed | Notes |
 |------|-----------|-------|
+| | | |
 
 ---
 
 ## Notes
-
-- Add your focus area once assigned
-- Track progress using `/update-log ben <work done>`
+- Module location: `src/cuic_quant/metrics/__init__.py`
+- Don't wait for James — use dummy data
+- See `team/ben/work/task_briefs/week1-metrics-module.md` for full spec

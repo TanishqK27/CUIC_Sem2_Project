@@ -1,34 +1,24 @@
 # Andrii's Tasks
 
-Personal task tracking for the CUIC Quant Fund project.
+## Week 1 (Feb 6-12)
 
----
+### To Do
+- [ ] Complete environment setup (see `docs/setup/environment-setup.md`)
+- [ ] Review project documentation
+- [ ] Check in with Tan for task assignment
 
-## In Progress
+### In Progress
+| Task | Started | Notes |
+|------|---------|-------|
+| | | |
 
-| Task | Priority | Started | Notes |
-|------|----------|---------|-------|
-| - | - | - | - |
-
----
-
-## To Do
-
-| Task | Priority | Notes |
-|------|----------|-------|
-| Complete environment setup | High | See docs/setup/environment-setup.md |
-| Review platform documentation | Medium | docs/platforms/ |
-
----
-
-## Completed
-
+### Completed
 | Task | Completed | Notes |
 |------|-----------|-------|
+| | | |
 
 ---
 
 ## Notes
-
-- Add your focus area once assigned
-- Track progress using `/update-log andrii <work done>`
+- No assigned task yet for Week 1
+- Reach out to Tan if you want to help with something
