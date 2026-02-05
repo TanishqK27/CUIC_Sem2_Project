@@ -121,7 +121,7 @@ src/cuic_quant/metrics/
 | Person | Interaction | When |
 |--------|-------------|------|
 | James | Get his output format, test with real output | Tue-Wed |
-| Isameel | He tests your metrics | Thu |
+| Ismaeel | He tests your metrics | Thu |
 
 ---
 

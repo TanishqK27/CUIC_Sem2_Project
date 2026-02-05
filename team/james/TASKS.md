@@ -9,7 +9,7 @@
 - [ ] Document strategy interface in `docs/reference/strategy-interface.md`
 - [ ] Test with simple "always bet home" strategy
 - [ ] Get test data from Mya and verify compatibility
-- [ ] Give Isameel access for testing (Tuesday)
+- [ ] Give Ismaeel access for testing (Tuesday)
 
 ### In Progress
 | Task | Started | Notes |

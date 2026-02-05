@@ -21,7 +21,7 @@ Cardiff University Investment Club (CUIC) quantitative research project focused 
 | Max        | `team/max/`     | - |
 | Miran      | `team/miran/`   | - |
 | Mya        | `team/mya/`     | - |
-| Isameel    | `team/isameel/` | - |
+| Ismaeel    | `team/ismaeel/` | - |
 | Vansheeka  | `team/vansheeka/`| - |
 | James      | `team/james/`   | - |
 

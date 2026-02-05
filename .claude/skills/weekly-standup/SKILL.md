@@ -36,7 +36,7 @@ When this skill is invoked with `/weekly-standup`:
    - `team/max/LOG.md`
    - `team/miran/LOG.md`
    - `team/mya/LOG.md`
-   - `team/isameel/LOG.md`
+   - `team/ismaeel/LOG.md`
    - `team/vansheeka/LOG.md`
    - `team/james/LOG.md`
 

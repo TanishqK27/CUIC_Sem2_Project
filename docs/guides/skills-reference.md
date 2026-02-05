@@ -18,7 +18,7 @@ Updates your personal `LOG.md` and the shared `PROJECT_LOG.md` with timestamped 
 **Arguments:**
 | Argument | Description |
 |----------|-------------|
-| `name` | Your name (lowercase): tan, andrii, dietrich, ben, alfie, max, miran, mya, isameel, vansheeka |
+| `name` | Your name (lowercase): tan, andrii, dietrich, ben, alfie, max, miran, mya, ismaeel, vansheeka |
 | `message` | Description of work completed |
 
 **Examples:**
@@ -162,7 +162,7 @@ Generates a weekly progress summary from all team member logs.
 
 **"Invalid name" error with /update-log:**
 - Use lowercase names only
-- Valid names: tan, andrii, dietrich, ben, alfie, max, miran, mya, isameel, vansheeka
+- Valid names: tan, andrii, dietrich, ben, alfie, max, miran, mya, ismaeel, vansheeka
 
 **"Invalid category" error with /research-template:**
 - Valid categories: polymarket, kalshi, sports, exploratory

@@ -21,7 +21,7 @@ flowchart LR
         MYA_TEST[("Mya\n─────────\nTest Data\n1 CSV")]
         JAMES[("James\n─────────\nBacktester\nModule")]
         BEN[("Ben\n─────────\nMetrics\nModule")]
-        ISAMEEL[("Isameel\n─────────\nQA Testing\nBug Reports")]
+        ISAMEEL[("Ismaeel\n─────────\nQA Testing\nBug Reports")]
     end
 
     subgraph Stream3["Stream 3: Research & EDA"]
@@ -69,8 +69,8 @@ gantt
     James: Document interface       :jam3, after jam2, 1d
     Ben: Metrics module             :ben1, 2026-02-06, 3d
     Ben: Integration + docs         :ben2, after ben1, 1d
-    Isameel: Test backtester        :isa1, after jam2, 2d
-    Isameel: Test metrics           :isa2, after ben1, 2d
+    Ismaeel: Test backtester        :isa1, after jam2, 2d
+    Ismaeel: Test metrics           :isa2, after ben1, 2d
 
     section EDA & Research
     Dietrich: Polymarket EDA        :diet4, after diet3, 2d
@@ -81,7 +81,7 @@ gantt
     section Coordination
     Miran: Daily check-ins          :mir3, 2026-02-06, 7d
     Vansheeka: Data inventory       :van1, 2026-02-08, 3d
-    Isameel: Meeting notes          :isa3, 2026-02-06, 7d
+    Ismaeel: Meeting notes          :isa3, 2026-02-06, 7d
 
     section Milestones
     Test data to James              :milestone, crit, m1, 2026-02-07, 0d
@@ -100,9 +100,9 @@ gantt
 | **Sun 8** | Max | 3 NBA CSVs | Dietrich | `team_stats`, `player_stats`, `game_logs` |
 | **Sun 8** | Alfie | 2 Odds CSVs | Dietrich | `matches`, `odds` |
 | **Mon 9** | Dietrich | Database ready | Team | Railway PostgreSQL |
-| **Tue 10** | James | Backtester | Isameel | Python module |
-| **Tue 10** | Ben | Metrics | Isameel | Python module |
-| **Wed 11** | Isameel | Bug reports | James/Ben | Markdown |
+| **Tue 10** | James | Backtester | Ismaeel | Python module |
+| **Tue 10** | Ben | Metrics | Ismaeel | Python module |
+| **Wed 11** | Ismaeel | Bug reports | James/Ben | Markdown |
 | **Thu 12** | All | Presentation | Tan | Ready |
 
 ---
@@ -164,8 +164,8 @@ flowchart TB
     end
 
     subgraph Tuesday-Wednesday
-        ISA1[Isameel: Test backtester]
-        ISA2[Isameel: Test metrics]
+        ISA1[Ismaeel: Test backtester]
+        ISA2[Ismaeel: Test metrics]
     end
 
     subgraph Wednesday
@@ -201,7 +201,7 @@ flowchart TB
 
     subgraph "Documentation"
         VAN[Vansheeka: Data inventory]
-        ISA[Isameel: Meeting notes]
+        ISA[Ismaeel: Meeting notes]
     end
 
     MIR1 --> MIR3[Paper summaries]
@@ -233,7 +233,7 @@ flowchart TB
 | James | | |
 | Ben | | |
 | Mya | | |
-| Isameel | | |
+| Ismaeel | | |
 | Vansheeka | | |
 
 ### Saturday Feb 7
@@ -245,7 +245,7 @@ flowchart TB
 | James | | |
 | Ben | | |
 | Mya | | |
-| Isameel | | |
+| Ismaeel | | |
 | Vansheeka | | |
 
 ### Sunday Feb 8
@@ -257,7 +257,7 @@ flowchart TB
 | James | | |
 | Ben | | |
 | Mya | | |
-| Isameel | | |
+| Ismaeel | | |
 | Vansheeka | | |
 
 ---

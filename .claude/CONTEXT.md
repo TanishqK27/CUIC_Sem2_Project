@@ -31,7 +31,7 @@
 | Max | TBD | 2025-02-01 | None assigned |
 | Miran | TBD | 2025-02-01 | None assigned |
 | Mya | TBD | 2025-02-01 | None assigned |
-| Isameel | TBD | 2025-02-01 | None assigned |
+| Ismaeel | TBD | 2025-02-01 | None assigned |
 | Vansheeka | TBD | 2025-02-01 | None assigned |
 | James | TBD | Unknown | None assigned |
 

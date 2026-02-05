@@ -71,7 +71,7 @@ CUIC_Sem2_Project/
 | **Mya** | `test-data.md` | `docs/reference/` |
 | **Miran** | Notes only | `team/miran/work/notes/` |
 | **Vansheeka** | `nba-teams.md`, `PROJECT_STATUS.md` | `docs/reference/`, `team/` |
-| **Isameel** | Bug reports only | `team/isameel/work/notes/` |
+| **Ismaeel** | Bug reports only | `team/ismaeel/work/notes/` |
 
 ---
 

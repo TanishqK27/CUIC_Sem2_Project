@@ -121,7 +121,7 @@ strategy_fn(row: pd.Series, context: dict = None) -> dict
 | Person | Interaction | When |
 |--------|-------------|------|
 | Ben | He builds metrics against your output format | Coordinate daily |
-| Isameel | He tests your backtester | Give him access Tue |
+| Ismaeel | He tests your backtester | Give him access Tue |
 | Mya | She creates test data for you | Get test data Sat |
 
 ---

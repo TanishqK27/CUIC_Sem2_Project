@@ -41,14 +41,14 @@ Central task tracking for the entire project. Individual tasks are managed in `t
 - [ ] Sportsbook EDA notebook with 3+ findings - **Mya**
 
 ### Quality & Coordination
-- [ ] Backtester + metrics tested against edge cases - **Isameel**
+- [ ] Backtester + metrics tested against edge cases - **Ismaeel**
 - [ ] Daily progress reports posted - **Miran**
 - [ ] 3-5 research papers summarized - **Miran**
 
 ### Documentation
 - [ ] Data inventory document complete - **Vansheeka**
 - [ ] Strategy interface documented - **James**
-- [ ] Meeting notes captured - **Isameel**
+- [ ] Meeting notes captured - **Ismaeel**
 
 ---
 

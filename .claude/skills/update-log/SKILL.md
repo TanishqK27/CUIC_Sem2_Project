@@ -10,7 +10,7 @@ Updates a team member's personal LOG.md and adds an attributed entry to PROJECT_
 
 ## Arguments
 
-- `name`: Team member's name (lowercase: tan, andrii, dietrich, ben, alfie, max, miran, mya, isameel, vansheeka, james)
+- `name`: Team member's name (lowercase: tan, andrii, dietrich, ben, alfie, max, miran, mya, ismaeel, vansheeka, james)
 - `message`: Description of work completed
 
 ## Examples
@@ -26,7 +26,7 @@ Updates a team member's personal LOG.md and adds an attributed entry to PROJECT_
 When this skill is invoked with `/update-log <name> <message>`:
 
 1. **Validate the name** - Ensure it matches one of the 11 team members (lowercase):
-   - tan, andrii, dietrich, ben, alfie, max, miran, mya, isameel, vansheeka, james
+   - tan, andrii, dietrich, ben, alfie, max, miran, mya, ismaeel, vansheeka, james
    - If invalid, inform the user and list valid names
 
 2. **Get today's date** in format YYYY-MM-DD

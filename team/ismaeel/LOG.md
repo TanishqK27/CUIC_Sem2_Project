@@ -1,4 +1,4 @@
-# Isameel's Work Log
+# Ismaeel's Work Log
 
 Personal work log for the CUIC Quant Fund project. Entries are in reverse chronological order.
 
@@ -8,7 +8,7 @@ Personal work log for the CUIC Quant Fund project. Entries are in reverse chrono
 
 Use the `/update-log` skill:
 ```
-/update-log isameel <description of work>
+/update-log ismaeel <description of work>
 ```
 
 ---

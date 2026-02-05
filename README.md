@@ -105,7 +105,7 @@ CUIC_Sem2_Project/
 | Max       | TBD |
 | Miran     | TBD |
 | Mya       | TBD |
-| Isameel   | TBD |
+| Ismaeel   | TBD |
 | Vansheeka | TBD |
 | James     | TBD |
 

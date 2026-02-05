@@ -1,6 +1,6 @@
 # Week 1: Testing & QA + Meeting Notes
 
-**Owner:** Isameel
+**Owner:** Ismaeel
 **Deadline:** Thursday Feb 12
 **Priority:** MEDIUM
 
@@ -118,7 +118,7 @@ print(metrics)
 
 ### 3. Document All Bugs
 
-Create `team/isameel/work/notes/bug-report.md`:
+Create `team/ismaeel/work/notes/bug-report.md`:
 
 ```markdown
 # Bug Report - Week 1

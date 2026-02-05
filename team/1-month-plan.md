@@ -45,7 +45,7 @@ Every deliverable must meet these criteria before it's considered "done":
 |------------|---------|------|
 | **Data Team** | Alfie, Max, Miran | Dietrich (advisor) |
 | **Backtester Team** | James, Ben, Vansheeka | James |
-| **Models Team** | Mya, Isameel | Mya |
+| **Models Team** | Mya, Ismaeel | Mya |
 | **Oversight/Support** | Tan, Andrii, Dietrich | Tan |
 
 **Notes:**
@@ -123,7 +123,7 @@ Week 4: ──────────────── ALL CONVERGE ───�
 | Deliverable | Owner | Definition of Done |
 |-------------|-------|-------------------|
 | Literature review | Mya | Markdown doc: Markov chains, XGBoost for sports betting, with paper links |
-| Feature wishlist | Isameel | List of features models will need (price gaps, NBA stats, etc.) |
+| Feature wishlist | Ismaeel | List of features models will need (price gaps, NBA stats, etc.) |
 
 ### Thursday Meeting (Feb 12)
 - [ ] Data Team: Demo query showing OddsHarvester + NBA data in Railway DB
@@ -156,7 +156,7 @@ Week 4: ──────────────── ALL CONVERGE ───�
 | Deliverable | Owner | Definition of Done |
 |-------------|-------|-------------------|
 | Baseline model | Mya | Logistic regression on Polymarket data, notebook with results |
-| Model interface spec | Isameel | Document defining Input → Output format for all models |
+| Model interface spec | Ismaeel | Document defining Input → Output format for all models |
 
 ### Thursday Meeting (Feb 19)
 - [ ] Data Team: Demo EDA notebook with key insights
@@ -189,7 +189,7 @@ Week 4: ──────────────── ALL CONVERGE ───�
 | Deliverable | Owner | Definition of Done |
 |-------------|-------|-------------------|
 | Markov Chain model | Mya | State transition model on price gaps, notebook with backtest results |
-| XGBoost model | Mya, Isameel | ML model using combined features, notebook with backtest results |
+| XGBoost model | Mya, Ismaeel | ML model using combined features, notebook with backtest results |
 
 ### Thursday Meeting (Feb 26)
 - [ ] Data Team: Confirm all data needs are met

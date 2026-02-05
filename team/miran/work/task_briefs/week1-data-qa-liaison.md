@@ -60,7 +60,7 @@ Also message Tan directly with anything urgent.
 | James | Backtester engine |
 | Ben | Metrics module |
 | Mya | Test data generator + sportsbook EDA |
-| Isameel | Testing + meeting notes |
+| Ismaeel | Testing + meeting notes |
 | Vansheeka | Data quality analysis |
 
 ---

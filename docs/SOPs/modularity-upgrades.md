@@ -9,7 +9,7 @@
 ## Dependency Chain
 
 ```
-Mya (test data) ──→ James (backtester) ──→ Ben (metrics) ──→ Isameel (testing)
+Mya (test data) ──→ James (backtester) ──→ Ben (metrics) ──→ Ismaeel (testing)
                           ↑
 Alfie (CSVs) ──→ Dietrich (DB) ──→ James (loads from DB)
 ```
@@ -27,7 +27,7 @@ Alfie (CSVs) ──→ Dietrich (DB) ──→ James (loads from DB)
 | James | 1. Update `strategy-interface.md` with new column |
 | James | 2. Announce in chat: "Added `strategy_name` column" |
 | Ben | 3. Update `calculate_all_metrics()` to handle new column (or ignore it) |
-| Isameel | 4. Update test cases to include new column |
+| Ismaeel | 4. Update test cases to include new column |
 
 **James's responsibility:** Document the change, notify dependents
 **Ben's responsibility:** Handle new columns gracefully (don't crash)
@@ -99,7 +99,7 @@ When you change a format/interface:
 # ADD new columns at the end
 ```
 
-### For Consumers (Ben, Isameel, Max)
+### For Consumers (Ben, Ismaeel, Max)
 
 ```python
 # ONLY use columns you need
@@ -124,7 +124,7 @@ def calculate_metrics(df):
 Day 1:
   James → Chat: "Planning to add 'kelly_fraction' column to backtester output"
   Ben → Chat: "OK, I'll ignore it for now, add metric later"
-  Isameel → Chat: "I'll add test case for it"
+  Ismaeel → Chat: "I'll add test case for it"
 
 Day 2:
   James: Updates backtester, updates strategy-interface.md
@@ -132,7 +132,7 @@ Day 2:
 
 Day 3:
   Ben: Tests metrics still work (they do, ignores new column)
-  Isameel: Adds test for kelly_fraction
+  Ismaeel: Adds test for kelly_fraction
 
 Week 2:
   Ben: Adds kelly_fraction to metrics if needed
@@ -144,8 +144,8 @@ Week 2:
 
 | Change Type | Who Approves | Who Updates |
 |-------------|--------------|-------------|
-| New backtester column | James decides | Ben, Isameel adapt |
+| New backtester column | James decides | Ben, Ismaeel adapt |
 | New DB column | Dietrich decides | Alfie, Max, James adapt |
 | New CSV column | Dietrich approves | Alfie produces, Max validates |
-| New metric | Ben decides | Isameel tests |
-| New test data column | Mya + James coordinate | Isameel uses |
+| New metric | Ben decides | Ismaeel tests |
+| New test data column | Mya + James coordinate | Ismaeel uses |

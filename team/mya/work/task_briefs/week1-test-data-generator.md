@@ -9,7 +9,7 @@
 ## Your Role
 
 Two tasks this week:
-1. Create synthetic test data for James/Isameel (Fri-Sat)
+1. Create synthetic test data for James/Ismaeel (Fri-Sat)
 2. Analyze Alfie's sportsbook odds data (Sat-Wed)
 
 ---
@@ -117,7 +117,7 @@ This is parallel to Dietrich's Polymarket EDA — you both produce independent r
 | Person | Interaction | When |
 |--------|-------------|------|
 | James | Send him test_games.csv | **Friday** |
-| Isameel | He uses your test data | Tue |
+| Ismaeel | He uses your test data | Tue |
 | Alfie | Get his CSVs for EDA | Sat-Mon |
 
 ---
@@ -152,5 +152,5 @@ This is parallel to Dietrich's Polymarket EDA — you both produce independent r
 
 ## Thursday Presentation (3 min)
 
-1. Show test_games.csv, confirm James/Isameel used it (1 min)
+1. Show test_games.csv, confirm James/Ismaeel used it (1 min)
 2. Show 2-3 sportsbook findings with visualizations (2 min)
