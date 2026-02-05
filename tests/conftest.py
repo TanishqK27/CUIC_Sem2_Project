@@ -110,16 +110,6 @@ def sample_game_odds() -> dict[str, Any]:
 
 
 @pytest.fixture
-def mock_polymarket_client() -> MagicMock:
-    """Mock Polymarket client for testing without API calls."""
-    client = MagicMock()
-    client.get_markets.return_value = []
-    client.get_market.return_value = None
-    client.get_orderbook.return_value = None
-    return client
-
-
-@pytest.fixture
 def mock_kalshi_client() -> MagicMock:
     """Mock Kalshi client for testing without API calls."""
     client = MagicMock()
@@ -156,7 +146,6 @@ def temp_env_vars(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
         "KALSHI_EMAIL": "test@example.com",
         "KALSHI_PASSWORD": "test_password",
         "KALSHI_API_URL": "https://demo-api.kalshi.co/trade-api/v2",
-        "POLYMARKET_API_KEY": "test_polymarket_key",
     }
 
     for key, value in env_vars.items():

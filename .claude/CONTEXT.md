@@ -23,7 +23,7 @@
 
 | Member | Role | Last Activity | Active Tasks |
 |--------|------|---------------|--------------|
-| Tan | Lead / Infrastructure | 2026-02-04 | 6 tasks |
+| Tan | Lead / Infrastructure | 2026-02-05 | 6 tasks |
 | Andrii | TBD | 2025-02-01 | None assigned |
 | Ben | TBD | 2025-02-01 | None assigned |
 | Dietrich | TBD | 2025-02-01 | None assigned |
@@ -51,7 +51,6 @@
 |--------|--------|-------|
 | kalshi_client.py | Framework ready | 476 |
 | odds_api.py | Framework ready | 419 |
-| polymarket_client.py | Framework ready | 310 |
 
 ---
 
@@ -67,14 +66,14 @@
 ## Git Status
 
 **Branch:** main
-**Working tree:** 7 changes
+**Working tree:** 28 changes
 
 **Recent Commits:**
+- f86f161 feat: add auto-generated context file and update script
 - 69102e3 docs: add notebook outputs with live market data
 - 8633fa6 feat: update notebook to fetch live data with comprehensive explanations
 - 1f6b116 feat: Add CockroachDB integration and historic data collection
 - 1255745 docs: expand API guide with beginner-friendly detail
-- a89c7bd feat: add market analysis dashboard visualization
 
 ---
 

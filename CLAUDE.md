@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Cardiff University Investment Club (CUIC) quantitative research project focused on **sports betting and prediction markets** (Polymarket, Kalshi) for alpha generation through arbitrage, mean reversion, and systematic strategies.
+Cardiff University Investment Club (CUIC) quantitative research project focused on **sports betting and prediction markets** (Kalshi, The Odds API) for alpha generation through arbitrage, mean reversion, and systematic strategies.
 
 **Semester:** Spring 2025
 **Focus Areas:** Prediction Markets, Sports Betting, Quantitative Strategies
@@ -116,7 +116,7 @@ def calculate_kelly_fraction(
 ### Log Updates
 Use the `/update-log` skill to add entries:
 ```
-/update-log tan Completed Polymarket API client implementation
+/update-log tan Completed Kalshi API client implementation
 ```
 
 ---
@@ -137,12 +137,6 @@ Use the `/update-log` skill to add entries:
 ---
 
 ## Platform Quick Reference
-
-### Polymarket
-- **Type:** Decentralized prediction market on Polygon
-- **Currency:** USDC
-- **Docs:** https://docs.polymarket.com/
-- **Client:** `src/cuic_quant/data/polymarket_client.py`
 
 ### Kalshi
 - **Type:** CFTC-regulated event contracts exchange

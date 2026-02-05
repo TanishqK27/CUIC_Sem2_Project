@@ -20,16 +20,17 @@ Or use Tan's personal skill (no name needed):
 
 ## Log Entries
 
+### 2026-02-05
+
+- Removed Polymarket data collection infrastructure - team member has shared server for queries
+- Cleaned up codebase to focus on OddsHarvester and Kalshi integrations
+- Removed: API client, collector, database models, notebooks, documentation, and tests
+- Kept: Core strategies (arbitrage, kelly, mean_reversion), Kalshi client, OddsAPI client
+
 ### 2026-02-04
 
 - Set up CockroachDB cloud database (AWS, 10GB free tier) for team-shared data storage
 - Migrated from SQLite to CockroachDB - updated connection.py to auto-detect database type
-- Created historic data collection script (scripts/collect_historic_data.py) for NBA Polymarket data
-- Set up cron job for nightly data collection at midnight
-- Enhanced Polymarket collector with price history and events API support
-- Discovered Polymarket limitation: closed markets don't retain price history
-- Running initial historic collection now (~1000 NBA events, ~8000 markets)
-- Next: Build continuous orderbook collector for live market snapshots
 
 ### 2026-02-02
 

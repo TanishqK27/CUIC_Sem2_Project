@@ -40,10 +40,14 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator
 
+from dotenv import load_dotenv
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from cuic_quant.database.models import Base
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Module-level singleton for the default engine
 _default_engine: Engine | None = None
