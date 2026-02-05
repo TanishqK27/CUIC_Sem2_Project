@@ -217,6 +217,12 @@ perfect_df = generate_perfect_test(20)
 
 ## Resources
 
+**Required Reading:**
+- File structure: `docs/SOPs/file-structure.md`
+- Modularity: `docs/SOPs/modularity-upgrades.md`
+- Team SOPs: `docs/SOPs/team-sops.md`
+
+
 **Libraries:**
 - pandas: https://pandas.pydata.org/docs/
 - numpy random: https://numpy.org/doc/stable/reference/random/

@@ -144,6 +144,12 @@ Check Alfie's CSV team names against this list.
 
 ## Resources
 
+**Required Reading:**
+- File structure: `docs/SOPs/file-structure.md`
+- Modularity: `docs/SOPs/modularity-upgrades.md`
+- Team SOPs: `docs/SOPs/team-sops.md`
+
+
 **Tools:**
 - Excel or Google Sheets to open CSVs
 - Terminal commands: `head`, `wc -l`, `grep`

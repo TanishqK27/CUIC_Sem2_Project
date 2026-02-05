@@ -239,6 +239,12 @@ print("All tests passed!")
 
 ## Resources
 
+**Required Reading:**
+- File structure: `docs/SOPs/file-structure.md`
+- Modularity: `docs/SOPs/modularity-upgrades.md`
+- Team SOPs: `docs/SOPs/team-sops.md`
+
+
 **Formulas:**
 - Sharpe: `(mean_return - rf) / std_return * sqrt(252)`
 - Max Drawdown: `max((peak - value) / peak)`

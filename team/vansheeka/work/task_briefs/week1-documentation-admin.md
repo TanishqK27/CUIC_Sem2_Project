@@ -220,6 +220,12 @@ Every day, ping each person and update PROJECT_STATUS.md:
 
 ## Resources
 
+**Required Reading:**
+- File structure: `docs/SOPs/file-structure.md`
+- Modularity: `docs/SOPs/modularity-upgrades.md`
+- Team SOPs: `docs/SOPs/team-sops.md`
+
+
 **NBA Reference:**
 - Official teams: https://www.nba.com/teams
 - Team abbreviations: https://en.wikipedia.org/wiki/Wikipedia:WikiProject_National_Basketball_Association/National_Basketball_Association_team_abbreviations

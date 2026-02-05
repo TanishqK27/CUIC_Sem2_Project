@@ -193,6 +193,12 @@ Track what you've tested:
 
 ## Resources
 
+**Required Reading:**
+- File structure: `docs/SOPs/file-structure.md`
+- Modularity: `docs/SOPs/modularity-upgrades.md`
+- Team SOPs: `docs/SOPs/team-sops.md`
+
+
 **How to Run Notebooks:**
 ```bash
 cd /path/to/project

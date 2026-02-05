@@ -165,6 +165,12 @@ print("Dummy CSVs created - send to Max for validation")
 
 ## Resources
 
+**Required Reading:**
+- File structure: `docs/SOPs/file-structure.md`
+- Modularity: `docs/SOPs/modularity-upgrades.md`
+- Team SOPs: `docs/SOPs/team-sops.md`
+
+
 **OddsHarvester:**
 - Repo: https://github.com/jordantete/OddsHarvester
 - Check README for usage

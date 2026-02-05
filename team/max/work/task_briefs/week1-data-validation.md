@@ -266,6 +266,12 @@ Create a tracking doc `team/max/work/notes/data-flow-status.md`:
 
 ## Resources
 
+**Required Reading:**
+- File structure: `docs/SOPs/file-structure.md`
+- Modularity: `docs/SOPs/modularity-upgrades.md`
+- Team SOPs: `docs/SOPs/team-sops.md`
+
+
 **Libraries:**
 - pandas: https://pandas.pydata.org/docs/
 - SQLAlchemy: https://docs.sqlalchemy.org/

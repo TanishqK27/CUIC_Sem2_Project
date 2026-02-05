@@ -284,6 +284,39 @@ Create `docs/reference/csv-formats.md` — tell people EXACTLY what columns you 
 
 ---
 
+## Resources
+
+**Required Reading:**
+- File structure: `docs/SOPs/file-structure.md`
+- Modularity: `docs/SOPs/modularity-upgrades.md`
+- Team SOPs: `docs/SOPs/team-sops.md`
+
+**Libraries:**
+- psycopg2: https://www.psycopg.org/docs/
+- pandas: https://pandas.pydata.org/docs/
+
+**Railway:**
+- Railway PostgreSQL docs: https://docs.railway.app/databases/postgresql
+- Connection string from Railway dashboard
+
+**AI Tools:**
+- Use Claude: "Write a psycopg2 upsert for this schema"
+
+---
+
+## Modularity Note
+
+**You own the schema. If you add/change columns:**
+1. Update `docs/reference/csv-formats.md`
+2. Announce in chat: "Schema changed - [what changed]"
+3. Alfie updates CSV production
+4. Max updates validation
+5. James updates queries (if affected)
+
+**Don't change schema without coordinating first.**
+
+---
+
 ## Thursday Presentation (2 min)
 
 1. Show tables exist: `\dt` in psql
