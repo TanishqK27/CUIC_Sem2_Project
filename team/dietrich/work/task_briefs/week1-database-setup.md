@@ -2,324 +2,158 @@
 
 **Owner:** Dietrich
 **Deadline:** Thursday Feb 12
-**Priority:** CRITICAL — everyone depends on this
+**Priority:** CRITICAL
 
 ---
 
 ## Your Role
 
-You own the Railway PostgreSQL database. Everyone gives YOU formatted CSVs, you load them. You don't chase data — they bring it to you in the right format.
+You own Railway PostgreSQL. People give you formatted CSVs, you load them. Wrong format = send it back.
 
 ---
 
-## This Week's Deliverables
+## Task 1: Database Setup (Mon-Tue)
 
-### 1. Create All Database Tables
+### Tables to Create
 
-Run these in Railway PostgreSQL:
+Create these 4 tables in Railway. Use Claude Code to help generate the SQL:
 
-```sql
--- Sportsbook matches
-CREATE TABLE sportsbook_matches (
-    id SERIAL PRIMARY KEY,
-    external_id VARCHAR(100) UNIQUE NOT NULL,
-    home_team VARCHAR(100) NOT NULL,
-    away_team VARCHAR(100) NOT NULL,
-    commence_time TIMESTAMP NOT NULL,
-    sport VARCHAR(50) DEFAULT 'basketball_nba',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+1. **sportsbook_matches** - Games with external_id (unique), home_team, away_team, commence_time
+2. **sportsbook_odds** - Odds per match per bookmaker (FK to matches)
+3. **nba_team_stats** - Team stats by season (unique on team_name + season)
+4. **nba_player_stats** - Player stats by season (unique on player_name + season)
 
-CREATE INDEX idx_matches_time ON sportsbook_matches(commence_time);
-CREATE INDEX idx_matches_teams ON sportsbook_matches(home_team, away_team);
+**Prompt for Claude:** "Create PostgreSQL tables for sportsbook matches, odds, NBA team stats, and player stats with appropriate indexes and constraints"
 
--- Sportsbook odds
-CREATE TABLE sportsbook_odds (
-    id SERIAL PRIMARY KEY,
-    match_id INTEGER REFERENCES sportsbook_matches(id),
-    bookmaker VARCHAR(50) NOT NULL,
-    home_odds DECIMAL(6,3) NOT NULL,
-    away_odds DECIMAL(6,3) NOT NULL,
-    scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### CSV Loader Script
 
-CREATE INDEX idx_odds_match ON sportsbook_odds(match_id);
+Create `scripts/load_csv_to_railway.py` that:
+- Takes CSV type and path as args
+- Loads matches, odds, team_stats, player_stats
+- Handles duplicates with ON CONFLICT
+- Prints row counts
 
--- NBA team stats
-CREATE TABLE nba_team_stats (
-    id SERIAL PRIMARY KEY,
-    team_name VARCHAR(100) NOT NULL,
-    team_abbr VARCHAR(10),
-    season VARCHAR(10) NOT NULL,
-    games_played INTEGER,
-    wins INTEGER,
-    losses INTEGER,
-    win_pct DECIMAL(4,3),
-    ppg DECIMAL(5,2),
-    opp_ppg DECIMAL(5,2),
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(team_name, season)
-);
+**Prompt for Claude:** "Write a Python script using psycopg2 to load CSVs into PostgreSQL with upsert logic"
 
--- NBA player stats
-CREATE TABLE nba_player_stats (
-    id SERIAL PRIMARY KEY,
-    player_name VARCHAR(100) NOT NULL,
-    team_abbr VARCHAR(10),
-    season VARCHAR(10) NOT NULL,
-    games_played INTEGER,
-    ppg DECIMAL(4,1),
-    rpg DECIMAL(4,1),
-    apg DECIMAL(4,1),
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(player_name, season)
-);
-```
+### Document CSV Formats
 
-### 2. Create CSV Loading Script
+Create `docs/reference/csv-formats.md` specifying exact columns for each CSV type. This is the contract - Alfie/others must match this exactly.
 
-Create `scripts/load_csv_to_railway.py`:
+---
 
-```python
-"""Load formatted CSVs into Railway PostgreSQL."""
+## Task 2: Polymarket Data Analysis (Tue-Thu)
 
-import pandas as pd
-import psycopg2
-from psycopg2.extras import execute_values
-import os
-import sys
+**While waiting for CSVs**, analyze the existing Polymarket data in Railway.
 
-def get_connection():
-    return psycopg2.connect(os.environ['DATABASE_URL'])
+### What To Explore
 
-def load_sportsbook_matches(csv_path: str):
-    """Load matches CSV. Expected columns: external_id, home_team, away_team, commence_time"""
-    df = pd.read_csv(csv_path)
-    conn = get_connection()
-    cur = conn.cursor()
+Use the existing `price_snapshots` data (90K+ rows) to find:
 
-    inserted = 0
-    for _, row in df.iterrows():
-        try:
-            cur.execute("""
-                INSERT INTO sportsbook_matches (external_id, home_team, away_team, commence_time)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (external_id) DO NOTHING
-            """, (row['external_id'], row['home_team'], row['away_team'], row['commence_time']))
-            inserted += cur.rowcount
-        except Exception as e:
-            print(f"Error: {e}")
+1. **Price movement patterns**
+   - How do probabilities change over time for a typical event?
+   - Do prices move smoothly or in jumps?
+   - Is there mean reversion? (prices that spike tend to come back?)
 
-    conn.commit()
-    print(f"Loaded {inserted} matches")
-    conn.close()
+2. **Volatility analysis**
+   - Which types of events have most price movement?
+   - Time of day effects? (more volatility at certain hours?)
+   - How does volatility change as event approaches?
 
-def load_sportsbook_odds(csv_path: str):
-    """Load odds CSV. Expected columns: external_id, bookmaker, home_odds, away_odds"""
-    df = pd.read_csv(csv_path)
-    conn = get_connection()
-    cur = conn.cursor()
+3. **Gap persistence**
+   - When PM price differs from implied fair value, how long does gap last?
+   - Do gaps close gradually or suddenly?
 
-    inserted = 0
-    for _, row in df.iterrows():
-        # Get match_id from external_id
-        cur.execute("SELECT id FROM sportsbook_matches WHERE external_id = %s", (row['external_id'],))
-        result = cur.fetchone()
-        if not result:
-            continue
-        match_id = result[0]
+### What To Document
 
-        cur.execute("""
-            INSERT INTO sportsbook_odds (match_id, bookmaker, home_odds, away_odds)
-            VALUES (%s, %s, %s, %s)
-        """, (match_id, row['bookmaker'], row['home_odds'], row['away_odds']))
-        inserted += 1
-
-    conn.commit()
-    print(f"Loaded {inserted} odds records")
-    conn.close()
-
-def load_nba_team_stats(csv_path: str):
-    """Load team stats CSV."""
-    df = pd.read_csv(csv_path)
-    conn = get_connection()
-    cur = conn.cursor()
-
-    for _, row in df.iterrows():
-        cur.execute("""
-            INSERT INTO nba_team_stats (team_name, team_abbr, season, games_played, wins, losses, win_pct, ppg, opp_ppg)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (team_name, season) DO UPDATE SET
-                games_played = EXCLUDED.games_played,
-                wins = EXCLUDED.wins,
-                losses = EXCLUDED.losses,
-                win_pct = EXCLUDED.win_pct,
-                ppg = EXCLUDED.ppg,
-                opp_ppg = EXCLUDED.opp_ppg,
-                updated_at = CURRENT_TIMESTAMP
-        """, (row['team_name'], row.get('team_abbr'), row['season'],
-              row['games_played'], row['wins'], row['losses'],
-              row['win_pct'], row['ppg'], row.get('opp_ppg')))
-
-    conn.commit()
-    print(f"Loaded {len(df)} team stats")
-    conn.close()
-
-def load_nba_player_stats(csv_path: str):
-    """Load player stats CSV."""
-    df = pd.read_csv(csv_path)
-    conn = get_connection()
-    cur = conn.cursor()
-
-    for _, row in df.iterrows():
-        cur.execute("""
-            INSERT INTO nba_player_stats (player_name, team_abbr, season, games_played, ppg, rpg, apg)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (player_name, season) DO UPDATE SET
-                team_abbr = EXCLUDED.team_abbr,
-                games_played = EXCLUDED.games_played,
-                ppg = EXCLUDED.ppg,
-                rpg = EXCLUDED.rpg,
-                apg = EXCLUDED.apg,
-                updated_at = CURRENT_TIMESTAMP
-        """, (row['player_name'], row['team_abbr'], row['season'],
-              row['games_played'], row['ppg'], row['rpg'], row['apg']))
-
-    conn.commit()
-    print(f"Loaded {len(df)} player stats")
-    conn.close()
-
-if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python load_csv_to_railway.py <type> <csv_path>")
-        print("Types: matches, odds, team_stats, player_stats")
-        sys.exit(1)
-
-    data_type = sys.argv[1]
-    csv_path = sys.argv[2]
-
-    loaders = {
-        'matches': load_sportsbook_matches,
-        'odds': load_sportsbook_odds,
-        'team_stats': load_nba_team_stats,
-        'player_stats': load_nba_player_stats,
-    }
-
-    if data_type in loaders:
-        loaders[data_type](csv_path)
-    else:
-        print(f"Unknown type: {data_type}")
-```
-
-### 3. Document CSV Formats
-
-Create `docs/reference/csv-formats.md` — tell people EXACTLY what columns you need:
+Create `research/notebooks/analysis/polymarket_eda.ipynb`:
 
 ```markdown
-# CSV Formats for Database Loading
+# Polymarket Exploratory Data Analysis
 
-## sportsbook_matches.csv
-| Column | Type | Required | Example |
-|--------|------|----------|---------|
-| external_id | string | YES | "nba_20260210_lal_bos" |
-| home_team | string | YES | "Los Angeles Lakers" |
-| away_team | string | YES | "Boston Celtics" |
-| commence_time | datetime | YES | "2026-02-10 19:00:00" |
+## Key Findings
+- [Bullet points of interesting patterns]
 
-## sportsbook_odds.csv
-| Column | Type | Required | Example |
-|--------|------|----------|---------|
-| external_id | string | YES | "nba_20260210_lal_bos" |
-| bookmaker | string | YES | "fanduel" |
-| home_odds | decimal | YES | 1.95 |
-| away_odds | decimal | YES | 2.05 |
+## Visualizations
+- Price paths for sample events
+- Volatility over time
+- Gap distribution histogram
 
-## nba_team_stats.csv
-| Column | Type | Required | Example |
-|--------|------|----------|---------|
-| team_name | string | YES | "Los Angeles Lakers" |
-| team_abbr | string | NO | "LAL" |
-| season | string | YES | "2025-26" |
-| games_played | int | YES | 45 |
-| wins | int | YES | 28 |
-| losses | int | YES | 17 |
-| win_pct | decimal | YES | 0.622 |
-| ppg | decimal | YES | 112.5 |
-| opp_ppg | decimal | NO | 108.3 |
+## Intuition
+- Why might these patterns exist?
+- How could this inform trading? (speculation only)
 
-## nba_player_stats.csv
-| Column | Type | Required | Example |
-|--------|------|----------|---------|
-| player_name | string | YES | "LeBron James" |
-| team_abbr | string | YES | "LAL" |
-| season | string | YES | "2025-26" |
-| games_played | int | YES | 40 |
-| ppg | decimal | YES | 25.3 |
-| rpg | decimal | YES | 7.8 |
-| apg | decimal | YES | 8.1 |
+## Questions for Team
+- [Things that need more investigation]
 ```
+
+### IMPORTANT: Stay In Your Lane
+
+**DO:**
+- Descriptive statistics
+- Visualizations
+- Document interesting patterns
+- Hypothesize why patterns exist
+
+**DON'T:**
+- Build predictive models
+- Create trading strategies
+- Backtest anything
+- Go down rabbit holes
+
+This is EDA only. Models come in Week 4.
 
 ---
 
 ## Who You Work With
 
-| Person | What They Give You | When |
-|--------|-------------------|------|
-| Alfie | sportsbook_matches.csv, sportsbook_odds.csv | By Wed |
-| Miran | Confirms CSVs match your schema | By Wed |
-| Vansheeka | Team name list (for validation) | By Tue |
-| Max | Runs validation after you load | After load |
-
-**Your job:** Load what they give you. If CSV is wrong format, send it back.
-
----
-
-## Done Checklist
-
-- [ ] All 4 tables created in Railway
-- [ ] Loading script works for all 4 data types
-- [ ] CSV format documentation published
-- [ ] At least one test load completed
-- [ ] Max has run validation on loaded data
+| Person | Interaction | When |
+|--------|-------------|------|
+| Alfie | Receives his CSVs | Wed |
+| Max | He validates after you load | After load |
+| Miran | She confirms CSVs are ready | Wed |
 
 ---
 
 ## Resources
 
 **Required Reading:**
-- File structure: `docs/SOPs/file-structure.md`
-- Modularity: `docs/SOPs/modularity-upgrades.md`
-- Team SOPs: `docs/SOPs/team-sops.md`
+- `docs/SOPs/file-structure.md`
+- `docs/SOPs/modularity-upgrades.md`
+- `docs/SOPs/team-sops.md`
 
-**Libraries:**
+**For DB Setup:**
+- Railway docs: https://docs.railway.app/databases/postgresql
 - psycopg2: https://www.psycopg.org/docs/
-- pandas: https://pandas.pydata.org/docs/
 
-**Railway:**
-- Railway PostgreSQL docs: https://docs.railway.app/databases/postgresql
-- Connection string from Railway dashboard
+**For Analysis:**
+- Existing PM data: query `price_snapshots` table
+- pandas/matplotlib for analysis
 
-**AI Tools:**
-- Use Claude: "Write a psycopg2 upsert for this schema"
-
----
-
-## Modularity Note
-
-**You own the schema. If you add/change columns:**
-1. Update `docs/reference/csv-formats.md`
-2. Announce in chat: "Schema changed - [what changed]"
-3. Alfie updates CSV production
-4. Max updates validation
-5. James updates queries (if affected)
-
-**Don't change schema without coordinating first.**
+**Claude Code Prompts:**
+- "Create PostgreSQL schema for sports betting data"
+- "Write CSV loader with upsert for PostgreSQL"
+- "Analyze time series data for mean reversion patterns"
+- "Create volatility analysis for price data"
 
 ---
 
-## Thursday Presentation (2 min)
+## Done Checklist
 
-1. Show tables exist: `\dt` in psql
-2. Run loading script on a sample CSV
-3. Query to show data: `SELECT * FROM sportsbook_matches LIMIT 5`
-4. Confirm Max validated the data
+**Database:**
+- [ ] 4 tables created in Railway
+- [ ] Loader script works
+- [ ] CSV formats documented
+- [ ] Test load with Alfie's dummy CSV
+
+**Analysis:**
+- [ ] EDA notebook created
+- [ ] 3+ interesting findings documented
+- [ ] Visualizations included
+- [ ] Stayed descriptive (no models)
+
+---
+
+## Thursday Presentation (3 min)
+
+1. Show tables exist, run one load (1 min)
+2. Show 2-3 interesting Polymarket findings (2 min)
