@@ -9,20 +9,35 @@
 
 ```mermaid
 flowchart TD
-    MAX[Max] -->|3 NBA CSVs| DB[(Database)]
-    ALFIE[Alfie] -->|2 Odds CSVs| DB
+    subgraph Data
+        Max -->|NBA stats| Dietrich
+        Alfie -->|Odds data| Dietrich
+    end
 
-    DB -->|queries| EDA[EDA Notebooks]
+    subgraph Tools
+        Mya -->|Test data| James
+        James -->|Backtester| Ismaeel
+        Ben -->|Metrics| Ismaeel
+    end
 
-    MYA[Mya] -->|test_games.csv| JAMES[James]
-    JAMES -->|backtester| TEST[Ismaeel Tests]
-    BEN[Ben] -->|metrics| TEST
+    subgraph Research
+        Dietrich -->|Database| Mya
+        Mya --> Analysis[Sportsbook Analysis]
+        Dietrich --> Polymarket[Polymarket Analysis]
+        Miran --> Papers[Paper Summaries]
+    end
+
+    subgraph Support
+        Vansheeka --> Inventory[Data Inventory]
+        Ismaeel --> Notes[Meeting Notes]
+        Miran --> Updates[Daily Updates]
+    end
 ```
 
 **Key Deadlines:**
-- **Fri 6:** Mya → James (test data)
-- **Sun 8:** Max + Alfie → Dietrich (CSVs)
-- **Tue 10:** James + Ben → Ismaeel (modules to test)
+- **Friday:** Mya sends test data to James
+- **Sunday:** Max and Alfie send data to Dietrich
+- **Tuesday:** James and Ben send code to Ismaeel for testing
 
 ---
 
