@@ -43,16 +43,23 @@ The CUIC Quant team uses a shared PostgreSQL database hosted on Railway for NBA 
 
 ### What's in the Database?
 
+**Core Trading Data** *(from Dietrich's strategy experimentation):*
+
 | Table | Rows | Description |
 |-------|------|-------------|
-| `price_snapshots` | 90K+ | PM vs Sportsbook probabilities |
-| `trade_decisions` | 316K+ | Strategy decision logs |
-| `paper_trades` | 258 | Simulated trade results |
-| `orderbook_snapshots` | 116K+ | Liquidity and depth data |
-| `ws_book_events` | 24M+ | High-frequency WebSocket data |
-| `latency_events` | 57K+ | Who moves first analysis |
+| `price_snapshots` | 90K+ | PM vs Sportsbook probability comparisons |
+| `trade_decisions` | 316K+ | Strategy decision logs with reasoning |
+| `paper_trades` | 258 | Simulated trade results with P&L |
+| `latency_events` | 57K+ | Market lead/lag analysis |
 
-📖 **Full schema details:** See [`docs/DATABASE_GUIDE.md`](../DATABASE_GUIDE.md)
+**Orderbook Data:**
+
+| Table | Rows | Description |
+|-------|------|-------------|
+| `orderbook_snapshots` | 116K+ | Liquidity and depth metrics |
+| `ws_book_events` | 24M+ | High-frequency WebSocket data |
+
+📖 **Full schema details:** See [`DATABASE_GUIDE.md`](../../research/notebooks/polymarket/polymarket_data_collection/DATABASE_GUIDE.md)
 
 ---
 

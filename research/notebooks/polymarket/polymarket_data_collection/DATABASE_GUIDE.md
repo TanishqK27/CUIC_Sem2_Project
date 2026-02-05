@@ -53,16 +53,30 @@ def run_query(query):
 
 ## Database Overview
 
+### Core Data Tables
+
+*Generated from Dietrich's strategy experimentation and testing:*
+
 | Table | Rows | Description |
 |-------|------|-------------|
 | `price_snapshots` | 90,456 | Core price data: PM vs SB probabilities |
 | `trade_decisions` | 316,397 | Why trades were made/skipped |
-| `ws_book_events` | 24,099,429 | WebSocket orderbook events (high-frequency) |
-| `orderbook_snapshots` | 116,710 | Aggregated orderbook state |
-| `orderbook_levels` | 2,324,513 | Individual bid/ask levels |
 | `latency_events` | 57,811 | Who moved first: PM or SB? |
 | `paper_trades` | 258 | Simulated trade results |
 | `paper_stats` | 3,799 | Strategy performance over time |
+
+### Orderbook Data
+
+| Table | Rows | Description |
+|-------|------|-------------|
+| `ws_book_events` | 24,099,429 | WebSocket orderbook events (high-frequency) |
+| `orderbook_snapshots` | 116,710 | Aggregated orderbook state |
+| `orderbook_levels` | 2,324,513 | Individual bid/ask levels |
+
+### Trading State
+
+| Table | Rows | Description |
+|-------|------|-------------|
 | `paper_positions` | 0 | Currently open paper positions |
 | `paper_cooldowns` | 59 | Post-trade cooldown periods |
 | `real_orders` | 710 | Actual orders placed |
