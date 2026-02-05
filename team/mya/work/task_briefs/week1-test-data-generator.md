@@ -9,18 +9,18 @@
 ## Your Role
 
 Two tasks this week:
-1. Create synthetic test data for James/Isameel (Mon-Tue)
-2. Analyze Alfie's sportsbook odds data (Tue-Thu)
+1. Create synthetic test data for James/Isameel (Fri-Sat)
+2. Analyze Alfie's sportsbook odds data (Sat-Wed)
 
 ---
 
-## ⚠️ TASK 1 IS BLOCKING OTHERS — DELIVER MONDAY
+## ⚠️ TASK 1 IS BLOCKING OTHERS — DELIVER FRIDAY
 
-**James cannot start until you give him `data/test_games.csv`. Build it Monday morning, send it to him Monday afternoon.**
+**James cannot start until you give him `data/test_games.csv`. Build it Friday morning, send it to him Friday afternoon.**
 
 ---
 
-## Task 1: Test Data Generator (Mon-Tue)
+## Task 1: Test Data Generator (Fri-Sat)
 
 ### Input Format (James Needs This EXACTLY)
 
@@ -79,7 +79,7 @@ Save default test data: `data/test_games.csv`
 
 ---
 
-## Task 2: Sportsbook Odds EDA (Tue-Thu)
+## Task 2: Sportsbook Odds EDA (Sat-Wed)
 
 **Get Alfie's CSV data Tuesday/Wednesday and analyze it.**
 
@@ -116,9 +116,9 @@ This is parallel to Dietrich's Polymarket EDA — you both produce independent r
 
 | Person | Interaction | When |
 |--------|-------------|------|
-| James | Send him test_games.csv | **Monday** |
-| Isameel | He uses your test data | Wed |
-| Alfie | Get his CSVs for EDA | Tue-Wed |
+| James | Send him test_games.csv | **Friday** |
+| Isameel | He uses your test data | Tue |
+| Alfie | Get his CSVs for EDA | Sat-Mon |
 
 ---
 
@@ -141,7 +141,7 @@ This is parallel to Dietrich's Polymarket EDA — you both produce independent r
 - [ ] `generate_test_data()` produces correct format
 - [ ] `generate_perfect_test()` for deterministic testing
 - [ ] `generate_edge_cases()` for edge case testing
-- [ ] `data/test_games.csv` created and sent to James **Monday**
+- [ ] `data/test_games.csv` created and sent to James **Friday**
 
 **Sportsbook EDA:**
 - [ ] Notebook created at `research/notebooks/analysis/sportsbook_eda.ipynb`

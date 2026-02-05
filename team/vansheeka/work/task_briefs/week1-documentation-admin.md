@@ -12,7 +12,7 @@ Analyze the Railway database to understand what data we have, what's missing, an
 
 ---
 
-## Task 1: Database Inventory (Mon-Tue)
+## Task 1: Database Inventory (Fri-Sat)
 
 ### What Data Exists?
 
@@ -75,7 +75,7 @@ Last updated: [DATE]
 
 ---
 
-## Task 2: Data Quality Analysis (Tue-Thu)
+## Task 2: Data Quality Analysis (Sat-Wed)
 
 ### Analyze Existing Data
 
@@ -170,8 +170,8 @@ Keep `team/PROJECT_STATUS.md` updated:
 | Dataset | Rows | Quality | Owner | Notes |
 |---------|------|---------|-------|-------|
 | price_snapshots | 90K | ✓ Clean | - | Ready |
-| sportsbook_matches | 0 | ⏳ | Alfie | Wed |
-| sportsbook_odds | 0 | ⏳ | Alfie | Wed |
+| sportsbook_matches | 0 | ⏳ | Alfie | Mon |
+| sportsbook_odds | 0 | ⏳ | Alfie | Mon |
 
 ## Infrastructure Status
 
@@ -188,8 +188,8 @@ Keep `team/PROJECT_STATUS.md` updated:
 
 | Person | Interaction | When |
 |--------|-------------|------|
-| Dietrich | Ask about table schemas | Mon |
-| Max | Coordinate on validation | Wed |
+| Dietrich | Ask about table schemas | Fri |
+| Max | Coordinate on validation | Mon |
 | Everyone | Collect status updates | Daily |
 
 ---

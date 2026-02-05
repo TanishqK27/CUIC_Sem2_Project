@@ -12,9 +12,9 @@ Collect **every NBA stat possible** at maximum granularity. You and Alfie are th
 
 ---
 
-## ⚠️ START COLLECTING MONDAY — DON'T WAIT
+## ⚠️ START COLLECTING FRIDAY — DON'T WAIT
 
-**You have zero dependencies. Start pulling NBA data Day 1.**
+**You have zero dependencies. Start pulling NBA data Friday.**
 
 ---
 
@@ -200,7 +200,7 @@ from nba_api.stats.endpoints import (
 
 | Person | Interaction | When |
 |--------|-------------|------|
-| Dietrich | Give him your 3 NBA CSVs | Wed-Thu |
+| Dietrich | Give him your 3 NBA CSVs | Tue-Wed |
 
 ---
 

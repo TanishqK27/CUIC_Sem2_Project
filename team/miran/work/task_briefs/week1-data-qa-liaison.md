@@ -32,23 +32,17 @@ Message each person once per day (Slack/Discord) and ask:
 - Who's blocked and why
 - Any issues that need Tan's attention
 
-**Location:** Post in `team/miran/work/notes/daily-reports.md`
+**Location:** `team/progress_reports/week1.md` (already set up with daily entries)
 
 **Format:**
 ```markdown
-## Monday Feb 10
+## Friday Feb 6
 
 **On Track:** James (backtester started), Ben (metrics module started), Max (NBA data pulling)
 
 **Blocked:** Alfie — OddsHarvester install failing, trying Docker workaround
 
 **Issues for Tan:** None today
-
----
-
-## Tuesday Feb 11
-
-...
 ```
 
 Also message Tan directly with anything urgent.
@@ -68,7 +62,7 @@ Also message Tan directly with anything urgent.
 
 ---
 
-## Task 2: Research Papers (Tue-Thu)
+## Task 2: Research Papers (Sat-Wed)
 
 ### Find 3-5 Papers On:
 

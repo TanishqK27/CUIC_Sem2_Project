@@ -16,7 +16,7 @@ Two responsibilities:
 
 ---
 
-## ⚠️ DO NOT WAIT FOR JAMES OR BEN — START MONDAY
+## ⚠️ DO NOT WAIT FOR JAMES OR BEN — START FRIDAY
 
 **You have zero dependencies. Create test cases and dummy data on Day 1.**
 
@@ -50,7 +50,7 @@ Two responsibilities:
 
 **Save as:** `data/test_backtest_output.csv` (10 rows matching input)
 
-**Create both files Monday-Tuesday.** When James/Ben deliver, their code must match these formats exactly — any mismatch is a bug.
+**Create both files Fri-Sat.** When James/Ben deliver, their code must match these formats exactly — any mismatch is a bug.
 
 ---
 
@@ -183,9 +183,9 @@ Track what you've tested:
 
 | Person | Your Job | When |
 |--------|----------|------|
-| James | Test his backtester, report bugs | Wed-Thu |
-| Ben | Test his metrics, report bugs | Wed-Thu |
-| Mya | Get test data from her | Tue-Wed |
+| James | Test his backtester, report bugs | Sat-Mon |
+| Ben | Test his metrics, report bugs | Sat-Mon |
+| Mya | Get test data from her | Sat-Mon |
 
 ---
 
@@ -216,7 +216,7 @@ jupyter lab
 
 ## Task 2: Meeting Notes (Ongoing)
 
-### Setup (Monday)
+### Setup (Friday)
 
 1. Sign up for **Read.ai** (free) or **Otter.ai** (free tier)
 2. Connect to your calendar / meeting apps

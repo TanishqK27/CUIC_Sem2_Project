@@ -12,7 +12,7 @@ You own Railway PostgreSQL. People give you formatted CSVs, you load them. Wrong
 
 ---
 
-## ⚠️ DO NOT WAIT FOR ALFIE'S CSVs — START MONDAY
+## ⚠️ DO NOT WAIT FOR ALFIE'S CSVs — START FRIDAY
 
 **Create dummy CSVs to test your loader script immediately.**
 
@@ -34,11 +34,11 @@ You own Railway PostgreSQL. People give you formatted CSVs, you load them. Wrong
 
 **Save to:** `data/dummy_matches.csv`, `data/dummy_odds.csv`
 
-Build and test your loader with dummy data Monday-Tuesday. When Alfie's real CSVs arrive Wednesday, they must match this exact format — plug and play.
+Build and test your loader with dummy data Fri-Sat. When Alfie's real CSVs arrive Wednesday, they must match this exact format — plug and play.
 
 ---
 
-## Task 1: Database Setup (Mon-Tue)
+## Task 1: Database Setup (Fri-Sat)
 
 ### How Data Links Together
 
@@ -134,7 +134,7 @@ Document exact columns, types, and examples for each CSV type. This is the contr
 
 ---
 
-## Task 2: Polymarket EDA (Tue-Thu)
+## Task 2: Polymarket EDA (Sat-Wed)
 
 While waiting for CSVs, analyze existing `price_snapshots` data.
 
@@ -167,8 +167,8 @@ While waiting for CSVs, analyze existing `price_snapshots` data.
 
 | Person | Interaction | When |
 |--------|-------------|------|
-| Alfie | Receives his odds CSVs (2 files) | Wed |
-| Max | Receives his NBA stats CSVs (3 files), validates DB after | Wed-Thu |
+| Alfie | Receives his odds CSVs (2 files) | Mon-Tue |
+| Max | Receives his NBA stats CSVs (3 files), validates DB after | Tue-Wed |
 
 ---
 

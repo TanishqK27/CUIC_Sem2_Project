@@ -14,13 +14,13 @@ Two tasks:
 
 ---
 
-## ⚠️ DO NOT WAIT FOR ODDSHARVESTER TO WORK — CREATE DUMMY CSVs MONDAY
+## ⚠️ DO NOT WAIT FOR ODDSHARVESTER TO WORK — CREATE DUMMY CSVs FRIDAY
 
 **Build your conversion script against dummy JSON first. Don't block on OddsHarvester setup.**
 
 ### Dummy OddsHarvester JSON (`data/dummy_odds_harvester.json`)
 
-Create a fake JSON matching OddsHarvester's output format with 3-5 games. Use this to build and test your conversion script Monday-Tuesday.
+Create a fake JSON matching OddsHarvester's output format with 3-5 games. Use this to build and test your conversion script Fri-Sat.
 
 If OddsHarvester setup is slow, you still deliver:
 1. Working conversion script (tested against dummy JSON)
@@ -146,7 +146,7 @@ You own the full pipeline: collect → convert → validate → deliver.
 
 **Returns:** List of issue strings
 
-### Dummy Test CSVs (Monday)
+### Dummy Test CSVs (Friday)
 
 Create these to test your validation works:
 
@@ -157,7 +157,7 @@ Create these to test your validation works:
 
 ## Workflow
 
-1. **Mon-Tue:** Set up OddsHarvester, build validation script
+1. **Fri-Sat:** Set up OddsHarvester, build validation script
 2. **Tue:** Create DUMMY CSVs, test validation catches errors
 3. **Wed:** Scrape real data, convert to CSV, self-validate
 4. **Thu:** Hand validated CSVs to Dietrich
@@ -168,8 +168,8 @@ Create these to test your validation works:
 
 | Person | Interaction | When |
 |--------|-------------|------|
-| Dietrich | He loads your validated CSVs | Thu |
-| Mya | Send her CSVs for EDA analysis | Tue-Wed |
+| Dietrich | He loads your validated CSVs | Wed |
+| Mya | Send her CSVs for EDA analysis | Sat-Mon |
 
 ---
 

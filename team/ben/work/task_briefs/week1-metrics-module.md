@@ -12,11 +12,11 @@ Build the metrics module. Calculate Sharpe ratio, max drawdown, win rate, etc. f
 
 ---
 
-## ⚠️ DO NOT WAIT FOR JAMES — START MONDAY
+## ⚠️ DO NOT WAIT FOR JAMES — START FRIDAY
 
 **You have zero dependencies. Build and test your entire module against dummy data.**
 
-Create this dummy DataFrame on Day 1 and develop against it:
+Create this dummy DataFrame on Friday and develop against it:
 
 | Column | Example Values |
 |--------|----------------|
@@ -120,7 +120,7 @@ src/cuic_quant/metrics/
 
 | Person | Interaction | When |
 |--------|-------------|------|
-| James | Get his output format, test with real output | Wed-Thu |
+| James | Get his output format, test with real output | Tue-Wed |
 | Isameel | He tests your metrics | Thu |
 
 ---

@@ -12,11 +12,11 @@ Build THE backtester. Every model and strategy will be evaluated using your code
 
 ---
 
-## ⚠️ DO NOT WAIT FOR DATABASE — START MONDAY
+## ⚠️ DO NOT WAIT FOR DATABASE — START FRIDAY
 
 **You have zero dependencies. Build and test your entire backtester against dummy data.**
 
-Create this dummy input DataFrame on Day 1 and develop against it:
+Create this dummy input DataFrame on Friday and develop against it:
 
 | Column | Example Values |
 |--------|----------------|
@@ -30,7 +30,7 @@ Create this dummy input DataFrame on Day 1 and develop against it:
 
 **Save as:** `data/dummy_backtest_input.csv` (20+ rows)
 
-Mya is also creating `data/test_games.csv` with the same format — get it from her Tuesday and verify your code works with both files.
+Mya is also creating `data/test_games.csv` with the same format — get it from her Saturday and verify your code works with both files.
 
 ---
 
@@ -121,8 +121,8 @@ strategy_fn(row: pd.Series, context: dict = None) -> dict
 | Person | Interaction | When |
 |--------|-------------|------|
 | Ben | He builds metrics against your output format | Coordinate daily |
-| Isameel | He tests your backtester | Give him access Wed |
-| Mya | She creates test data for you | Get test data Tue |
+| Isameel | He tests your backtester | Give him access Tue |
+| Mya | She creates test data for you | Get test data Sat |
 
 ---
 
