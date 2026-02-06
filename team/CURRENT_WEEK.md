@@ -35,6 +35,7 @@ flowchart TD
 ```
 
 **Key Deadlines:**
+
 - **Friday:** Mya sends test data to James
 - **Sunday:** Max and Alfie send data to Dietrich
 - **Tuesday:** James and Ben send code to Ismaeel for testing
@@ -222,10 +223,11 @@ flowchart TB
 ## Daily Status (Miran updates)
 
 ### Friday Feb 6
+
 | Person | Status | Notes |
 |--------|--------|-------|
 | Max | | |
-| Alfie | | |
+| Alfie | ⏳ | starting saturday |
 | Dietrich | | |
 | James | | |
 | Ben | | |
@@ -234,6 +236,7 @@ flowchart TB
 | Vansheeka | | |
 
 ### Saturday Feb 7
+
 | Person | Status | Notes |
 |--------|--------|-------|
 | Max | | |
@@ -246,6 +249,7 @@ flowchart TB
 | Vansheeka | | |
 
 ### Sunday Feb 8
+
 | Person | Status | Notes |
 |--------|--------|-------|
 | Max | | |
