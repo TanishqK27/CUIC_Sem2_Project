@@ -226,12 +226,12 @@ flowchart TB
 
 | Person | Status | Notes |
 |--------|--------|-------|
-| Max | | |
-| Alfie | ⏳ | starting saturday |
-| Dietrich | | |
-| James | | |
+| Max | ✅ | Linux compatibility errors observed but have been resolved |
+| Alfie | ⏳ | Starting Saturday |
+| Dietrich | ⏳ | Waiting for data|
+| James | ⏳ | Haven't started due to illness|
 | Ben | | |
-| Mya | | |
+| Mya | ✅ | Test Data Generator + Sportsbook EDA Completed |
 | Ismaeel | | |
 | Vansheeka | | |
 
