@@ -230,7 +230,7 @@ flowchart TB
 | Alfie | ⏳ | Starting Saturday |
 | Dietrich | ⏳ | Waiting for data|
 | James | ⏳ | Haven't started due to illness|
-| Ben | | |
+| Ben | ✅ | Finished task with dummy data, waiting on James for real data. |
 | Mya | ✅ | Test Data Generator + Sportsbook EDA Completed |
 | Ismaeel | | |
 | Vansheeka | | |
