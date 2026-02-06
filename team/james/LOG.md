@@ -29,4 +29,14 @@ Use the `/update-log` skill:
 
 **Next:** Get test_games.csv from Mya, give Ismaeel access Tuesday.
 
+**Mya's Test Data — Received and Verified**
+
+- Received Mya's test data bundle: `test_games.csv` (100 rows) + `test_data_generator.py`
+- Placed files per SOP: `data/test_games.csv`, `tools/test_data_generator.py`
+- Verified compatibility: columns match backtester input spec exactly (timestamp, game, home_team, away_team, home_odds, away_odds, home_win)
+- Generator includes edge case generators for Ismaeel's testing
+- CSV is gitignored (`*.csv` rule); generator script is tracked
+
+**Next:** Give Ismaeel access for testing on Tuesday.
+
 <!-- New entries will be added above this line -->

@@ -3,7 +3,6 @@
 ## Week 1: Backtester Core (Feb 6-12)
 
 ### To Do
-- [ ] Get test data from Mya and verify compatibility
 - [ ] Give Ismaeel access for testing (Tuesday)
 
 ### In Progress
@@ -19,6 +18,7 @@
 | Build `backtest()` function with 9-column output | Feb 6 | In `tools/backtester.ipynb` — returns exact 9-column spec |
 | Document strategy interface | Feb 6 | `docs/reference/strategy-interface.md` — v1.0 |
 | Test with simple "always bet home" strategy | Feb 6 | End-to-end run in notebook with validation checks |
+| Get test data from Mya and verify compatibility | Feb 6 | `data/test_games.csv` (100 rows) + `tools/test_data_generator.py` — matches backtester input spec |
 
 ---
 
