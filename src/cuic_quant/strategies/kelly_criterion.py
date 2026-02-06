@@ -179,8 +179,8 @@ def expected_growth_rate(
     p = win_probability
     q = 1 - p
 
-    # E[log(wealth_ratio)] = p * log(1 + b*f) + q * log(1 - f)
-    # where b = decimal_odds - 1, f = bet_fraction
+    # Expected log growth: p * log(1 + b*f) + q * log(1 - f),
+    # where b = decimal_odds - 1 and f = bet_fraction.
     b = decimal_odds - 1
 
     win_term = p * math.log(1 + b * bet_fraction)

@@ -170,4 +170,3 @@ Generates a weekly progress summary from all team member logs.
 **No entries showing in /weekly-standup:**
 - Check that LOG.md files use format `### YYYY-MM-DD` for date headers
 - Entries must be from the past 7 days
-

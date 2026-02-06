@@ -21,9 +21,10 @@ Note:
 from __future__ import annotations
 
 import os
+from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -77,12 +78,10 @@ class GameOdds:
         for b in data.get("bookmakers", []):
             last_update = datetime.now()
             if b.get("last_update"):
-                try:
+                with suppress(ValueError, TypeError):
                     last_update = datetime.fromisoformat(
                         b["last_update"].replace("Z", "+00:00")
                     )
-                except (ValueError, TypeError):
-                    pass
 
             bookmakers.append(
                 Bookmaker(
@@ -95,12 +94,10 @@ class GameOdds:
 
         commence_time = datetime.now()
         if data.get("commence_time"):
-            try:
+            with suppress(ValueError, TypeError):
                 commence_time = datetime.fromisoformat(
                     data["commence_time"].replace("Z", "+00:00")
                 )
-            except (ValueError, TypeError):
-                pass
 
         return cls(
             id=data.get("id", ""),
@@ -222,9 +219,7 @@ class OddsAPIClient:
         response = self._session.get(url, params=request_params, timeout=30)
 
         # Track rate limits from response headers
-        self._requests_remaining = int(
-            response.headers.get("x-requests-remaining", 0)
-        )
+        self._requests_remaining = int(response.headers.get("x-requests-remaining", 0))
         self._requests_used = int(response.headers.get("x-requests-used", 0))
 
         response.raise_for_status()
@@ -325,7 +320,10 @@ class OddsAPIClient:
         if completed_only:
             params["dateFormat"] = "iso"
 
-        return self._request(f"/sports/{sport}/scores", params=params)
+        return cast(
+            list[dict[str, Any]],
+            self._request(f"/sports/{sport}/scores", params=params),
+        )
 
     def get_historical_odds(
         self,

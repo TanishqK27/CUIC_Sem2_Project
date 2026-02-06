@@ -76,7 +76,7 @@ git checkout -b <your-name>/<feature-description>
 ### 2. Make Your Changes
 
 - Write clean, documented code
-- When using AI/Claude/Codex, be thorough and don't just push AI stuff without understanding and checking it first. 
+- When using AI/Claude/Codex, be thorough and don't just push AI stuff without understanding and checking it first.
 - Add tests for new functionality
 - Update relevant documentation
 

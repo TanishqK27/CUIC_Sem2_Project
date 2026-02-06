@@ -19,7 +19,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-
 # =============================================================================
 # Sample Data Fixtures
 # =============================================================================
@@ -29,9 +28,30 @@ import pytest
 def sample_prices() -> list[float]:
     """Sample price data for testing strategies."""
     return [
-        0.50, 0.52, 0.48, 0.51, 0.49, 0.53, 0.55, 0.52,
-        0.50, 0.48, 0.45, 0.47, 0.50, 0.52, 0.54, 0.56,
-        0.58, 0.55, 0.53, 0.50, 0.48, 0.45, 0.42, 0.40,
+        0.50,
+        0.52,
+        0.48,
+        0.51,
+        0.49,
+        0.53,
+        0.55,
+        0.52,
+        0.50,
+        0.48,
+        0.45,
+        0.47,
+        0.50,
+        0.52,
+        0.54,
+        0.56,
+        0.58,
+        0.55,
+        0.53,
+        0.50,
+        0.48,
+        0.45,
+        0.42,
+        0.40,
     ]
 
 
@@ -178,9 +198,7 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers", "integration: marks tests requiring external APIs"
     )
-    config.addinivalue_line(
-        "markers", "unit: marks unit tests"
-    )
+    config.addinivalue_line("markers", "unit: marks unit tests")
 
 
 # =============================================================================

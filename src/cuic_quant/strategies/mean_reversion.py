@@ -106,10 +106,7 @@ def analyze_mean_reversion(
     current_price = prices[-1]
 
     # Handle zero or near-zero std dev
-    if std_dev < 1e-10:
-        z_score = 0.0
-    else:
-        z_score = (current_price - mean_price) / std_dev
+    z_score = 0.0 if std_dev < 1e-10 else (current_price - mean_price) / std_dev
 
     deviation_pct = (current_price - mean_price) / mean_price * 100
 
@@ -138,7 +135,7 @@ def calculate_half_life(prices: list[float] | np.ndarray) -> float | None:
     Shorter half-life suggests faster mean reversion.
 
     Uses the Ornstein-Uhlenbeck model:
-        dp = θ(μ - p)dt + σdW
+        dp = theta(mu - p)dt + sigma dW
 
     Half-life = ln(2) / θ
 
@@ -164,7 +161,7 @@ def calculate_half_life(prices: list[float] | np.ndarray) -> float | None:
     lagged_prices = prices[:-1]
 
     # Regress price changes on lagged prices
-    # dp = α + β * p_{t-1}
+    # dp = alpha + beta * p_{t-1}
     # Mean-reverting if β < 0
     try:
         # Simple OLS
@@ -179,7 +176,7 @@ def calculate_half_life(prices: list[float] | np.ndarray) -> float | None:
         # Half-life = -ln(2) / ln(1 + β) ≈ -ln(2) / β for small β
         half_life = -np.log(2) / beta
 
-        return max(0, half_life)
+        return float(max(0, half_life))
 
     except (ZeroDivisionError, RuntimeWarning):
         return None
@@ -222,10 +219,7 @@ def bollinger_bands(
 
     # Position relative to bands (-1 to 1)
     band_width = upper - lower
-    if band_width > 0:
-        position = 2 * (current - lower) / band_width - 1
-    else:
-        position = 0.0
+    position = 2 * (current - lower) / band_width - 1 if band_width > 0 else 0.0
 
     return {
         "upper": upper,
@@ -282,4 +276,4 @@ def rsi(
     rs = avg_gain / avg_loss
     rsi_value = 100 - (100 / (1 + rs))
 
-    return rsi_value
+    return float(rsi_value)

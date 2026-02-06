@@ -83,7 +83,7 @@ repos:
   # Security checks
   # ==========================================================================
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
@@ -101,20 +101,11 @@ repos:
           - --extra-keys
           - "metadata.kernelspec metadata.language_info"
 
-  # ==========================================================================
-  # Markdown
-  # ==========================================================================
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.38.0
-    hooks:
-      - id: markdownlint-fix
-        args: [--disable, MD013, MD033, MD041, --]
-
 # =============================================================================
 # Configuration
 # =============================================================================
 default_language_version:
-  python: python3.10
+  python: python3.13
 
 # Skip hooks in CI for speed (run full suite separately)
 ci:

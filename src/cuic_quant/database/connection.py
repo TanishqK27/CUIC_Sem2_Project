@@ -38,13 +38,16 @@ import os
 import threading
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
+from typing import TYPE_CHECKING
 
 from dotenv import load_dotenv
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from cuic_quant.database.models import Base
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 # Load environment variables from .env file
 load_dotenv()
@@ -82,7 +85,10 @@ def get_database_url(db_path: str | Path | None = None) -> str:
     database_url = os.environ.get("DATABASE_URL")
     if database_url:
         # Convert postgresql:// to cockroachdb:// for CockroachDB hosts
-        if "cockroachlabs.cloud" in database_url or "cockroachdb" in database_url.lower():
+        if (
+            "cockroachlabs.cloud" in database_url
+            or "cockroachdb" in database_url.lower()
+        ):
             database_url = database_url.replace("postgresql://", "cockroachdb://", 1)
         return database_url
 

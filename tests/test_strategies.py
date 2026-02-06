@@ -9,14 +9,14 @@ from cuic_quant.strategies import (
     find_arbitrage,
     mean_reversion_signal,
 )
-from cuic_quant.strategies.kelly_criterion import (
-    expected_growth_rate,
-    kelly_from_american_odds,
-)
 from cuic_quant.strategies.arbitrage import (
     calculate_vig,
     find_arbitrage_three_way,
     remove_vig,
+)
+from cuic_quant.strategies.kelly_criterion import (
+    expected_growth_rate,
+    kelly_from_american_odds,
 )
 from cuic_quant.strategies.mean_reversion import (
     analyze_mean_reversion,
@@ -83,9 +83,7 @@ class TestKellyCriterion:
             (0.52, 1.91, 0.01),  # Small edge at typical -110 odds
         ],
     )
-    def test_kelly_values(
-        self, prob: float, odds: float, expected: float
-    ) -> None:
+    def test_kelly_values(self, prob: float, odds: float, expected: float) -> None:
         """Kelly should match expected values."""
         result = calculate_kelly_fraction(prob, odds, max_fraction=1.0)
         assert result == pytest.approx(expected, abs=0.02)
@@ -149,7 +147,7 @@ class TestArbitrage:
         """Should correctly calculate bookmaker vig."""
         # Standard -110/-110 line
         vig = calculate_vig([1.91, 1.91])
-        assert vig == pytest.approx(0.0476, rel=0.01)  # ~4.76%
+        assert vig == pytest.approx(0.04712, rel=0.01)  # ~4.71%
 
     def test_remove_vig(self) -> None:
         """Should correctly remove vig from odds."""
@@ -225,7 +223,9 @@ class TestMeanReversion:
         bands = bollinger_bands(prices, lookback=20)
 
         assert bands["lower"] < bands["middle"] < bands["upper"]
-        assert bands["lower"] <= prices[-1] <= bands["upper"] or True  # Trending can break bands
+        assert (
+            bands["lower"] <= prices[-1] <= bands["upper"] or True
+        )  # Trending can break bands
 
     def test_rsi_bounds(self) -> None:
         """RSI should be between 0 and 100."""
@@ -245,6 +245,7 @@ class TestMeanReversion:
         """Half-life should be positive for mean-reverting series."""
         # Create mean-reverting series
         import numpy as np
+
         np.random.seed(42)
 
         mean = 0.50

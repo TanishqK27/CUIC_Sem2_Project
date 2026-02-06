@@ -21,9 +21,10 @@ Note:
 from __future__ import annotations
 
 import os
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -67,12 +68,10 @@ class KalshiMarket:
         """
         close_time = None
         if data.get("close_time"):
-            try:
+            with suppress(ValueError, TypeError):
                 close_time = datetime.fromisoformat(
                     data["close_time"].replace("Z", "+00:00")
                 )
-            except (ValueError, TypeError):
-                pass
 
         return cls(
             ticker=data.get("ticker", ""),
@@ -161,10 +160,11 @@ class KalshiClient:
 
         if api_url:
             self.api_url = api_url
-        elif os.getenv("KALSHI_API_URL"):
-            self.api_url = os.getenv("KALSHI_API_URL")
         else:
-            self.api_url = self.DEMO_URL if demo else self.PRODUCTION_URL
+            env_api_url = os.getenv("KALSHI_API_URL")
+            self.api_url = env_api_url or (
+                self.DEMO_URL if demo else self.PRODUCTION_URL
+            )
 
         self._session = requests.Session()
         self._token: str | None = None
@@ -195,12 +195,13 @@ class KalshiClient:
         response.raise_for_status()
 
         data = response.json()
-        self._token = data.get("token")
+        token = data.get("token")
 
-        if not self._token:
+        if not token:
             raise ValueError("No token received from login")
 
-        self._session.headers["Authorization"] = f"Bearer {self._token}"
+        self._token = token
+        self._session.headers["Authorization"] = f"Bearer {token}"
 
     def _ensure_authenticated(self) -> None:
         """Ensure client is authenticated before making requests."""
@@ -248,7 +249,7 @@ class KalshiClient:
         )
         response.raise_for_status()
 
-        return response.json()
+        return cast(dict[str, Any], response.json())
 
     def get_markets(
         self,
@@ -314,7 +315,7 @@ class KalshiClient:
             f"/markets/{ticker}/orderbook",
             params={"depth": depth},
         )
-        return data.get("orderbook", data)
+        return cast(dict[str, Any], data.get("orderbook", data))
 
     def get_balance(self) -> KalshiBalance:
         """Fetch account balance.
@@ -449,7 +450,7 @@ class KalshiClient:
             params["max_ts"] = max_ts
 
         data = self._request("GET", f"/markets/{ticker}/trades", params=params)
-        return data.get("trades", [])
+        return cast(list[dict[str, Any]], data.get("trades", []))
 
     def logout(self) -> None:
         """Logout and clear authentication."""
