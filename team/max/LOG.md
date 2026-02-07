@@ -7,13 +7,19 @@ Personal work log for the CUIC Quant Fund project. Entries are in reverse chrono
 ## How to Update
 
 Use the `/update-log` skill:
-```
+
+```text
 /update-log max <description of work>
 ```
 
 ---
 
 ## Log Entries
+
+### 2026-02-07
+
+- Changes made: created `scripts/collect_nba_stats.py` to pull team/player/game logs via `nba_api` with rate limiting; installed `nba_api`; generated `data/nba/nba_team_stats.csv`, `data/nba/nba_player_stats.csv`, and `data/nba/nba_game_logs.csv` for seasons 2021-22 through 2024-25; moved NBA CSVs into `data/nba/`.
+- Errors/issues encountered: `docs/reference/csv-formats.md` missing; initial `nba_api` responses lacked expected columns (e.g., `TEAM_ABBREVIATION`, `HOME_W`, `OPP_PTS`, `GS`) requiring endpoint changes/NA fills; timeouts from `stats.nba.com` during game log collection; VS Code only displayed a partial CSV (large-file rendering), so full row counts were verified and `nba_game_logs.csv` regenerated to 4920 rows (1230 per season).
 
 ### 2026-02-06
 
