@@ -15,6 +15,10 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-07
+
+- Done dummy work and now working on setting up OddsHarvester
+
 ### 2025-02-01
 
 - Joined CUIC Quant Fund project
