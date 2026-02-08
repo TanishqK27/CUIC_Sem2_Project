@@ -231,7 +231,7 @@ flowchart TB
 | Dietrich | ⏳ | Waiting for data|
 | James | ⏳ | Haven't started due to illness|
 | Ben | ✅ | Finished task with dummy data, waiting on James for real data |
-| Mya | ✅ | Test Data Generator + Sportsbook EDA Completed |
+| Mya | ✅ | Test Data Generator completed |
 | Ismaeel | ✅ | Completed set up on VS. Created dummy back tester input and output |
 | Vansheeka | ⏳ | Still setting up environment |
 
