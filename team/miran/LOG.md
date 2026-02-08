@@ -20,7 +20,7 @@ Use the `/update-log` skill:
 
 - Checked in with all 8 team members
 - Updated Sunday status in `team/CURRENT_WEEK.md`
-- Started on looking at research papers
+- Started looking at research papers
 
 ### 2026-02-07
 
