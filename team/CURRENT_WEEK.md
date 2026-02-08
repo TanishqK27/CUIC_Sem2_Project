@@ -239,27 +239,27 @@ flowchart TB
 
 | Person | Status | Notes |
 |--------|--------|-------|
-| Max | | |
+| Max | ✅ | Booting up data collection |
 | Alfie | ✅ | Woorked on 2010s data, on track for others |
 | Dietrich | ⏳ | Still waiting |
 | James | ⏳ | Still ill |
 | Ben | ✅ | Path issues |
 | Mya | ✅ | Waiting for Alfie |
 | Ismaeel | ✅ | Everything going smoothly |
-| Vansheeka | | |
+| Vansheeka | ⚠️ | No updates provided |
 
 ### Sunday Feb 8
 
 | Person | Status | Notes |
 |--------|--------|-------|
-| Max | | |
-| Alfie | ✅ | Handed over to Diestrich|
-| Dietrich | | |
+| Max | ✅ | Still booting up data collection |
+| Alfie | ✅ | Handed over to Diestrich |
+| Dietrich | ✅ | Looking at code and putting it into DB |
 | James | ⏳ | Still ill |
 | Ben | ✅ | Updated log |
-| Mya | | |
-| Ismaeel | | |
-| Vansheeka | | |
+| Mya | ✅ | Still waiting for Alfie |
+| Ismaeel | ✅ | Progress remains unchanged |
+| Vansheeka | ⚠️ | No updates provided |
 
 ---
 
