@@ -240,12 +240,12 @@ flowchart TB
 | Person | Status | Notes |
 |--------|--------|-------|
 | Max | | |
-| Alfie | | |
-| Dietrich | | |
-| James | | |
-| Ben | | |
-| Mya | | |
-| Ismaeel | | |
+| Alfie | ✅ | Woorked on 2010s data, on track for others. |
+| Dietrich | ⏳ | Still waiting. |
+| James | ⏳ | Still ill. |
+| Ben | ✅ | Path issues. |
+| Mya | ✅ | Waiting for Alfie. |
+| Ismaeel | ✅ | Everything going smoothly. |
 | Vansheeka | | |
 
 ### Sunday Feb 8
