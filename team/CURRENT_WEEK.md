@@ -230,22 +230,22 @@ flowchart TB
 | Alfie | ⏳ | Starting Saturday |
 | Dietrich | ⏳ | Waiting for data|
 | James | ⏳ | Haven't started due to illness|
-| Ben | ✅ | Finished task with dummy data, waiting on James for real data. |
+| Ben | ✅ | Finished task with dummy data, waiting on James for real data |
 | Mya | ✅ | Test Data Generator + Sportsbook EDA Completed |
-| Ismaeel | ✅ | Completed set up on VS. Created dummy back tester input and output. |
-| Vansheeka | ⏳ | Still setting up environment. |
+| Ismaeel | ✅ | Completed set up on VS. Created dummy back tester input and output |
+| Vansheeka | ⏳ | Still setting up environment |
 
 ### Saturday Feb 7
 
 | Person | Status | Notes |
 |--------|--------|-------|
 | Max | | |
-| Alfie | ✅ | Woorked on 2010s data, on track for others. |
-| Dietrich | ⏳ | Still waiting. |
-| James | ⏳ | Still ill. |
-| Ben | ✅ | Path issues. |
-| Mya | ✅ | Waiting for Alfie. |
-| Ismaeel | ✅ | Everything going smoothly. |
+| Alfie | ✅ | Woorked on 2010s data, on track for others |
+| Dietrich | ⏳ | Still waiting |
+| James | ⏳ | Still ill |
+| Ben | ✅ | Path issues |
+| Mya | ✅ | Waiting for Alfie |
+| Ismaeel | ✅ | Everything going smoothly |
 | Vansheeka | | |
 
 ### Sunday Feb 8
@@ -253,10 +253,10 @@ flowchart TB
 | Person | Status | Notes |
 |--------|--------|-------|
 | Max | | |
-| Alfie | | |
+| Alfie | ✅ | Handed over to Diestrich|
 | Dietrich | | |
-| James | | |
-| Ben | | |
+| James | ⏳ | Still ill |
+| Ben | ✅ | Updated log |
 | Mya | | |
 | Ismaeel | | |
 | Vansheeka | | |
