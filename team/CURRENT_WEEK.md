@@ -240,7 +240,7 @@ flowchart TB
 | Person | Status | Notes |
 |--------|--------|-------|
 | Max | ✅ | Booting up data collection |
-| Alfie | ✅ | Woorked on 2010s data, on track for others |
+| Alfie | ✅ | Worked on 2010s data, on track for others |
 | Dietrich | ⏳ | Still waiting |
 | James | ⏳ | Still ill |
 | Ben | ✅ | Path issues |
