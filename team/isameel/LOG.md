@@ -15,6 +15,10 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-09
+
+- Created dummy backtester input/output CSVs for Week 1 QA
+
 ### 2026-02-06
 
 - Completed full environment setup (venv, dependencies, pre-commit, .env template)
