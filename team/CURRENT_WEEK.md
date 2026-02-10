@@ -259,7 +259,33 @@ flowchart TB
 | Ben | ✅ | Updated log |
 | Mya | ✅ | Still waiting for Alfie |
 | Ismaeel | ✅ | Progress remains unchanged |
+| Vansheeka | ⚠️ | Still setting up the environment |
+
+### Monday Feb 9
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max | ✅ | Still booting up data collection |
+| Alfie | ✅ | Progress remians unchanged |
+| Dietrich |  |  |
+| James | ⏳ | Still ill |
+| Ben | ✅ | Progress remains unchanged|
+| Mya | ✅ | Got data off Alfie and made a start on notebook |
+| Ismaeel | ✅ | Waiting to test James and Ben's code |
 | Vansheeka | ⚠️ | No updates provided |
+
+### Tuesday Feb 10
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max | ✅ | Final modification to csvs, making it granular as possible |
+| Alfie | ✅ | Updated work |
+| Dietrich |  |  |
+| James | ⏳ | Still ill |
+| Ben |  |  |
+| Mya | ✅ | Uploaded work to Git Hub |
+| Ismaeel | ✅ | Progress remains unchanged |
+| Vansheeka | ⏳ | Working through some problems with committing the data inventory, and started understanding how to analyse the data and what to look for |
 
 ---
 
