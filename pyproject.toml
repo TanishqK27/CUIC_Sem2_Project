@@ -51,6 +51,9 @@ dependencies = [
 
     # Background jobs
     "apscheduler>=3.10.0",
+
+    # NBA data
+    "nba_api>=1.4.0",
 ]
 
 [project.optional-dependencies]
@@ -96,8 +99,12 @@ server = [
     "uvicorn[standard]>=0.27.0",
 ]
 
+nba = [
+    "nbainjuries>=0.1.0",
+]
+
 all = [
-    "cuic-quant[dev,research,server]",
+    "cuic-quant[dev,research,server,nba]",
 ]
 
 [project.urls]
