@@ -24,6 +24,8 @@ Use the `/update-log` skill:
 Got data off alfie wokring on eda.
 ### 2026-02-10
 Completed sportsbook eda.
+### 2026-02-10
+Added sportbook eda to git for thursday 
 
 
 ---
