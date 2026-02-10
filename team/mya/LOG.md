@@ -22,6 +22,8 @@ Use the `/update-log` skill:
 - Completed Task One and sent test to James
 ### 2026-02-09
 Got data off alfie wokring on eda.
+### 2026-02-10
+Completed sportsbook eda.
 
 
 ---
