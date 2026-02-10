@@ -15,6 +15,11 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-10
+
+- Changes made: implemented append-only, resumable NBA data pipeline in `scripts/collect_nba_stats.py` (schema migration helpers, OT columns, per-game team stats, per-game/per-quarter player stats, injury event ingestion with games-missed calculation, checkpoints in `data/cache/nba/checkpoints.json`); added unit tests in `tests/test_nba_collect.py`; added `nba_api` and `nba-injury-report` to dependencies (`requirements.txt`, `pyproject.toml`); kicked off long-running data collection to backfill 2021-22 through 2026-02-10.
+- Errors/issues encountered: initial run failed due to a type-hint issue (`int | pd.NA`), fixed and restarted; pytest not available in environment when attempting to run tests.
+
 ### 2026-02-07
 
 - Changes made: created `scripts/collect_nba_stats.py` to pull team/player/game logs via `nba_api` with rate limiting; installed `nba_api`; generated `data/nba/nba_team_stats.csv`, `data/nba/nba_player_stats.csv`, and `data/nba/nba_game_logs.csv` for seasons 2021-22 through 2024-25; moved NBA CSVs into `data/nba/`.
