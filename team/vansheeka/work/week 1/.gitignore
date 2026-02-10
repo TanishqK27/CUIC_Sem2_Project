@@ -1,0 +1,8 @@
+#so that railway password code from .env is not uploaded to public github
+#security guard
+
+.env
+.venv/
+__pycache__/
+*.csv
+data/

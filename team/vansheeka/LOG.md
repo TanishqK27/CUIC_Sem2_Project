@@ -19,7 +19,7 @@ Use the `/update-log` skill:
 
 - Joined CUIC Quant Fund project
 
-- connected to railway and is working on creating inventory document
+- connected to railway and is working on creating the inventory document
 
 ---
 
