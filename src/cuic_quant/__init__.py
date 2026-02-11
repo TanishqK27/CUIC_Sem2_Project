@@ -15,20 +15,33 @@ Example:
 __version__ = "0.1.0"
 __author__ = "Cardiff University Investment Club Quant Team"
 
-# Convenience imports
-from cuic_quant.data import KalshiClient, OddsAPIClient
-from cuic_quant.strategies import (
-    calculate_kelly_fraction,
-    find_arbitrage,
-    mean_reversion_signal,
-)
+# Convenience imports (optional in lightweight environments like notebook tests)
+__all__ = []
 
-__all__ = [
-    # Data clients
-    "KalshiClient",
-    "OddsAPIClient",
-    # Strategies
-    "calculate_kelly_fraction",
-    "find_arbitrage",
-    "mean_reversion_signal",
-]
+try:
+    from cuic_quant.data import KalshiClient, OddsAPIClient
+
+    __all__.extend([
+        "KalshiClient",
+        "OddsAPIClient",
+    ])
+except Exception:
+    # Allow importing subpackages (e.g., cuic_quant.metrics) even when
+    # optional runtime deps for API clients are unavailable.
+    pass
+
+try:
+    from cuic_quant.strategies import (
+        calculate_kelly_fraction,
+        find_arbitrage,
+        mean_reversion_signal,
+    )
+
+    __all__.extend([
+        "calculate_kelly_fraction",
+        "find_arbitrage",
+        "mean_reversion_signal",
+    ])
+except Exception:
+    # Same rationale as above: keep package import non-fatal for metrics workflows.
+    pass

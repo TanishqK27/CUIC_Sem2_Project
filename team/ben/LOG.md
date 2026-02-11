@@ -15,6 +15,10 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-08
+
+- completed dummy test data notebook and init file, awaiting backtester output from james to build metrics module
+
 ### 2025-02-01
 
 - Joined CUIC Quant Fund project
@@ -22,3 +26,4 @@ Use the `/update-log` skill:
 ---
 
 <!-- New entries will be added above this line -->
+
