@@ -1,0 +1,9 @@
+python3 -c "
+import psycopg2
+conn = psycopg2.connect('postgresql://postgres:LNpAVdwSgYTvbKNgfipNctUPcChJoMJU@switchyard.proxy.rlwy.net:44650/railway')
+print('Connected!')
+conn.close()
+"
+
+
+

@@ -16,6 +16,22 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-08
+
+- Checked in with all 8 team members
+- Updated Sunday status in `team/CURRENT_WEEK.md`
+- Started looking at research papers
+
+### 2026-02-07
+
+- Checked in with all 8 team members
+- Updated Saturday status in `team/CURRENT_WEEK.md`
+
+### 2026-02-06
+
+- Checked in with all 8 team members
+- Updated Friday status in `team/CURRENT_WEEK.md`
+
 ### 2026-02-05
 
 - Reviewed platform docs (Kalshi, Polymarket, Sports Betting Basics)
