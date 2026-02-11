@@ -19,6 +19,10 @@
 | Document strategy interface | Feb 6 | `docs/reference/strategy-interface.md` — v1.0 |
 | Test with simple "always bet home" strategy | Feb 6 | End-to-end run in notebook with validation checks |
 | Get test data from Mya and verify compatibility | Feb 6 | `data/test_games.csv` (100 rows) + `tools/test_data_generator.py` — matches backtester input spec |
+| **Feedback fix:** Prevent home_win data leakage | Feb 11 | Already implemented — `row.drop(labels=["home_win"])` before passing to strategy |
+| **Feedback fix:** Empty results return correct columns | Feb 11 | Returns `pd.DataFrame(columns=OUTPUT_COLUMNS)` when no trades |
+| **Feedback fix:** Skip rows with NaN odds | Feb 11 | Added `pd.isna()` check before processing each row |
+| Add edge case tests to backtester notebook | Feb 11 | Tests for skip-all strategy and NaN odds handling |
 
 ---
 

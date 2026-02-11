@@ -15,6 +15,31 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### Feb 11, 2026
+
+**Feedback Fixes Implemented**
+
+Addressed all 3 feedback items from `task_briefs_feedback/week1-backtester-core.md`:
+
+1. **Empty results column fix:** `backtest()` now returns empty DataFrame with correct 9 columns when strategy skips all games. Prevents Ben's metrics from blowing up on empty input.
+
+2. **NaN odds handling:** Added check to skip rows where `home_odds` or `away_odds` are NaN. Prevents corruption of subsequent calculations.
+
+3. **Data leakage prevention:** Already implemented (confirmed) — `row.drop(labels=["home_win"])` before passing to strategy.
+
+**Edge Case Tests Added**
+- Added test cells to `tools/backtester.ipynb` for:
+  - Skip-all strategy returning empty DataFrame with correct columns
+  - NaN odds being skipped without errors
+- All tests pass
+
+**Branch Updates**
+- Merged `origin/ben` into `james_branch` (resolved backtester.ipynb conflict — kept data leakage fix)
+- Merged `origin/main` into `james_branch` (no conflicts)
+- Fixed `tools/test_metrics.ipynb` import path issue
+
+---
+
 ### Feb 6, 2026
 
 **Data Leakage Fix + Mya CSV Test**
