@@ -17,6 +17,12 @@ Use the `/update-log` skill:
 
 ### Feb 6, 2026
 
+**Data Leakage Fix + Mya CSV Test**
+
+- Fixed data leakage bug in `backtest()`: strategy functions were receiving the full row including `home_win`, allowing a cheating strategy to always win. Now drops `home_win` before calling `strategy_fn()`.
+- Added test cells running backtester against Mya's `test_games.csv` (100 rows) with `always_bet_home` strategy
+- Validated 9-column output format passes for both dummy and Mya datasets
+
 **Backtester Core — Initial Build Complete**
 
 - Created `data/dummy_backtest_input.csv` with 25 rows of NBA game data (7 columns: timestamp, game, home_team, away_team, home_odds, away_odds, home_win)
