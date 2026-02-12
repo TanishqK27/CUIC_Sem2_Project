@@ -15,6 +15,23 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-12
+
+**Historical Odds API + Raw Data Correlation Analysis**
+
+- Built `fetch_historical_odds.py` — automated historical odds fetcher (The Odds API v4) covering 7 NBA seasons (2019-20 through 2025-26) with resume/credit management. Stores vig-adjusted probabilities + per-bookmaker JSONB in PostgreSQL.
+- Downloaded historical sportsbook dataset: 4,152 games (Oct 2021 – Apr 2026), 15 bookmakers, 28.5K odds rows in `Data/`.
+- Built `backtest_realistic.py` — full replay backtester with CLV tracking, Kelly sizing, live filter, gap momentum, and feature ablation (`--compare`).
+- DB now at 181K price snapshots, 68M websocket orderbook events, 148K latency events across 129 games.
+- Correlation analysis (`correlation_analysis.ipynb`) — 7 measures on raw data:
+  - Orderbook imbalance, trade flow, gap half-life (128 min), conditional correlation — all either too weak, too slow, or inconclusive.
+  - Granger causality: SB leads PM — significant in 64% of games at lag 1 (vs 45% for PM→SB). Sportsbooks move first, Polymarket follows within 5-10 min.
+  - Spread predicts volatility — r = 0.23, p ≈ 0. Wide PM spreads predict 1.8x more price movement. Usable as a regime filter.
+
+**Takeaway:** Two actionable signals — SB moves first (Granger), and wide PM spreads predict big moves. Combined: when SB moves while PM spread is wide, PM will likely follow within minutes.
+
+---
+
 ### 2026-02-05
 
 **NBA Polymarket vs Sportsbook Arbitrage Project - Analysis Complete**
@@ -39,9 +56,6 @@ Use the `/update-log` skill:
 
 **Conclusion:** Current gap-based strategy is not viable. Recommended pivoting to market making, true arbitrage, or higher-frequency approaches.
 
-### 2025-02-01
-
-- Joined CUIC Quant Fund project
 
 ---
 
