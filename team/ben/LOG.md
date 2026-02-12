@@ -15,6 +15,10 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-12
+
+- metrics module built and working with James's backtester
+
 ### 2026-02-08
 
 - completed dummy test data notebook and init file, awaiting backtester output from james to build metrics module
