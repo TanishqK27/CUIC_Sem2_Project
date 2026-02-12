@@ -36,18 +36,38 @@ def calculate_sharpe_ratio(
 
 
 def calculate_max_drawdown(cumulative_pnl: pd.Series) -> float:
-    """Calculate max drawdown as max((peak - value) / peak)."""
+    """Calculate max drawdown as max((peak - value) / peak).
+
+    For periods with positive peaks, returns percentage drawdown as a decimal.
+    For periods before any positive peak (early losses), returns the absolute
+    drawdown from zero (the starting point of cumulative P&L).
+    """
     curve = _coerce_numeric(cumulative_pnl)
     if curve.empty:
         return 0.0
 
-    running_peak = curve.cummax()
-    valid = running_peak > 0
-    if not valid.any():
-        return 0.0
+    # Running peak should be at least 0 (cumulative P&L starts at 0)
+    running_peak = curve.cummax().clip(lower=0)
+    positive_peak_mask = running_peak > 0
 
-    drawdowns = ((running_peak[valid] - curve[valid]) / running_peak[valid]).clip(lower=0)
-    return float(drawdowns.max()) if not drawdowns.empty else 0.0
+    max_drawdown = 0.0
+
+    # Percentage drawdown for periods with positive peaks
+    if positive_peak_mask.any():
+        valid_peaks = running_peak[positive_peak_mask]
+        valid_values = curve[positive_peak_mask]
+        pct_drawdowns = ((valid_peaks - valid_values) / valid_peaks).clip(lower=0)
+        max_drawdown = max(max_drawdown, float(pct_drawdowns.max()))
+
+    # Absolute drawdown for periods with peak = 0 (before first profit)
+    zero_peak_mask = running_peak == 0
+    if zero_peak_mask.any():
+        # When peak is 0, absolute drawdown is -value (how far below zero)
+        values_at_zero_peak = curve[zero_peak_mask]
+        abs_drawdowns = (-values_at_zero_peak).clip(lower=0)
+        max_drawdown = max(max_drawdown, float(abs_drawdowns.max()))
+
+    return max_drawdown
 
 
 def calculate_win_rate(outcomes: pd.Series) -> float:
