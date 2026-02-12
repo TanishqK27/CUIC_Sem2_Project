@@ -15,4 +15,59 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### Feb 11, 2026
+
+**Feedback Fixes Implemented**
+
+Addressed all 3 feedback items from `task_briefs_feedback/week1-backtester-core.md`:
+
+1. **Empty results column fix:** `backtest()` now returns empty DataFrame with correct 9 columns when strategy skips all games. Prevents Ben's metrics from blowing up on empty input.
+
+2. **NaN odds handling:** Added check to skip rows where `home_odds` or `away_odds` are NaN. Prevents corruption of subsequent calculations.
+
+3. **Data leakage prevention:** Already implemented (confirmed) — `row.drop(labels=["home_win"])` before passing to strategy.
+
+**Edge Case Tests Added**
+- Added test cells to `tools/backtester.ipynb` for:
+  - Skip-all strategy returning empty DataFrame with correct columns
+  - NaN odds being skipped without errors
+- All tests pass
+
+**Branch Updates**
+- Merged `origin/ben` into `james_branch` (resolved backtester.ipynb conflict — kept data leakage fix)
+- Merged `origin/main` into `james_branch` (no conflicts)
+- Fixed `tools/test_metrics.ipynb` import path issue
+
+---
+
+### Feb 6, 2026
+
+**Data Leakage Fix + Mya CSV Test**
+
+- Fixed data leakage bug in `backtest()`: strategy functions were receiving the full row including `home_win`, allowing a cheating strategy to always win. Now drops `home_win` before calling `strategy_fn()`.
+- Added test cells running backtester against Mya's `test_games.csv` (100 rows) with `always_bet_home` strategy
+- Validated 9-column output format passes for both dummy and Mya datasets
+
+**Backtester Core — Initial Build Complete**
+
+- Created `data/dummy_backtest_input.csv` with 25 rows of NBA game data (7 columns: timestamp, game, home_team, away_team, home_odds, away_odds, home_win)
+- Built `tools/backtester.ipynb` with two core functions:
+  - `load_backtest_data(start_date, end_date)` — loads from Railway DB (DATABASE_URL) with CSV fallback
+  - `backtest(data, strategy_fn, initial_bankroll)` — runs strategy over data, returns 9-column DataFrame
+- Created example "always bet home" strategy and ran end-to-end test
+- Documented strategy interface at `docs/reference/strategy-interface.md` (v1.0)
+- Output format validated: timestamp, game, action, bet_size, odds, outcome, pnl, cumulative_pnl, bankroll
+
+**Next:** Get test_games.csv from Mya, give Ismaeel access Tuesday.
+
+**Mya's Test Data — Received and Verified**
+
+- Received Mya's test data bundle: `test_games.csv` (100 rows) + `test_data_generator.py`
+- Placed files per SOP: `data/test_games.csv`, `tools/test_data_generator.py`
+- Verified compatibility: columns match backtester input spec exactly (timestamp, game, home_team, away_team, home_odds, away_odds, home_win)
+- Generator includes edge case generators for Ismaeel's testing
+- CSV is gitignored (`*.csv` rule); generator script is tracked
+
+**Next:** Give Ismaeel access for testing on Tuesday.
+
 <!-- New entries will be added above this line -->
