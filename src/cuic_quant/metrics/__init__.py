@@ -35,39 +35,31 @@ def calculate_sharpe_ratio(
     return float((mean_return / std_return) * math.sqrt(periods_per_year))
 
 
-def calculate_max_drawdown(cumulative_pnl: pd.Series) -> float:
-    """Calculate max drawdown as max((peak - value) / peak).
+def calculate_max_drawdown(
+    cumulative_pnl: pd.Series,
+    initial_bankroll: float = 10000.0,
+) -> float:
+    """Calculate max drawdown as max((peak - value) / peak) on the equity curve.
 
-    For periods with positive peaks, returns percentage drawdown as a decimal.
-    For periods before any positive peak (early losses), returns the absolute
-    drawdown from zero (the starting point of cumulative P&L).
+    Converts cumulative P&L to an equity curve (initial_bankroll + cumulative_pnl)
+    so that drawdowns are always expressed as a fraction of peak equity, even for
+    early-loss scenarios.
+
+    Args:
+        cumulative_pnl: Series of cumulative profit/loss values.
+        initial_bankroll: Starting bankroll to anchor the equity curve.
+
+    Returns:
+        Max drawdown as a decimal between 0 and 1.
     """
     curve = _coerce_numeric(cumulative_pnl)
     if curve.empty:
         return 0.0
 
-    # Running peak should be at least 0 (cumulative P&L starts at 0)
-    running_peak = curve.cummax().clip(lower=0)
-    positive_peak_mask = running_peak > 0
-
-    max_drawdown = 0.0
-
-    # Percentage drawdown for periods with positive peaks
-    if positive_peak_mask.any():
-        valid_peaks = running_peak[positive_peak_mask]
-        valid_values = curve[positive_peak_mask]
-        pct_drawdowns = ((valid_peaks - valid_values) / valid_peaks).clip(lower=0)
-        max_drawdown = max(max_drawdown, float(pct_drawdowns.max()))
-
-    # Absolute drawdown for periods with peak = 0 (before first profit)
-    zero_peak_mask = running_peak == 0
-    if zero_peak_mask.any():
-        # When peak is 0, absolute drawdown is -value (how far below zero)
-        values_at_zero_peak = curve[zero_peak_mask]
-        abs_drawdowns = (-values_at_zero_peak).clip(lower=0)
-        max_drawdown = max(max_drawdown, float(abs_drawdowns.max()))
-
-    return max_drawdown
+    equity = curve + initial_bankroll
+    running_peak = equity.cummax()
+    drawdowns = ((running_peak - equity) / running_peak).clip(lower=0)
+    return float(drawdowns.max())
 
 
 def calculate_win_rate(outcomes: pd.Series) -> float:
@@ -109,12 +101,19 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
     # Brief spec: derive returns from pnl for Sharpe input.
     returns = pnl
 
+    # Use bankroll column if present, otherwise default
+    initial_bankroll = 10000.0
+    if "bankroll" in trades_df.columns:
+        first_bankroll = pd.to_numeric(trades_df["bankroll"], errors="coerce").dropna()
+        if not first_bankroll.empty:
+            initial_bankroll = float(first_bankroll.iloc[0])
+
     return {
         "total_trades": int(len(trades_df)),
         "win_rate": calculate_win_rate(outcomes),
         "total_pnl": float(pnl.sum()) if not pnl.empty else 0.0,
         "sharpe_ratio": calculate_sharpe_ratio(returns),
-        "max_drawdown": calculate_max_drawdown(cumulative_pnl),
+        "max_drawdown": calculate_max_drawdown(cumulative_pnl, initial_bankroll),
         "profit_factor": calculate_profit_factor(pnl),
     }
 

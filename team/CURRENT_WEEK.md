@@ -287,6 +287,18 @@ flowchart TB
 | Ismaeel | ✅ | Progress remains unchanged |
 | Vansheeka | ⏳ | Working through some problems with committing the data inventory, and started understanding how to analyse the data and what to look for |
 
+### Wednesday Feb 11
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max |  |  |
+| Alfie | ✅ | Progress remains unchanged |
+| Dietrich |  |  |
+| James | ⏳ | Helped Ben |
+| Ben | ✅ | Completed task |
+| Mya |  |  |
+| Ismaeel | ✅ | Tested James' code |
+| Vansheeka |  |  |
 ---
 
 ## Escalation Path

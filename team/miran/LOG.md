@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD024 -->
 # Miran's Work Log
 
 Personal work log for the CUIC Quant Fund project. Entries are in reverse chronological order.
@@ -15,6 +16,23 @@ Use the `/update-log` skill:
 ---
 
 ## Log Entries
+
+### 2026-02-10
+
+- Checked in with all 8 team members
+- Updated Wednesday status in `team/CURRENT_WEEK.md`
+- Made summaries on 5 research papers
+
+### 2026-02-10
+
+- Checked in with all 8 team members
+- Updated Tuesday status in `team/CURRENT_WEEK.md`
+- Found research papers
+
+### 2026-02-09
+
+- Checked in with all 8 team members
+- Updated Monday status in `team/CURRENT_WEEK.md`
 
 ### 2026-02-08
 
