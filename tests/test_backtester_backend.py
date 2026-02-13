@@ -317,3 +317,21 @@ class TestValidateBacktestResults:
         assert isinstance(report["checks_run"], int)
         assert isinstance(report["checks_passed"], int)
         assert isinstance(report["failures"], list)
+
+
+class TestPackageExports:
+    """Test that the backtest package exports all required functions."""
+
+    def test_all_functions_importable_from_package(self) -> None:
+        """All 4 functions should be importable from cuic_quant.backtest."""
+        from cuic_quant.backtest import (
+            load_backtest_data,
+            backtest,
+            always_bet_home,
+            validate_backtest_results,
+        )
+
+        assert callable(load_backtest_data)
+        assert callable(backtest)
+        assert callable(always_bet_home)
+        assert callable(validate_backtest_results)

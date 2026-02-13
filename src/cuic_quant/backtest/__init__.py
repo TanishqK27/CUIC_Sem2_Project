@@ -1,14 +1,28 @@
 """Backtesting framework for strategy validation.
 
 This module provides tools for:
-- Historical strategy backtesting
-- Performance metrics calculation
-- Walk-forward analysis
-- Transaction cost modeling
+- Loading historical game data from database or CSV
+- Running strategies against historical data
+- Validating backtest results for correctness and data leakage
 
-Note:
-    This module is a placeholder for future implementations.
-    See research/notebooks/ for experimental backtests.
+Usage:
+    from cuic_quant.backtest import backtest, load_backtest_data, validate_backtest_results
+
+    data = load_backtest_data("2026-01-01", "2026-01-31")
+    results = backtest(data, my_strategy)
+    report = validate_backtest_results(results, data)
 """
 
-__all__: list[str] = []
+from cuic_quant.backtest.backtester_backend import (
+    always_bet_home,
+    backtest,
+    load_backtest_data,
+    validate_backtest_results,
+)
+
+__all__ = [
+    "always_bet_home",
+    "backtest",
+    "load_backtest_data",
+    "validate_backtest_results",
+]
