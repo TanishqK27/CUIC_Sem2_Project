@@ -15,6 +15,38 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### Feb 13, 2026
+
+**Backtester Refactor — Extracted to Importable Module**
+
+Redesigned the backtester architecture: all logic extracted from `tools/backtester.ipynb` into `src/cuic_quant/backtest/backtester_backend.py` as an importable Python module. The notebook is now a thin caller with zero function definitions.
+
+**New file:** `src/cuic_quant/backtest/backtester_backend.py` with 4 functions:
+- `load_backtest_data()` — loads game data from Railway DB or CSV fallback
+- `backtest()` — core backtest loop with data leakage prevention, NaN handling, bankroll capping
+- `always_bet_home()` — deterministic test strategy for validation
+- `validate_backtest_results()` — **NEW** 11-check validation suite covering schema, math correctness, and data leakage detection
+
+**Validator checks (3 categories):**
+1. Schema: 9 columns present, valid actions/outcomes, positive bet sizes
+2. Math: PnL formulas correct, cumulative_pnl is running sum, bankroll = initial + cumulative_pnl, no overbet
+3. Leakage: games exist in input, outcomes match input data, chronological order
+
+**Updated:** `src/cuic_quant/backtest/__init__.py` — exports all 4 functions
+**Rewritten:** `tools/backtester.ipynb` — from 27 cells (inline functions) to 16 cells (imports only)
+
+**Tests:** 22 new tests in `tests/test_backtester_backend.py` covering all functions + edge cases. All pass.
+
+**Verification results:**
+- Dummy data (25 rows): 25 trades, 60% win rate, $305 PnL, validation 11/11 passed
+- Output matches `dummy_backtest_output.csv` exactly
+- Mya's test_games.csv (100 rows): 100 trades, validation 10/11 (1 false positive due to duplicate game names in test data)
+- Edge cases: empty results, NaN odds, bankrupt bankroll all handled correctly
+
+**Interface unchanged** — same function signatures, same 9-column output. Ben's metrics and Ismaeel's tests are unaffected.
+
+---
+
 ### Feb 11, 2026
 
 **Feedback Fixes Implemented**

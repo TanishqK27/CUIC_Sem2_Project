@@ -18,6 +18,10 @@ This will update both your personal `team/<name>/LOG.md` and this PROJECT_LOG.md
 
 ## Log Entries
 
+### 2026-02-13
+
+- **[james]** Backtester refactor complete: extracted all logic from `tools/backtester.ipynb` into importable module `src/cuic_quant/backtest/backtester_backend.py` (4 functions: load_backtest_data, backtest, always_bet_home, validate_backtest_results). Added 11-check validation suite (schema, math, leakage). Notebook rewritten as thin caller. 22 unit tests, all passing. Interface unchanged — Ben's metrics and Ismaeel's tests unaffected.
+
 ### 2026-02-12
 
 - **[dietrich]** Historical Odds API + Raw Data Correlation Analysis: Built `fetch_historical_odds.py` (The Odds API v4, 7 NBA seasons), downloaded 4,152 games historical sportsbook dataset (28.5K odds rows). Built `backtest_realistic.py` with CLV tracking, Kelly sizing, gap momentum. DB now at 181K price snapshots, 68M websocket orderbook events, 148K latency events. Correlation analysis on 7 measures: Granger causality shows SB leads PM (64% of games at lag 1), wide PM spreads predict 1.8x more price movement. Takeaway: Two actionable signals — SB moves first, wide spreads predict big moves.

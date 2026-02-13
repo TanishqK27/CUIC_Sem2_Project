@@ -11,7 +11,7 @@ Central task tracking for the entire project. Individual tasks are managed in `t
 - [x] Documentation
 - [x] Development environment
 - [ ] API client implementations
-- [ ] Basic backtesting framework
+- [x] Basic backtesting framework
 
 ---
 
@@ -32,7 +32,7 @@ Central task tracking for the entire project. Individual tasks are managed in `t
 - [ ] Tables joinable on `team_abbr` column verified - **Dietrich**
 
 ### Analysis Tools
-- [ ] Backtester framework functional with dummy data - **James**
+- [x] Backtester framework functional with dummy data - **James**
 - [ ] Metrics module complete (Sharpe, drawdown, etc.) - **Ben**
 - [ ] Test data generator ready - **Mya**
 
@@ -47,7 +47,7 @@ Central task tracking for the entire project. Individual tasks are managed in `t
 
 ### Documentation
 - [ ] Data inventory document complete - **Vansheeka**
-- [ ] Strategy interface documented - **James**
+- [x] Strategy interface documented - **James**
 - [ ] Meeting notes captured - **Ismaeel**
 
 ---

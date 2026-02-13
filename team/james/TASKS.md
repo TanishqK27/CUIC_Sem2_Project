@@ -1,14 +1,28 @@
 # James's Tasks
 
-## Week 1: Backtester Core (Feb 6-12)
+## Week 2: Backtester Refactor (Feb 13+)
 
 ### To Do
-- [ ] Give Ismaeel access for testing (Tuesday)
+- [ ] Give Ismaeel access to new backtester module for testing
 
 ### In Progress
 | Task | Started | Notes |
 |------|---------|-------|
 | | | |
+
+### Completed
+| Task | Completed | Notes |
+|------|-----------|-------|
+| Extract backtester into importable Python module | Feb 13 | `src/cuic_quant/backtest/backtester_backend.py` — 4 functions |
+| Add validation suite (schema + math + leakage) | Feb 13 | `validate_backtest_results()` — 11 checks across 3 categories |
+| Rewrite notebook as thin caller | Feb 13 | `tools/backtester.ipynb` — 16 cells, zero function definitions |
+| Write 22 unit tests for backtester backend | Feb 13 | `tests/test_backtester_backend.py` — all passing |
+| Update `__init__.py` package exports | Feb 13 | `from cuic_quant.backtest import backtest, ...` now works |
+| Verify output matches expected CSV exactly | Feb 13 | `dummy_backtest_output.csv` matches perfectly |
+
+---
+
+## Week 1: Backtester Core (Feb 6-12)
 
 ### Completed
 | Task | Completed | Notes |
