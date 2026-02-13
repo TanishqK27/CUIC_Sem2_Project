@@ -60,6 +60,103 @@ TEST_CSV = DATA_DIR / "test_games.csv"
 
 
 # ---------------------------------------------------------------------------
+# Data loading
+# ---------------------------------------------------------------------------
+
+
+def load_backtest_data(
+    start_date: str,
+    end_date: str,
+    csv_path: str | Path | None = None,
+) -> pd.DataFrame:
+    """Load historical game data for backtesting.
+
+    What: Loads a DataFrame of completed games with odds and outcomes,
+    filtered to a date range and sorted chronologically.
+
+    Why: The backtester needs historical game data to simulate strategy
+    performance. This function abstracts the data source — it tries the
+    Railway PostgreSQL database first (production), then falls back to a
+    local CSV file (development/testing).
+
+    How:
+        1. Check if DATABASE_URL environment variable is set.
+        2. If yes, query the sportsbook_matches + sportsbook_odds tables
+           via SQLAlchemy, filter by date range, return sorted DataFrame.
+        3. If no (or if the DB query fails), load from a local CSV file.
+        4. Filter the CSV by date range, sort by timestamp, return.
+
+    Args:
+        start_date: Start of date range, inclusive. Format: "YYYY-MM-DD".
+        end_date: End of date range, inclusive. Format: "YYYY-MM-DD".
+        csv_path: Path to fallback CSV file. If None, defaults to
+            data/dummy_backtest_input.csv.
+
+    Returns:
+        DataFrame with columns: timestamp (datetime), game (str),
+        home_team (str), away_team (str), home_odds (float),
+        away_odds (float), home_win (int: 1 or 0).
+        Sorted by timestamp ascending.
+
+    Raises:
+        FileNotFoundError: If no database is available and no CSV exists
+            at the specified path.
+    """
+    database_url = os.environ.get("DATABASE_URL")
+
+    if database_url:
+        try:
+            from sqlalchemy import create_engine, text
+
+            engine = create_engine(database_url)
+            query = text("""
+                SELECT
+                    m.commence_time AS timestamp,
+                    m.home_team || ' vs ' || m.away_team AS game,
+                    m.home_team,
+                    m.away_team,
+                    o.home_odds,
+                    o.away_odds,
+                    m.home_win
+                FROM sportsbook_matches m
+                JOIN sportsbook_odds o ON m.id = o.match_id
+                WHERE m.commence_time >= :start_date
+                  AND m.commence_time <= :end_date
+                ORDER BY m.commence_time ASC
+            """)
+
+            with engine.connect() as conn:
+                df = pd.read_sql(
+                    query, conn,
+                    params={"start_date": start_date, "end_date": end_date},
+                )
+
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            print(f"Loaded {len(df)} rows from Railway database.")
+            return df
+
+        except Exception as e:
+            print(f"Database connection failed ({e}), falling back to CSV.")
+
+    # Fallback to CSV
+    if csv_path is None:
+        csv_path = DUMMY_CSV
+    csv_path = Path(csv_path)
+
+    if not csv_path.exists():
+        raise FileNotFoundError(f"No CSV found at {csv_path}")
+
+    df = pd.read_csv(csv_path, parse_dates=["timestamp"])
+
+    # Filter by date range
+    mask = (df["timestamp"] >= start_date) & (df["timestamp"] <= end_date)
+    df = df.loc[mask].sort_values("timestamp").reset_index(drop=True)
+
+    print(f"Loaded {len(df)} rows from {csv_path.name}.")
+    return df
+
+
+# ---------------------------------------------------------------------------
 # Example strategy
 # ---------------------------------------------------------------------------
 
