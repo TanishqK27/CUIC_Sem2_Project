@@ -15,6 +15,23 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-13
+
+**Combined Player Stats Dataset + PostgreSQL Upload**
+
+- Merged 8 individual CSV datasets (`Data/invidual_stats/`) into a single unified dataset: 136,965 rows x 428 columns, one row per player per game.
+- Data sources combined: boxscores, advanced stats, hustle stats, tracking stats, pregame availability, pregame player rolling averages, team boxscores, pregame team stats.
+- Pivoted per-period data (Q1-Q4, OT1-OT3) into flat columns (e.g. `q1_pts`, `q2_pts`, `adv_q1_off_rating`) — 259 additional columns alongside the full-game totals.
+- Uploaded combined dataset to Railway PostgreSQL as `combined_player_stats` table with indexes on `game_id`, `player_id`, `team_id`, and a composite unique index on `(game_id, player_id)`.
+- Created `query_examples.ipynb` — notebook with 8 example SQL queries (player lookup, season averages, quarter-by-quarter scoring, pregame vs actual, rest impact, hustle leaders, home/away splits, full DataFrame pull) plus a column reference guide.
+
+**Scripts created:**
+- `Data/invidual_stats/combine_all.py` — merges all 8 CSVs, pivots periods, outputs `combined_all_stats.csv` (224.8 MB)
+- `Data/invidual_stats/upload_combined.py` — bulk uploads combined CSV to PostgreSQL via COPY
+- `Data/invidual_stats/query_examples.ipynb` — query reference notebook
+
+---
+
 ### 2026-02-12
 
 **Historical Odds API + Raw Data Correlation Analysis**
