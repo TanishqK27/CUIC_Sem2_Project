@@ -198,3 +198,122 @@ class TestBacktest:
         # First bet should be capped at 1000
         if len(results) > 0:
             assert results.iloc[0]["bet_size"] <= 1000.0
+
+
+class TestValidateBacktestResults:
+    """Tests for the validate_backtest_results function."""
+
+    def test_valid_results_pass(self) -> None:
+        """Known-good results should pass all checks."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data,
+            validate_backtest_results, DUMMY_CSV,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home)
+        report = validate_backtest_results(results, data)
+
+        assert report["passed"] is True
+        assert report["checks_passed"] == report["checks_run"]
+        assert report["failures"] == []
+
+    def test_wrong_columns_fail(self) -> None:
+        """Results with missing columns should fail schema validation."""
+        from cuic_quant.backtest.backtester_backend import (
+            validate_backtest_results, load_backtest_data, DUMMY_CSV,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        bad_results = pd.DataFrame({"wrong": [1, 2, 3]})
+        report = validate_backtest_results(bad_results, data)
+
+        assert report["passed"] is False
+        assert any("column" in f.lower() for f in report["failures"])
+
+    def test_bad_pnl_math_fails(self) -> None:
+        """Results with incorrect PnL calculations should fail."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data,
+            validate_backtest_results, DUMMY_CSV,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home)
+
+        # Corrupt a PnL value
+        corrupted = results.copy()
+        corrupted.loc[0, "pnl"] = 999.99
+        report = validate_backtest_results(corrupted, data)
+
+        assert report["passed"] is False
+        assert any("pnl" in f.lower() for f in report["failures"])
+
+    def test_corrupted_cumulative_pnl_fails(self) -> None:
+        """Results with wrong cumulative_pnl should fail."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data,
+            validate_backtest_results, DUMMY_CSV,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home)
+
+        corrupted = results.copy()
+        corrupted.loc[3, "cumulative_pnl"] = 0.0
+        report = validate_backtest_results(corrupted, data)
+
+        assert report["passed"] is False
+        assert any("cumulative" in f.lower() for f in report["failures"])
+
+    def test_outcome_mismatch_detected(self) -> None:
+        """Mismatched outcomes (data leakage indicator) should fail."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data,
+            validate_backtest_results, DUMMY_CSV,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home)
+
+        # Flip an outcome — this shouldn't match input data
+        corrupted = results.copy()
+        corrupted.loc[0, "outcome"] = "LOSS"  # Was WIN
+        report = validate_backtest_results(corrupted, data)
+
+        assert report["passed"] is False
+        assert any("outcome" in f.lower() or "leakage" in f.lower()
+                    for f in report["failures"])
+
+    def test_empty_results_pass(self) -> None:
+        """Empty results (from a skip-all strategy) should pass validation."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, load_backtest_data,
+            validate_backtest_results, DUMMY_CSV,
+        )
+
+        def skip_all(row: pd.Series, context: dict | None = None) -> dict:
+            return {"action": "SKIP", "confidence": 0, "size": 0}
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, skip_all)
+        report = validate_backtest_results(results, data)
+
+        assert report["passed"] is True
+
+    def test_report_structure(self) -> None:
+        """Report must have exactly the 4 required keys."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data,
+            validate_backtest_results, DUMMY_CSV,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home)
+        report = validate_backtest_results(results, data)
+
+        assert set(report.keys()) == {"passed", "checks_run", "checks_passed", "failures"}
+        assert isinstance(report["passed"], bool)
+        assert isinstance(report["checks_run"], int)
+        assert isinstance(report["checks_passed"], int)
+        assert isinstance(report["failures"], list)
