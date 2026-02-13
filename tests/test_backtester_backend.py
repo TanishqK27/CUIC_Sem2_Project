@@ -85,3 +85,116 @@ class TestLoadBacktestData:
 
         df = load_backtest_data("2026-01-01", "2026-12-31", csv_path=TEST_CSV)
         assert len(df) == 100
+
+
+class TestBacktest:
+    """Tests for the backtest function."""
+
+    def test_returns_nine_columns(self) -> None:
+        """Backtest output must have exactly 9 required columns."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data,
+            DUMMY_CSV, OUTPUT_COLUMNS,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home)
+        assert results.columns.tolist() == OUTPUT_COLUMNS
+
+    def test_matches_expected_output(self) -> None:
+        """Results must match the known-good dummy_backtest_output.csv exactly."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data,
+            DUMMY_CSV, DATA_DIR,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home)
+
+        expected_path = DATA_DIR / "dummy_backtest_output.csv"
+        expected = pd.read_csv(expected_path, parse_dates=["timestamp"])
+
+        pd.testing.assert_frame_equal(
+            results.reset_index(drop=True),
+            expected.reset_index(drop=True),
+            check_dtype=False,
+        )
+
+    def test_skip_strategy_returns_empty_with_columns(self) -> None:
+        """A strategy that skips everything should return empty DF with 9 columns."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, load_backtest_data, DUMMY_CSV, OUTPUT_COLUMNS,
+        )
+
+        def skip_all(row: pd.Series, context: dict | None = None) -> dict:
+            return {"action": "SKIP", "confidence": 0, "size": 0}
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, skip_all)
+
+        assert len(results) == 0
+        assert results.columns.tolist() == OUTPUT_COLUMNS
+
+    def test_nan_odds_skipped(self) -> None:
+        """Rows with NaN odds should be silently skipped."""
+        import numpy as np
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data, DUMMY_CSV,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        data.loc[2, "home_odds"] = np.nan
+        data.loc[5, "away_odds"] = np.nan
+
+        results = backtest(data, always_bet_home)
+        assert len(results) == 25 - 2  # 2 rows skipped
+
+    def test_bankroll_stops_at_zero(self) -> None:
+        """Backtester should stop when bankroll reaches zero."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, load_backtest_data, DUMMY_CSV,
+        )
+
+        def bet_everything(row: pd.Series, context: dict | None = None) -> dict:
+            return {"action": "BUY_HOME", "confidence": 1.0, "size": 999999.0}
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, bet_everything, initial_bankroll=100.0)
+
+        # Should stop after first loss at the latest
+        assert len(results) <= 25
+        assert results["bankroll"].iloc[-1] >= 0
+
+    def test_strategy_does_not_see_home_win(self) -> None:
+        """Strategy row must NOT contain home_win (data leakage prevention)."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, load_backtest_data, DUMMY_CSV,
+        )
+
+        seen_columns: list[list[str]] = []
+
+        def spy_strategy(row: pd.Series, context: dict | None = None) -> dict:
+            seen_columns.append(row.index.tolist())
+            return {"action": "SKIP", "confidence": 0, "size": 0}
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        backtest(data, spy_strategy)
+
+        for cols in seen_columns:
+            assert "home_win" not in cols, "Strategy received home_win — data leakage!"
+
+    def test_bet_size_capped_at_bankroll(self) -> None:
+        """Bet size should never exceed current bankroll."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, load_backtest_data, DUMMY_CSV,
+        )
+
+        def big_bet(row: pd.Series, context: dict | None = None) -> dict:
+            return {"action": "BUY_HOME", "confidence": 1.0, "size": 50000.0}
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, big_bet, initial_bankroll=1000.0)
+
+        # First bet should be capped at 1000
+        if len(results) > 0:
+            assert results.iloc[0]["bet_size"] <= 1000.0

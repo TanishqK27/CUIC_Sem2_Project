@@ -157,6 +157,131 @@ def load_backtest_data(
 
 
 # ---------------------------------------------------------------------------
+# Core backtesting loop
+# ---------------------------------------------------------------------------
+
+
+def backtest(
+    data: pd.DataFrame,
+    strategy_fn: Callable[[pd.Series, dict[str, Any] | None], dict[str, Any]],
+    initial_bankroll: float = 10000.0,
+) -> pd.DataFrame:
+    """Run a backtest over historical game data using a strategy function.
+
+    What: Simulates betting on historical games by iterating through each row,
+    calling the strategy function for a signal, and tracking the bankroll,
+    profit/loss, and trade history.
+
+    Why: This is the core engine that every strategy in the CUIC Quant Fund
+    is evaluated through. It provides a standardized way to measure strategy
+    performance on historical data before risking real money.
+
+    How:
+        1. Initialize bankroll and empty trade list.
+        2. For each game row (sorted by timestamp):
+           a. Skip rows with NaN odds (data quality guard).
+           b. Strip home_win from the row before passing to strategy
+              (prevents data leakage — the strategy must not know outcomes).
+           c. Call strategy_fn(row, context) to get a signal.
+           d. If signal is SKIP or size <= 0, skip to next row.
+           e. Cap bet_size at current bankroll.
+           f. Determine outcome: compare action vs home_win.
+           g. Calculate PnL: WIN = bet_size * (odds - 1), LOSS = -bet_size.
+           h. Update cumulative_pnl and bankroll.
+           i. Append trade to list.
+        3. Return trades as a DataFrame with exactly 9 columns.
+
+    Args:
+        data: DataFrame from load_backtest_data() with columns: timestamp,
+            game, home_team, away_team, home_odds, away_odds, home_win.
+        strategy_fn: Callable matching the strategy interface
+            (see docs/reference/strategy-interface.md). Takes
+            (row: pd.Series, context: dict | None) and returns a dict with
+            keys: action, confidence, size, reason (optional).
+        initial_bankroll: Starting bankroll in dollars. Defaults to 10000.
+
+    Returns:
+        DataFrame with 9 columns: timestamp, game, action, bet_size, odds,
+        outcome, pnl, cumulative_pnl, bankroll. Returns empty DataFrame with
+        correct columns if no trades are executed.
+    """
+    bankroll = initial_bankroll
+    cumulative_pnl = 0.0
+    trades: list[dict[str, Any]] = []
+
+    context: dict[str, Any] = {
+        "initial_bankroll": initial_bankroll,
+        "bankroll": bankroll,
+        "trade_count": 0,
+        "cumulative_pnl": 0.0,
+    }
+
+    for _, row in data.iterrows():
+        if bankroll <= 0:
+            break
+
+        # Skip rows with NaN odds (prevents corruption of subsequent rows)
+        if pd.isna(row["home_odds"]) or pd.isna(row["away_odds"]):
+            continue
+
+        # Update context for strategy
+        context["bankroll"] = bankroll
+        context["trade_count"] = len(trades)
+        context["cumulative_pnl"] = cumulative_pnl
+
+        # Remove outcome column to prevent data leakage
+        strategy_row = row.drop(labels=["home_win"])
+        signal = strategy_fn(strategy_row, context)
+        action = signal.get("action", "SKIP")
+
+        if action == "SKIP":
+            continue
+
+        # Determine bet size (cap at current bankroll)
+        bet_size = min(signal.get("size", 0.0), bankroll)
+        if bet_size <= 0:
+            continue
+
+        # Determine odds based on action
+        if action == "BUY_HOME":
+            odds = row["home_odds"]
+            won = row["home_win"] == 1
+        elif action == "BUY_AWAY":
+            odds = row["away_odds"]
+            won = row["home_win"] == 0
+        else:
+            continue  # Invalid action, skip
+
+        # Calculate P&L
+        if won:
+            pnl = bet_size * (odds - 1)
+            outcome = "WIN"
+        else:
+            pnl = -bet_size
+            outcome = "LOSS"
+
+        cumulative_pnl += pnl
+        bankroll += pnl
+
+        trades.append({
+            "timestamp": row["timestamp"],
+            "game": row["game"],
+            "action": action,
+            "bet_size": round(bet_size, 2),
+            "odds": odds,
+            "outcome": outcome,
+            "pnl": round(pnl, 2),
+            "cumulative_pnl": round(cumulative_pnl, 2),
+            "bankroll": round(bankroll, 2),
+        })
+
+    # Return DataFrame with correct columns even if empty
+    if not trades:
+        return pd.DataFrame(columns=OUTPUT_COLUMNS)
+    return pd.DataFrame(trades)[OUTPUT_COLUMNS]
+
+
+# ---------------------------------------------------------------------------
 # Example strategy
 # ---------------------------------------------------------------------------
 
