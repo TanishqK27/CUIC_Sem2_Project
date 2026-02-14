@@ -20,6 +20,24 @@ Or use Tan's personal skill (no name needed):
 
 ## Log Entries
 
+### 2026-02-14
+
+- Created rigorous EDA notebook for NBA player statistics
+- Connected to CockroachDB cloud database: 136,965 rows × 428 columns
+- Data spans 5 NBA seasons (2021-22 through 2025-26)
+- Implemented comprehensive data quality assessment:
+  - Missing data analysis with mechanism classification (MCAR/MAR/MNAR)
+  - Pregame averages structurally missing for first games (MNAR)
+  - Tracking stats ~15-20% missing (MAR)
+  - Outlier detection using IQR method (no data integrity issues found)
+- Univariate distribution analysis:
+  - Target variables (PTS, REB, AST) right-skewed, non-normal
+  - Bootstrap confidence intervals for means (n=1000 iterations)
+  - Points: mean ~10, high variance (CV ≈ 0.8-1.0)
+- Column categorization: identifiers, boxscore, advanced, pregame (player/team), quarter stats
+- Data integrity checks: duplicate detection, value range validation, quarter sum consistency
+- Set up publication-quality figure settings (colorblind-friendly Okabe-Ito palette)
+
 ### 2026-02-05
 
 - Removed Polymarket data collection infrastructure - team member has shared server for queries
