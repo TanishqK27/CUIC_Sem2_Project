@@ -7,13 +7,18 @@ Personal work log for the CUIC Quant Fund project. Entries are in reverse chrono
 ## How to Update
 
 Use the `/update-log` skill:
-```
+
+```bash
 /update-log andrii <description of work>
 ```
 
 ---
 
 ## Log Entries
+
+### 2026-02-14
+
+- Hello world
 
 ### 2025-02-01
 
