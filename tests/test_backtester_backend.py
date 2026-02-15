@@ -199,6 +199,50 @@ class TestBacktest:
         if len(results) > 0:
             assert results.iloc[0]["bet_size"] <= 1000.0
 
+    def test_buy_away_outcome_logic(self) -> None:
+        """BUY_AWAY should win when home_win == 0 and lose when home_win == 1."""
+        from cuic_quant.backtest.backtester_backend import backtest, OUTPUT_COLUMNS
+
+        def always_bet_away(row: pd.Series, context: dict | None = None) -> dict:
+            return {"action": "BUY_AWAY", "confidence": 0.5, "size": 100.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02"]),
+            "game": ["A vs B", "C vs D"],
+            "home_team": ["A", "C"],
+            "away_team": ["B", "D"],
+            "home_odds": [1.90, 1.80],
+            "away_odds": [2.10, 2.20],
+            "home_win": [0, 1],  # game 1: away wins, game 2: home wins
+        })
+
+        results = backtest(data, always_bet_away, initial_bankroll=10000.0)
+        assert results.columns.tolist() == OUTPUT_COLUMNS
+        assert len(results) == 2
+        assert results.iloc[0]["action"] == "BUY_AWAY"
+        assert results.iloc[0]["outcome"] == "WIN"   # home_win=0, so away wins
+        assert results.iloc[0]["odds"] == 2.10
+        assert results.iloc[0]["pnl"] == round(100.0 * (2.10 - 1), 2)
+        assert results.iloc[1]["outcome"] == "LOSS"  # home_win=1, so away loses
+        assert results.iloc[1]["pnl"] == -100.0
+
+    def test_invalid_odds_skipped(self) -> None:
+        """Rows with odds <= 1.0 should be skipped (invalid decimal odds)."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"]),
+            "game": ["A vs B", "C vs D", "E vs F"],
+            "home_team": ["A", "C", "E"],
+            "away_team": ["B", "D", "F"],
+            "home_odds": [1.90, 0.80, 1.70],  # row 2 has invalid odds
+            "away_odds": [2.10, 2.20, 2.30],
+            "home_win": [1, 1, 1],
+        })
+
+        results = backtest(data, always_bet_home, initial_bankroll=10000.0)
+        assert len(results) == 2  # middle row skipped
+
 
 class TestValidateBacktestResults:
     """Tests for the validate_backtest_results function."""
@@ -317,6 +361,87 @@ class TestValidateBacktestResults:
         assert isinstance(report["checks_run"], int)
         assert isinstance(report["checks_passed"], int)
         assert isinstance(report["failures"], list)
+
+    def test_repeat_matchup_different_outcomes(self) -> None:
+        """Validator must handle same teams playing twice with different outcomes."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, validate_backtest_results,
+        )
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02"]),
+            "game": ["A vs B", "A vs B"],  # same game name, different outcomes
+            "home_team": ["A", "A"],
+            "away_team": ["B", "B"],
+            "home_odds": [1.90, 2.10],
+            "away_odds": [2.10, 1.90],
+            "home_win": [1, 0],  # first: home wins, second: home loses
+        })
+
+        results = backtest(data, always_bet_home, initial_bankroll=10000.0)
+        report = validate_backtest_results(results, data)
+
+        assert report["passed"] is True, f"Failures: {report['failures']}"
+        assert report["checks_passed"] == report["checks_run"]
+
+    def test_invalid_odds_detected(self) -> None:
+        """Validator should catch odds <= 1.0 in results."""
+        from cuic_quant.backtest.backtester_backend import (
+            validate_backtest_results, load_backtest_data,
+            backtest, always_bet_home, DUMMY_CSV,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home)
+
+        # Corrupt odds to invalid value
+        corrupted = results.copy()
+        corrupted.loc[0, "odds"] = 0.80
+        report = validate_backtest_results(corrupted, data)
+
+        assert report["passed"] is False
+        assert any("odds" in f.lower() for f in report["failures"])
+
+    def test_buy_away_validates_correctly(self) -> None:
+        """Validator must pass for correct BUY_AWAY results."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, validate_backtest_results,
+        )
+
+        def always_bet_away(row: pd.Series, context: dict | None = None) -> dict:
+            return {"action": "BUY_AWAY", "confidence": 0.5, "size": 100.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02"]),
+            "game": ["A vs B", "C vs D"],
+            "home_team": ["A", "C"],
+            "away_team": ["B", "D"],
+            "home_odds": [1.90, 1.80],
+            "away_odds": [2.10, 2.20],
+            "home_win": [0, 1],
+        })
+
+        results = backtest(data, always_bet_away, initial_bankroll=10000.0)
+        report = validate_backtest_results(results, data)
+
+        assert report["passed"] is True, f"Failures: {report['failures']}"
+
+    def test_mya_data_passes_all_checks(self) -> None:
+        """Mya's test_games.csv (with repeat matchups) must pass all checks."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data,
+            validate_backtest_results, TEST_CSV,
+        )
+
+        if not TEST_CSV.exists():
+            pytest.skip("test_games.csv not present")
+
+        data = load_backtest_data("2026-01-01", "2026-12-31", csv_path=TEST_CSV)
+        results = backtest(data, always_bet_home, initial_bankroll=10000.0)
+        report = validate_backtest_results(results, data)
+
+        assert report["passed"] is True, f"Failures: {report['failures']}"
+        assert report["checks_passed"] == report["checks_run"]
 
 
 class TestPackageExports:

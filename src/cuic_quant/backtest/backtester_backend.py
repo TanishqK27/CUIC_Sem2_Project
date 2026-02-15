@@ -179,7 +179,7 @@ def backtest(
     How:
         1. Initialize bankroll and empty trade list.
         2. For each game row (sorted by timestamp):
-           a. Skip rows with NaN odds (data quality guard).
+           a. Skip rows with NaN or invalid odds (data quality guard).
            b. Strip home_win from the row before passing to strategy
               (prevents data leakage — the strategy must not know outcomes).
            c. Call strategy_fn(row, context) to get a signal.
@@ -220,8 +220,10 @@ def backtest(
         if bankroll <= 0:
             break
 
-        # Skip rows with NaN odds (prevents corruption of subsequent rows)
+        # Skip rows with NaN or invalid odds (decimal odds must be > 1.0)
         if pd.isna(row["home_odds"]) or pd.isna(row["away_odds"]):
+            continue
+        if row["home_odds"] <= 1.0 or row["away_odds"] <= 1.0:
             continue
 
         # Update context for strategy
@@ -252,12 +254,12 @@ def backtest(
         else:
             continue  # Invalid action, skip
 
-        # Calculate P&L
+        # Calculate P&L (round immediately so stored and accumulated values match)
         if won:
-            pnl = bet_size * (odds - 1)
+            pnl = round(bet_size * (odds - 1), 2)
             outcome = "WIN"
         else:
-            pnl = -bet_size
+            pnl = round(-bet_size, 2)
             outcome = "LOSS"
 
         cumulative_pnl += pnl
@@ -270,7 +272,7 @@ def backtest(
             "bet_size": round(bet_size, 2),
             "odds": odds,
             "outcome": outcome,
-            "pnl": round(pnl, 2),
+            "pnl": pnl,
             "cumulative_pnl": round(cumulative_pnl, 2),
             "bankroll": round(bankroll, 2),
         })
@@ -410,9 +412,10 @@ def validate_backtest_results(
             "failures": failures,
         }
 
-    # Check 2: Actions are valid
+    # Check 2: Actions are valid (results should only contain trade actions, not SKIP)
     checks_run += 1
-    invalid_actions = set(results["action"].unique()) - {"BUY_HOME", "BUY_AWAY"}
+    trade_actions = VALID_ACTIONS - {"SKIP"}
+    invalid_actions = set(results["action"].unique()) - trade_actions
     if invalid_actions:
         failures.append(f"Schema: invalid actions found: {invalid_actions}")
 
@@ -426,6 +429,16 @@ def validate_backtest_results(
     checks_run += 1
     if (results["bet_size"] <= 0).any():
         failures.append("Schema: found non-positive bet_size values")
+
+    # Check 5: Odds are valid (decimal odds must be > 1.0)
+    checks_run += 1
+    if (results["odds"] <= 1.0).any():
+        bad_odds = results[results["odds"] <= 1.0]
+        failures.append(
+            f"Schema: {len(bad_odds)} rows have odds <= 1.0 "
+            f"(invalid decimal odds). First: Row {bad_odds.index[0]}, "
+            f"odds={bad_odds['odds'].iloc[0]}"
+        )
 
     # ===================================================================
     # Category 2: Math Correctness
