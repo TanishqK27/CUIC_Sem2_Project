@@ -523,7 +523,14 @@ def validate_backtest_results(
     checks_run += 1
     outcome_errors = []
     for idx, row in results.iterrows():
-        matching_input = input_data[input_data["game"] == row["game"]]
+        # Match on both game name AND timestamp to handle repeat matchups
+        matching_input = input_data[
+            (input_data["game"] == row["game"])
+            & (input_data["timestamp"] == row["timestamp"])
+        ]
+        if len(matching_input) == 0:
+            # Fallback to game-name-only match for backwards compatibility
+            matching_input = input_data[input_data["game"] == row["game"]]
         if len(matching_input) == 0:
             continue  # Already caught by check 9
 
