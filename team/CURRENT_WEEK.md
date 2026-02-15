@@ -299,6 +299,62 @@ flowchart TB
 | Mya |  |  |
 | Ismaeel | ✅ | Tested James' code |
 | Vansheeka |  |  |
+
+### Friday Feb 13
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max |  | No updates provided |
+| Alfie | ⏳ | Haven't started |
+| Dietrich | ✅ | Uploaded tabs data to database |
+| James |  | No updates provided |
+| Ben | ⏳ | Haven't started |
+| Mya | ⏳ | Haven't started |
+| Ismaeel | ⏳ | Haven't started |
+| Vansheeka |  |  |
+| Andrii | ⏳ | Haven't started |
+
+### Saturday Feb 14
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max |  | No updates provided |
+| Alfie | ⏳ | Haven't started |
+| Dietrich |  | No updates provided |
+| James |  | No updates provided |
+| Ben | ⏳ | Haven't started |
+| Mya | ⏳ | Haven't started |
+| Ismaeel | ⏳ | Meeting notes summary |
+| Vansheeka |  |  |
+| Andrii | ✅ | Set up environment, managed to connect to Diestrich's database |
+
+### Sunday Feb 15
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max |  |  |
+| Alfie |  |  |
+| Dietrich |  |  |
+| James |  |  |
+| Ben |  |  |
+| Mya |  |  |
+| Ismaeel |  |  |
+| Vansheeka |  |  |
+| Andrii |  |  |
+
+### Monday Feb 16
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max |  |  |
+| Alfie |  |  |
+| Dietrich |  |  |
+| James |  |  |
+| Ben |  |  |
+| Mya |  |  |
+| Ismaeel |  |  |
+| Vansheeka |  |  |
+| Andrii |  |  |
 ---
 
 ## Escalation Path
