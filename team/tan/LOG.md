@@ -20,6 +20,28 @@ Or use Tan's personal skill (no name needed):
 
 ## Log Entries
 
+### 2026-02-15
+
+- Completed NBA player statistics EDA (Part 2: bivariate & cross-season analysis)
+- Bivariate correlation analysis with bootstrap confidence intervals
+  - Season averages correlate strongly with game performance (r ≈ 0.6-0.7)
+  - Minutes correlate with scoring (r ≈ 0.6), usage rate with points (r ≈ 0.4)
+  - Applied FDR correction (Benjamini-Hochberg) for multiple comparisons
+- Built stratified analysis by player tier:
+  - Star (20+ PPG): lower CV (~0.4), more consistent performance
+  - Rotation (8-20 PPG): moderate CV (~0.6)
+  - Bench (<8 PPG): higher CV (~1.0+), less predictable
+- Cross-season analysis (5 seasons: 2021-22 through 2025-26):
+  - R² by season: ~0.50 explained variance (season avg → actual pts)
+  - CV stability across seasons by tier
+  - Home advantage trend: 54-56% win rate (Wilson CI), ~2-3 point differential
+- Player case studies: consistent stars (LeBron), breakout players (Tyrese Maxey)
+- Rolling average stabilization analysis: stabilizes within 5% after ~15-20 games
+- Generated 9 publication-quality figures (violins, joint plots, heatmaps, residual diagnostics)
+- Started Polymarket microstructure analysis framework
+- Connected to Railway PostgreSQL database (67.9M WebSocket orderbook events)
+- Built data quality assessment pipeline for ws_book_events table
+
 ### 2026-02-14
 
 - Created rigorous EDA notebook for NBA player statistics
