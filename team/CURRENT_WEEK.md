@@ -332,15 +332,15 @@ flowchart TB
 
 | Person | Status | Notes |
 |--------|--------|-------|
-| Max |  |  |
-| Alfie |  |  |
-| Dietrich |  |  |
-| James |  |  |
-| Ben |  |  |
-| Mya |  |  |
-| Ismaeel |  |  |
+| Max |  | No updates provided  |
+| Alfie | ⏳ | Haven't started |
+| Dietrich |  | No updates provided  |
+| James |  | No updates provided  |
+| Ben |  | No updates provided  |
+| Mya | ⏳ | Haven't started |
+| Ismaeel | ✅ | Uploaded meeting notes |
 | Vansheeka |  |  |
-| Andrii |  |  |
+| Andrii | ✅ | Cleaning data |
 
 ### Monday Feb 16
 
