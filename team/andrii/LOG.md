@@ -16,6 +16,18 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-16
+
+- Refactored cleaning pipeline based on code review feedback
+- Fixed Step 2b: added `unidecode` for accent-normalized name matching (e.g. Dončić vs Doncic)
+- Fixed Step 2e: COVID-era threshold (12 players for 2020-22 seasons vs 16 normal)
+- Removed Step 3 (minutes filter) — keeping all played rows preserves bench player variance
+- Removed Steps 5, 6, 7 — keeping OT, quarter, and all columns (useful for live betting, storage is cheap)
+- Removed Step 8 — rate stats with 0 denominator stay NaN (not 0)
+- Fixed Step 5 (was 10): per-player expanding median with shift(1) to avoid data leakage
+- Set correlation filter to suggestion mode (`AUTO_DROP=False`) — feature selection, not cleaning
+- Moved DATABASE_URL to env var, added game_id as sort key for determinism
+
 ### 2026-02-15
 
 - Built NBA data cleaning pipeline in `team/andrii/work/cleaning_data.ipynb`
