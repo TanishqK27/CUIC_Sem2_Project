@@ -20,6 +20,28 @@ Or use Tan's personal skill (no name needed):
 
 ## Log Entries
 
+### 2026-02-16
+
+- Completed comprehensive Polymarket NBA market microstructure analysis
+- Analyzed 114+ NBA games (Jan 26 - Feb 12, 2026), 67.9M orderbook events, 180K+ price snapshots
+- Key findings from orderbook analysis:
+  - Median bid-ask spread: 2.3% (95% CI: [2.2%, 2.4%])
+  - Median market depth: $142K
+  - Depth imbalance: -0.36 (slight ask-side dominance)
+- Price dynamics analysis:
+  - Extreme fat tails (kurtosis = 214, 95% CI: [187, 249])
+  - Weak negative autocorrelation with ~3 minute half-life (mild mean reversion)
+  - Volatility lifecycle: rising through first half, peaks Q3, collapses as outcomes certain
+- Trade flow analysis:
+  - Whale dominance: 1.3% of trades generate 57.5% of total volume
+  - Median trade size: $21.52 (substantial retail participation)
+  - Order flow imbalance shows weak predictive power (Q5-Q1 spread: 0.26%)
+- Temporal patterns: peak liquidity during US evening hours (7-11 PM Eastern)
+- NBA-specific phenomena: momentum shifts (12-18 pp), blowout liquidity collapse at 95%+
+- Generated 25+ publication-quality figures
+- Created LaTeX report (12 chapters) with methodology tutorial boxes
+- Compiled trading recommendations: position sizing ≤$500, fractional Kelly (25-50%), timing execution
+
 ### 2026-02-15
 
 - Completed NBA player statistics EDA (Part 2: bivariate & cross-season analysis)

@@ -89,6 +89,9 @@ Items to tackle when time permits:
 
 | Task | Completed | Notes |
 |------|-----------|-------|
+| Polymarket NBA microstructure report | 2026-02-16 | 12-chapter LaTeX report, 67.9M events analyzed |
+| Polymarket microstructure EDA notebook | 2026-02-15/16 | Orderbook, price dynamics, trade flow, temporal patterns |
+| NBA player statistics EDA (rigorous) | 2026-02-14/15 | 136K rows, 5 seasons, publication-quality figures |
 | CockroachDB cloud database setup | 2026-02-04 | Team-shared database on AWS |
 | Historic data collection script | 2026-02-04 | scripts/collect_historic_data.py |
 | Cron job for nightly collection | 2026-02-04 | Runs at midnight |

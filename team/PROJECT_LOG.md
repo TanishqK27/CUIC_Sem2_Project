@@ -18,6 +18,10 @@ This will update both your personal `team/<name>/LOG.md` and this PROJECT_LOG.md
 
 ## Log Entries
 
+### 2026-02-16
+
+- **[tan]** Completed Polymarket NBA microstructure analysis: 67.9M orderbook events, 114+ games, 180K+ price snapshots. Key findings: 2.3% median spread, $142K depth, extreme fat tails (kurtosis=214), weak mean reversion (~3 min half-life), whale dominance (1.3% trades = 57.5% volume). Created 12-chapter LaTeX report with methodology tutorial boxes.
+
 ### 2026-02-15
 
 - **[tan]** Completed NBA EDA Part 2: bivariate correlations with FDR correction, stratified analysis by player tier (Star/Rotation/Bench), cross-season R² analysis, home advantage trends (54-56% win rate). Generated 9 publication-quality figures. Started Polymarket microstructure framework.
