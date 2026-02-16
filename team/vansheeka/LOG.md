@@ -19,6 +19,8 @@ Use the `/update-log` skill:
 
 - Joined CUIC Quant Fund project
 
+- connected to railway and is working on creating the inventory document
+
 ---
 
 <!-- New entries will be added above this line -->

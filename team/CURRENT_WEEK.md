@@ -35,6 +35,7 @@ flowchart TD
 ```
 
 **Key Deadlines:**
+
 - **Friday:** Mya sends test data to James
 - **Sunday:** Max and Alfie send data to Dietrich
 - **Tuesday:** James and Ben send code to Ismaeel for testing
@@ -222,41 +223,138 @@ flowchart TB
 ## Daily Status (Miran updates)
 
 ### Friday Feb 6
+
 | Person | Status | Notes |
 |--------|--------|-------|
-| Max | | |
-| Alfie | | |
-| Dietrich | | |
-| James | | |
-| Ben | | |
-| Mya | | |
-| Ismaeel | | |
-| Vansheeka | | |
+| Max | ✅ | Linux compatibility errors observed but have been resolved |
+| Alfie | ⏳ | Starting Saturday |
+| Dietrich | ⏳ | Waiting for data|
+| James | ⏳ | Haven't started due to illness|
+| Ben | ✅ | Finished task with dummy data, waiting on James for real data |
+| Mya | ✅ | Test Data Generator completed |
+| Ismaeel | ✅ | Completed set up on VS. Created dummy back tester input and output |
+| Vansheeka | ⏳ | Still setting up environment |
 
 ### Saturday Feb 7
+
 | Person | Status | Notes |
 |--------|--------|-------|
-| Max | | |
-| Alfie | | |
-| Dietrich | | |
-| James | | |
-| Ben | | |
-| Mya | | |
-| Ismaeel | | |
-| Vansheeka | | |
+| Max | ✅ | Booting up data collection |
+| Alfie | ✅ | Worked on 2010s data, on track for others |
+| Dietrich | ⏳ | Still waiting |
+| James | ⏳ | Still ill |
+| Ben | ✅ | Path issues |
+| Mya | ✅ | Waiting for Alfie |
+| Ismaeel | ✅ | Everything going smoothly |
+| Vansheeka | ⚠️ | No updates provided |
 
 ### Sunday Feb 8
+
 | Person | Status | Notes |
 |--------|--------|-------|
-| Max | | |
-| Alfie | | |
-| Dietrich | | |
-| James | | |
-| Ben | | |
-| Mya | | |
-| Ismaeel | | |
-| Vansheeka | | |
+| Max | ✅ | Still booting up data collection |
+| Alfie | ✅ | Handed over to Diestrich |
+| Dietrich | ✅ | Looking at code and putting it into DB |
+| James | ⏳ | Still ill |
+| Ben | ✅ | Updated log |
+| Mya | ✅ | Still waiting for Alfie |
+| Ismaeel | ✅ | Progress remains unchanged |
+| Vansheeka | ⚠️ | Still setting up the environment |
 
+### Monday Feb 9
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max | ✅ | Still booting up data collection |
+| Alfie | ✅ | Progress remians unchanged |
+| Dietrich |  |  |
+| James | ⏳ | Still ill |
+| Ben | ✅ | Progress remains unchanged|
+| Mya | ✅ | Got data off Alfie and made a start on notebook |
+| Ismaeel | ✅ | Waiting to test James and Ben's code |
+| Vansheeka | ⚠️ | No updates provided |
+
+### Tuesday Feb 10
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max | ✅ | Final modification to csvs, making it granular as possible |
+| Alfie | ✅ | Updated work |
+| Dietrich |  |  |
+| James | ⏳ | Still ill |
+| Ben |  |  |
+| Mya | ✅ | Uploaded work to Git Hub |
+| Ismaeel | ✅ | Progress remains unchanged |
+| Vansheeka | ⏳ | Working through some problems with committing the data inventory, and started understanding how to analyse the data and what to look for |
+
+### Wednesday Feb 11
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max |  |  |
+| Alfie | ✅ | Progress remains unchanged |
+| Dietrich |  |  |
+| James | ⏳ | Helped Ben |
+| Ben | ✅ | Completed task |
+| Mya |  |  |
+| Ismaeel | ✅ | Tested James' code |
+| Vansheeka |  |  |
+
+### Friday Feb 13
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max |  | No updates provided |
+| Alfie | ⏳ | Haven't started |
+| Dietrich | ✅ | Uploaded tabs data to database |
+| James |  | No updates provided |
+| Ben | ⏳ | Haven't started |
+| Mya | ⏳ | Haven't started |
+| Ismaeel | ⏳ | Haven't started |
+| Vansheeka |  |  |
+| Andrii | ⏳ | Haven't started |
+
+### Saturday Feb 14
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max |  | No updates provided |
+| Alfie | ⏳ | Haven't started |
+| Dietrich |  | No updates provided |
+| James |  | No updates provided |
+| Ben | ⏳ | Haven't started |
+| Mya | ⏳ | Haven't started |
+| Ismaeel | ⏳ | Meeting notes summary |
+| Vansheeka |  |  |
+| Andrii | ✅ | Set up environment, managed to connect to Diestrich's database |
+
+### Sunday Feb 15
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max |  |  |
+| Alfie |  |  |
+| Dietrich |  |  |
+| James |  |  |
+| Ben |  |  |
+| Mya |  |  |
+| Ismaeel |  |  |
+| Vansheeka |  |  |
+| Andrii |  |  |
+
+### Monday Feb 16
+
+| Person | Status | Notes |
+|--------|--------|-------|
+| Max |  |  |
+| Alfie |  |  |
+| Dietrich |  |  |
+| James |  |  |
+| Ben |  |  |
+| Mya |  |  |
+| Ismaeel |  |  |
+| Vansheeka |  |  |
+| Andrii |  |  |
 ---
 
 ## Escalation Path

@@ -18,6 +18,15 @@ Use the `/update-log` skill:
 ### 2025-02-01
 
 - Joined CUIC Quant Fund project
+### 2026-02-06
+- Completed Task One and sent test to James
+### 2026-02-09
+Got data off alfie wokring on eda.
+### 2026-02-10
+Completed sportsbook eda.
+### 2026-02-10
+Added sportbook eda to git for thursday 
+
 
 ---
 

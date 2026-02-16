@@ -18,8 +18,20 @@ This will update both your personal `team/<name>/LOG.md` and this PROJECT_LOG.md
 
 ## Log Entries
 
+### 2026-02-12
+
+- **[dietrich]** Historical Odds API + Raw Data Correlation Analysis: Built `fetch_historical_odds.py` (The Odds API v4, 7 NBA seasons), downloaded 4,152 games historical sportsbook dataset (28.5K odds rows). Built `backtest_realistic.py` with CLV tracking, Kelly sizing, gap momentum. DB now at 181K price snapshots, 68M websocket orderbook events, 148K latency events. Correlation analysis on 7 measures: Granger causality shows SB leads PM (64% of games at lag 1), wide PM spreads predict 1.8x more price movement. Takeaway: Two actionable signals — SB moves first, wide spreads predict big moves.
+- **[james]** Helped Ben with metrics module
+- **[ben]** Completed metrics module task
+- **[ismaeel]** Tested James' backtester code
+- **[mya]** Uploaded sportsbook analysis work to GitHub
+- **[max]** Final modifications to CSVs, making data as granular as possible
+- **[alfie]** Updated odds data work
+- **[vansheeka]** Working through data inventory commits, started understanding data analysis approaches
+
 ### 2026-02-05
 
+- **[dietrich]** NBA Polymarket vs Sportsbook Arbitrage Project - Analysis Complete: Built complete trading system comparing Polymarket prediction market prices to traditional sportsbook odds for NBA games. Deployed data collection on Railway (PostgreSQL): 89,664+ price snapshots across 81 games. Implemented 5 trading strategies. Paper trading: 258 closed trades, +$2,592.81 P&L. Real trading: 4 closed trades, -$0.50 realized. Key finding: Gap signal is NOT predictive (24-39% win rate). Deliverables: analysis_results.ipynb, price_dynamics.ipynb, run_analysis.py, full database documentation. Conclusion: Current gap-based strategy not viable, recommending pivot to market making or higher-frequency approaches.
 - **[miran]** Reviewed platform docs (Kalshi, Polymarket, Sports Betting Basics)
 - **[miran]** Finished environment setup checks and confirmed the git hooks are working
 

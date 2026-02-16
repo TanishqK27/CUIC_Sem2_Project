@@ -3,12 +3,6 @@
 ## Week 1: Backtester Core (Feb 6-12)
 
 ### To Do
-- [ ] Create dummy input CSV with 20+ rows
-- [ ] Build `load_backtest_data()` function
-- [ ] Build `backtest()` function with 9-column output
-- [ ] Document strategy interface in `docs/reference/strategy-interface.md`
-- [ ] Test with simple "always bet home" strategy
-- [ ] Get test data from Mya and verify compatibility
 - [ ] Give Ismaeel access for testing (Tuesday)
 
 ### In Progress
@@ -19,7 +13,16 @@
 ### Completed
 | Task | Completed | Notes |
 |------|-----------|-------|
-| | | |
+| Create dummy input CSV with 20+ rows | Feb 6 | `data/dummy_backtest_input.csv` — 25 rows of NBA game data |
+| Build `load_backtest_data()` function | Feb 6 | In `tools/backtester.ipynb` — supports Railway DB + CSV fallback |
+| Build `backtest()` function with 9-column output | Feb 6 | In `tools/backtester.ipynb` — returns exact 9-column spec |
+| Document strategy interface | Feb 6 | `docs/reference/strategy-interface.md` — v1.0 |
+| Test with simple "always bet home" strategy | Feb 6 | End-to-end run in notebook with validation checks |
+| Get test data from Mya and verify compatibility | Feb 6 | `data/test_games.csv` (100 rows) + `tools/test_data_generator.py` — matches backtester input spec |
+| **Feedback fix:** Prevent home_win data leakage | Feb 11 | Already implemented — `row.drop(labels=["home_win"])` before passing to strategy |
+| **Feedback fix:** Empty results return correct columns | Feb 11 | Returns `pd.DataFrame(columns=OUTPUT_COLUMNS)` when no trades |
+| **Feedback fix:** Skip rows with NaN odds | Feb 11 | Added `pd.isna()` check before processing each row |
+| Add edge case tests to backtester notebook | Feb 11 | Tests for skip-all strategy and NaN odds handling |
 
 ---
 
