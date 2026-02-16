@@ -450,10 +450,10 @@ class TestPackageExports:
     def test_all_functions_importable_from_package(self) -> None:
         """All 4 functions should be importable from cuic_quant.backtest."""
         from cuic_quant.backtest import (
-            load_backtest_data,
-            backtest,
-            always_bet_home,
-            validate_backtest_results,
+            load_backtest_data, # pyright: ignore[reportAttributeAccessIssue]
+            backtest, # type: ignore
+            always_bet_home, # type: ignore
+            validate_backtest_results, # type: ignore
         )
 
         assert callable(load_backtest_data)
