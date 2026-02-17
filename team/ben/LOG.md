@@ -15,6 +15,10 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-17
+
+- updated `tools/backtester.ipynb` with three basic backtester test strategies: `always_bet_away`, `skip_all`, and `best_odds_side`
+
 ### 2026-02-12
 
 - metrics module built and working with James's backtester
