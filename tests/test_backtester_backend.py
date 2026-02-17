@@ -465,3 +465,75 @@ class TestPackageExports:
         assert callable(backtest)
         assert callable(always_bet_home)
         assert callable(validate_backtest_results)
+
+
+class TestTransactionCosts:
+    """Tests for transaction cost modeling."""
+
+    def test_cost_pct_reduces_win_pnl(self) -> None:
+        """A 5% cost_pct should reduce winning PnL by 5%."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(data, always_bet_home, cost_pct=0.05)
+        # WIN pnl = 100 * (2.0 - 1) * (1 - 0.05) - 0 = 95.0
+        assert results.iloc[0]["pnl"] == 95.0
+
+    def test_cost_flat_deducted_from_every_trade(self) -> None:
+        """A $2 flat fee should be deducted from every trade."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02"]),
+            "game": ["A vs B", "C vs D"],
+            "home_team": ["A", "C"],
+            "away_team": ["B", "D"],
+            "home_odds": [2.00, 2.00],
+            "away_odds": [2.00, 2.00],
+            "home_win": [1, 0],
+        })
+
+        results = backtest(data, always_bet_home, cost_flat=2.0)
+        # WIN: 100 * (2.0 - 1) * 1.0 - 2.0 = 98.0
+        assert results.iloc[0]["pnl"] == 98.0
+        # LOSS: -100 - 2.0 = -102.0
+        assert results.iloc[1]["pnl"] == -102.0
+
+    def test_both_costs_combined(self) -> None:
+        """Both cost_pct and cost_flat should apply together."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [3.00],
+            "away_odds": [1.50],
+            "home_win": [1],
+        })
+
+        results = backtest(data, always_bet_home, cost_pct=0.10, cost_flat=1.0)
+        # WIN: 100 * (3.0 - 1) * (1 - 0.10) - 1.0 = 200 * 0.9 - 1 = 179.0
+        assert results.iloc[0]["pnl"] == 179.0
+
+    def test_zero_costs_match_original_behavior(self) -> None:
+        """Default costs (0, 0) should produce identical results to no-cost backtest."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data, DUMMY_CSV,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results_default = backtest(data, always_bet_home)
+        results_zero = backtest(data, always_bet_home, cost_pct=0.0, cost_flat=0.0)
+
+        pd.testing.assert_frame_equal(results_default, results_zero)
