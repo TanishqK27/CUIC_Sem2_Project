@@ -701,3 +701,112 @@ class TestKellyBetHome:
         results = backtest(data, kelly_bet_home, position_sizing="kelly")
         assert len(results) == 1
         assert results.iloc[0]["bet_size"] > 0
+
+
+class TestEdgeCases:
+    """Edge case tests for financial extremes."""
+
+    def test_extreme_high_odds(self) -> None:
+        """Odds of 100.0 should produce correct large PnL."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [100.0],
+            "away_odds": [1.01],
+            "home_win": [1],
+        })
+
+        results = backtest(data, always_bet_home)
+        assert results.iloc[0]["pnl"] == round(100.0 * (100.0 - 1), 2)  # 9900.0
+
+    def test_extreme_low_odds(self) -> None:
+        """Odds of 1.001 should produce tiny payout that rounds correctly."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [1.001],
+            "away_odds": [100.0],
+            "home_win": [1],
+        })
+
+        results = backtest(data, always_bet_home)
+        assert results.iloc[0]["pnl"] == round(100.0 * (1.001 - 1), 2)  # 0.1
+
+    def test_zero_initial_bankroll(self) -> None:
+        """Zero bankroll should produce no trades."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data, DUMMY_CSV, OUTPUT_COLUMNS,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home, initial_bankroll=0.0)
+        assert len(results) == 0
+        assert results.columns.tolist() == OUTPUT_COLUMNS
+
+    def test_invalid_action_string_skipped(self) -> None:
+        """Strategy returning an invalid action should be skipped."""
+        from cuic_quant.backtest.backtester_backend import backtest
+
+        def bad_strategy(row, context=None):
+            return {"action": "INVALID_ACTION", "confidence": 0.5, "size": 100.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(data, bad_strategy)
+        assert len(results) == 0
+
+    def test_all_wins_bankroll_grows(self) -> None:
+        """All-win sequence should grow bankroll correctly."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"]),
+            "game": ["A vs B", "C vs D", "E vs F"],
+            "home_team": ["A", "C", "E"],
+            "away_team": ["B", "D", "F"],
+            "home_odds": [2.00, 2.00, 2.00],
+            "away_odds": [2.00, 2.00, 2.00],
+            "home_win": [1, 1, 1],
+        })
+
+        results = backtest(data, always_bet_home, initial_bankroll=1000.0)
+        assert len(results) == 3
+        assert all(results["outcome"] == "WIN")
+        # Each bet wins $100: bankroll = 1000 + 100 + 100 + 100 = 1300
+        assert results.iloc[-1]["bankroll"] == 1300.0
+
+    def test_all_losses_bankroll_shrinks(self) -> None:
+        """All-loss sequence should reduce bankroll correctly."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"]),
+            "game": ["A vs B", "C vs D", "E vs F"],
+            "home_team": ["A", "C", "E"],
+            "away_team": ["B", "D", "F"],
+            "home_odds": [2.00, 2.00, 2.00],
+            "away_odds": [2.00, 2.00, 2.00],
+            "home_win": [0, 0, 0],
+        })
+
+        results = backtest(data, always_bet_home, initial_bankroll=1000.0)
+        assert len(results) == 3
+        assert all(results["outcome"] == "LOSS")
+        # Each bet loses $100: bankroll = 1000 - 100 - 100 - 100 = 700
+        assert results.iloc[-1]["bankroll"] == 700.0
