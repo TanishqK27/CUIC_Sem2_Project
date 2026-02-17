@@ -169,6 +169,8 @@ def backtest(
     initial_bankroll: float = 10000.0,
     cost_pct: float = 0.0,
     cost_flat: float = 0.0,
+    position_sizing: str | None = None,
+    kelly_fraction: float = 0.5,
 ) -> pd.DataFrame:
     """Run a backtest over historical game data using a strategy function.
 
@@ -207,6 +209,11 @@ def backtest(
             Models bookmaker vig/margin. Default 0.0 (no cost).
         cost_flat: Flat dollar fee deducted per trade regardless of outcome.
             Default 0.0 (no fee).
+        position_sizing: Position sizing method. None = use strategy's size field,
+            "kelly" = Kelly Criterion sizing using strategy's confidence as
+            win probability. Default None.
+        kelly_fraction: Fraction of Kelly to use when position_sizing="kelly".
+            0.5 = half-Kelly (safer), 1.0 = full Kelly. Default 0.5.
 
     Returns:
         DataFrame with 9 columns: timestamp, game, action, bet_size, odds,
@@ -247,9 +254,9 @@ def backtest(
         if action == "SKIP":
             continue
 
-        # Determine bet size (cap at current bankroll)
-        bet_size = min(signal.get("size", 0.0), bankroll)
-        if bet_size <= 0:
+        # Determine initial bet size from strategy signal
+        bet_size = signal.get("size", 0.0)
+        if bet_size <= 0 and position_sizing != "kelly":
             continue
 
         # Determine odds based on action
@@ -261,6 +268,25 @@ def backtest(
             won = row["home_win"] == 0
         else:
             continue  # Invalid action, skip
+
+        # Apply Kelly position sizing if enabled
+        if position_sizing == "kelly":
+            confidence = signal.get("confidence")
+            if confidence is not None and 0 < confidence < 1:
+                from cuic_quant.strategies.kelly_criterion import calculate_kelly_fraction as calc_kelly
+                kelly_size = calc_kelly(
+                    win_probability=confidence,
+                    decimal_odds=odds,
+                    kelly_fraction=kelly_fraction,
+                )
+                bet_size = round(kelly_size * bankroll, 2)
+                if bet_size <= 0:
+                    continue
+
+        # Cap bet at bankroll (needed for both Kelly and non-Kelly paths)
+        bet_size = min(bet_size, bankroll)
+        if bet_size <= 0:
+            continue
 
         # Calculate P&L (round immediately so stored and accumulated values match)
         if won:
