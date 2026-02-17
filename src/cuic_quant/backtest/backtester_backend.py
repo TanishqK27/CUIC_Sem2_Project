@@ -358,12 +358,37 @@ def validate_backtest_results(
     through future data leakage. This function catches those errors
     before anyone draws conclusions from bad data.
 
-    How: Runs three categories of checks:
-        1. Schema validation — correct columns, types, and value domains.
-        2. Math correctness — PnL formulas, running sums, bankroll tracking.
-        3. Data leakage detection — outcome consistency with input data,
-           chronological ordering, game existence verification.
-        Returns a report dict summarizing pass/fail status.
+    Checks (11 total across 3 categories):
+
+        **Schema Validation (5 checks)**
+        1. Column names — output has exactly the 9 required columns
+           in the correct order.
+        2. Valid actions — every action is BUY_HOME or BUY_AWAY
+           (no SKIP rows in output).
+        3. Valid outcomes — every outcome is WIN or LOSS.
+        4. Positive bet sizes — no zero or negative bets.
+        5. Valid odds — all decimal odds are > 1.0.
+
+        **Math Correctness (4 checks)**
+        6. PnL formula — WIN trades pay bet_size * (odds - 1),
+           LOSS trades pay -bet_size.
+        7. Cumulative PnL — the cumulative_pnl column is a correct
+           running sum of pnl.
+        8. Bankroll tracking — bankroll = initial_bankroll +
+           cumulative_pnl at every row.
+        9. No overbetting — no bet exceeds the bankroll available
+           at the time of the bet.
+
+        **Data Leakage Detection (2 checks)**
+        10. Outcome consistency — each trade's outcome is
+            cross-referenced against the original input data's
+            home_win column. If a strategy somehow produced outcomes
+            that don't match the actual game results, this catches
+            it (e.g. a bug that lets the strategy see the outcome
+            before betting).
+        11. Chronological order — trades must be in timestamp order.
+            Out-of-order trades could indicate the strategy accessed
+            future game data to make decisions.
 
     Args:
         results: DataFrame output from backtest() with 9 columns.
