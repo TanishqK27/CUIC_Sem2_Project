@@ -369,6 +369,35 @@ def always_bet_away(
         "size": 100.0,
         "reason": "Always bet away (test strategy)",
     }
+
+
+def kelly_bet_home(
+    row: pd.Series,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Example strategy that bets on home team with confidence based on odds.
+
+    Uses implied probability from odds plus a small edge (5%) as the
+    confidence value. Designed to work with position_sizing="kelly" in
+    backtest() for Kelly Criterion bet sizing.
+
+    Args:
+        row: Game data row with home_odds, away_odds, etc.
+        context: Optional dict from backtester with current state.
+
+    Returns:
+        Signal dict with action, confidence, size, and reason.
+    """
+    implied_prob = 1.0 / row["home_odds"]
+    confidence = min(implied_prob + 0.05, 0.95)
+    return {
+        "action": "BUY_HOME",
+        "confidence": confidence,
+        "size": 100.0,
+        "reason": f"Kelly home bet (implied={implied_prob:.2f}, conf={confidence:.2f})",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
