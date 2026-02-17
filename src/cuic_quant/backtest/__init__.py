@@ -1,14 +1,27 @@
-"""Backtesting framework for strategy validation.
+"""Public API for the backtest package.
 
-This module provides tools for:
-- Historical strategy backtesting
-- Performance metrics calculation
-- Walk-forward analysis
-- Transaction cost modeling
-
-Note:
-    This module is a placeholder for future implementations.
-    See research/notebooks/ for experimental backtests.
+Notebook and tests import from ``cuic_quant.backtest`` directly, so this file
+re-exports the backend implementation from ``backtester_backend.py``.
 """
 
-__all__: list[str] = []
+from cuic_quant.backtest.backtester_backend import (
+    DATA_DIR,
+    DUMMY_CSV,
+    OUTPUT_COLUMNS,
+    TEST_CSV,
+    always_bet_home,
+    backtest,
+    load_backtest_data,
+    validate_backtest_results,
+)
+
+__all__ = [
+    "DATA_DIR",
+    "DUMMY_CSV",
+    "OUTPUT_COLUMNS",
+    "TEST_CSV",
+    "always_bet_home",
+    "backtest",
+    "load_backtest_data",
+    "validate_backtest_results",
+]
