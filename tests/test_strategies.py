@@ -230,14 +230,14 @@ class TestMeanReversion:
     def test_rsi_bounds(self) -> None:
         """RSI should be between 0 and 100."""
         prices = [100 + i for i in range(20)]
-        rsi_value = rsi(prices, period=14) # type: ignore
+        rsi_value = rsi(prices, period=14)
 
         assert 0 <= rsi_value <= 100
 
     def test_rsi_overbought(self) -> None:
         """RSI should be high after consistent gains."""
         prices = [100 + i * 2 for i in range(20)]  # Strong uptrend
-        rsi_value = rsi(prices, period=10) # type: ignore
+        rsi_value = rsi(prices, period=10)
 
         assert rsi_value > 50  # Should be elevated
 

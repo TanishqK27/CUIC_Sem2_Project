@@ -25,10 +25,12 @@ How to use:
 
 from __future__ import annotations
 
+import math
 import os
 from pathlib import Path
 from typing import Any, Callable
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 
@@ -165,6 +167,10 @@ def backtest(
     data: pd.DataFrame,
     strategy_fn: Callable[[pd.Series, dict[str, Any] | None], dict[str, Any]],
     initial_bankroll: float = 10000.0,
+    cost_pct: float = 0.0,
+    cost_flat: float = 0.0,
+    position_sizing: str | None = None,
+    kelly_fraction: float = 0.5,
 ) -> pd.DataFrame:
     """Run a backtest over historical game data using a strategy function.
 
@@ -199,6 +205,15 @@ def backtest(
             (row: pd.Series, context: dict | None) and returns a dict with
             keys: action, confidence, size, reason (optional).
         initial_bankroll: Starting bankroll in dollars. Defaults to 10000.
+        cost_pct: Percentage deducted from winning payouts (e.g. 0.02 for 2%).
+            Models bookmaker vig/margin. Default 0.0 (no cost).
+        cost_flat: Flat dollar fee deducted per trade regardless of outcome.
+            Default 0.0 (no fee).
+        position_sizing: Position sizing method. None = use strategy's size field,
+            "kelly" = Kelly Criterion sizing using strategy's confidence as
+            win probability. Default None.
+        kelly_fraction: Fraction of Kelly to use when position_sizing="kelly".
+            0.5 = half-Kelly (safer), 1.0 = full Kelly. Default 0.5.
 
     Returns:
         DataFrame with 9 columns: timestamp, game, action, bet_size, odds,
@@ -239,9 +254,9 @@ def backtest(
         if action == "SKIP":
             continue
 
-        # Determine bet size (cap at current bankroll)
-        bet_size = min(signal.get("size", 0.0), bankroll)
-        if bet_size <= 0:
+        # Determine initial bet size from strategy signal
+        bet_size = signal.get("size", 0.0)
+        if bet_size <= 0 and position_sizing != "kelly":
             continue
 
         # Determine odds based on action
@@ -254,12 +269,31 @@ def backtest(
         else:
             continue  # Invalid action, skip
 
+        # Apply Kelly position sizing if enabled
+        if position_sizing == "kelly":
+            confidence = signal.get("confidence")
+            if confidence is not None and 0 < confidence < 1:
+                from cuic_quant.strategies.kelly_criterion import calculate_kelly_fraction as calc_kelly
+                kelly_size = calc_kelly(
+                    win_probability=confidence,
+                    decimal_odds=odds,
+                    kelly_fraction=kelly_fraction,
+                )
+                bet_size = round(kelly_size * bankroll, 2)
+                if bet_size <= 0:
+                    continue
+
+        # Cap bet at bankroll (needed for both Kelly and non-Kelly paths)
+        bet_size = min(bet_size, bankroll)
+        if bet_size <= 0:
+            continue
+
         # Calculate P&L (round immediately so stored and accumulated values match)
         if won:
-            pnl = round(bet_size * (odds - 1), 2)
+            pnl = round(bet_size * (odds - 1) * (1 - cost_pct) - cost_flat, 2)
             outcome = "WIN"
         else:
-            pnl = round(-bet_size, 2)
+            pnl = round(-bet_size - cost_flat, 2)
             outcome = "LOSS"
 
         cumulative_pnl += pnl
@@ -325,6 +359,44 @@ def always_bet_home(
         "reason": "Always bet home (test strategy)",
     }
 
+def always_bet_away(
+    row: pd.Series,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "action": "BUY_AWAY",
+        "confidence": 0.5,
+        "size": 100.0,
+        "reason": "Always bet away (test strategy)",
+    }
+
+
+def kelly_bet_home(
+    row: pd.Series,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Example strategy that bets on home team with confidence based on odds.
+
+    Uses implied probability from odds plus a small edge (5%) as the
+    confidence value. Designed to work with position_sizing="kelly" in
+    backtest() for Kelly Criterion bet sizing.
+
+    Args:
+        row: Game data row with home_odds, away_odds, etc.
+        context: Optional dict from backtester with current state.
+
+    Returns:
+        Signal dict with action, confidence, size, and reason.
+    """
+    implied_prob = 1.0 / row["home_odds"]
+    confidence = min(implied_prob + 0.05, 0.95)
+    return {
+        "action": "BUY_HOME",
+        "confidence": confidence,
+        "size": 100.0,
+        "reason": f"Kelly home bet (implied={implied_prob:.2f}, conf={confidence:.2f})",
+    }
+
 
 # ---------------------------------------------------------------------------
 # Validation
@@ -335,6 +407,8 @@ def validate_backtest_results(
     results: pd.DataFrame,
     input_data: pd.DataFrame,
     initial_bankroll: float = 10000.0,
+    cost_pct: float = 0.0,
+    cost_flat: float = 0.0,
 ) -> dict[str, Any]:
     """Validate backtest results for correctness and data leakage.
 
@@ -347,12 +421,37 @@ def validate_backtest_results(
     through future data leakage. This function catches those errors
     before anyone draws conclusions from bad data.
 
-    How: Runs three categories of checks:
-        1. Schema validation — correct columns, types, and value domains.
-        2. Math correctness — PnL formulas, running sums, bankroll tracking.
-        3. Data leakage detection — outcome consistency with input data,
-           chronological ordering, game existence verification.
-        Returns a report dict summarizing pass/fail status.
+    Checks (11 total across 3 categories):
+
+        **Schema Validation (5 checks)**
+        1. Column names — output has exactly the 9 required columns
+           in the correct order.
+        2. Valid actions — every action is BUY_HOME or BUY_AWAY
+           (no SKIP rows in output).
+        3. Valid outcomes — every outcome is WIN or LOSS.
+        4. Positive bet sizes — no zero or negative bets.
+        5. Valid odds — all decimal odds are > 1.0.
+
+        **Math Correctness (4 checks)**
+        6. PnL formula — WIN trades pay bet_size * (odds - 1),
+           LOSS trades pay -bet_size.
+        7. Cumulative PnL — the cumulative_pnl column is a correct
+           running sum of pnl.
+        8. Bankroll tracking — bankroll = initial_bankroll +
+           cumulative_pnl at every row.
+        9. No overbetting — no bet exceeds the bankroll available
+           at the time of the bet.
+
+        **Data Leakage Detection (2 checks)**
+        10. Outcome consistency — each trade's outcome is
+            cross-referenced against the original input data's
+            home_win column. If a strategy somehow produced outcomes
+            that don't match the actual game results, this catches
+            it (e.g. a bug that lets the strategy see the outcome
+            before betting).
+        11. Chronological order — trades must be in timestamp order.
+            Out-of-order trades could indicate the strategy accessed
+            future game data to make decisions.
 
     Args:
         results: DataFrame output from backtest() with 9 columns.
@@ -449,9 +548,9 @@ def validate_backtest_results(
     pnl_errors = []
     for idx, row in results.iterrows():
         if row["outcome"] == "WIN":
-            expected_pnl = round(row["bet_size"] * (row["odds"] - 1), 2)
+            expected_pnl = round(row["bet_size"] * (row["odds"] - 1) * (1 - cost_pct) - cost_flat, 2)
         else:
-            expected_pnl = round(-row["bet_size"], 2)
+            expected_pnl = round(-row["bet_size"] - cost_flat, 2)
 
         if abs(row["pnl"] - expected_pnl) > 0.01:
             pnl_errors.append(
@@ -584,3 +683,151 @@ def validate_backtest_results(
         "checks_passed": checks_passed,
         "failures": failures,
     }
+
+
+# ---------------------------------------------------------------------------
+# Performance display helpers
+# ---------------------------------------------------------------------------
+
+
+def display_extended_metrics(
+    results_df: pd.DataFrame,
+    initial_bankroll: float = 10000.0,
+) -> None:
+    """Display 12 extended performance metrics for backtest results.
+
+    Prints a formatted table of risk/reward statistics including Sharpe
+    ratio, Sortino ratio, max drawdown, profit factor, streaks, and more.
+
+    Args:
+        results_df: DataFrame output from backtest().
+        initial_bankroll: Starting bankroll used in the backtest.
+    """
+    if len(results_df) == 0:
+        print("No trades to analyze.")
+        return
+
+    from cuic_quant.metrics import calculate_all_metrics
+
+    metrics = calculate_all_metrics(results_df)
+
+    pnl = results_df["pnl"]
+    wins_pnl = pnl[results_df["outcome"] == "WIN"]
+    losses_pnl = pnl[results_df["outcome"] == "LOSS"]
+
+    avg_win = float(wins_pnl.mean()) if len(wins_pnl) > 0 else 0.0
+    avg_loss = float(losses_pnl.mean()) if len(losses_pnl) > 0 else 0.0
+    wl_ratio = abs(avg_win / avg_loss) if avg_loss != 0 else float("inf")
+
+    # Sortino Ratio (penalizes downside volatility only)
+    downside = pnl[pnl < 0]
+    downside_std = float(downside.std(ddof=1)) if len(downside) > 1 else 0.0
+    sortino = (float(pnl.mean()) / downside_std * math.sqrt(252)) if downside_std > 0 else 0.0
+
+    ev_per_bet = float(pnl.mean())
+
+    # Streak calculation
+    is_win = (results_df["outcome"] == "WIN").astype(int)
+    groups = is_win.groupby((is_win != is_win.shift()).cumsum())
+    longest_win = int(groups.sum().max())
+    longest_loss = int((groups.count() - groups.sum()).max())
+
+    best = float(pnl.max())
+    worst = float(pnl.min())
+
+    print("=" * 45)
+    print("       EXTENDED PERFORMANCE METRICS")
+    print("=" * 45)
+    print(f"  Sharpe Ratio:         {metrics['sharpe_ratio']:>10.3f}")
+    print(f"  Sortino Ratio:        {sortino:>10.3f}")
+    print(f"  Max Drawdown:         {metrics['max_drawdown']:>9.1%}")
+    print(f"  Profit Factor:        {metrics['profit_factor']:>10.3f}")
+    print(f"  Average Win:          ${avg_win:>9.2f}")
+    print(f"  Average Loss:         ${avg_loss:>9.2f}")
+    print(f"  Win/Loss Ratio:       {wl_ratio:>10.3f}")
+    print(f"  Expected Value/Bet:   ${ev_per_bet:>9.2f}")
+    print(f"  Longest Win Streak:   {longest_win:>10d}")
+    print(f"  Longest Loss Streak:  {longest_loss:>10d}")
+    print(f"  Best Trade:           ${best:>9.2f}")
+    print(f"  Worst Trade:          ${worst:>9.2f}")
+    print("=" * 45)
+
+
+def plot_performance(
+    results_df: pd.DataFrame,
+    title: str = "Backtest Performance",
+    initial_bankroll: float = 10000.0,
+) -> None:
+    """Plot a 2x2 performance dashboard for backtest results.
+
+    Panels: cumulative P&L, drawdown, P&L distribution, trade outcomes.
+
+    Args:
+        results_df: DataFrame output from backtest().
+        title: Plot super-title.
+        initial_bankroll: Starting bankroll used in the backtest.
+    """
+    if len(results_df) == 0:
+        print("No trades to plot.")
+        return
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    fig.suptitle(title, fontsize=14, fontweight="bold")
+
+    pnl = results_df["pnl"]
+    cum_pnl = results_df["cumulative_pnl"]
+    trade_num = range(1, len(results_df) + 1)
+
+    # 1. Cumulative PnL
+    ax = axes[0, 0]
+    ax.plot(trade_num, cum_pnl, color="#2196F3", linewidth=1.5)
+    ax.axhline(y=0, color="gray", linestyle="--", linewidth=0.8)
+    ax.fill_between(trade_num, cum_pnl, alpha=0.15, color="#2196F3")
+    ax.set_title("Cumulative P&L")
+    ax.set_xlabel("Trade #")
+    ax.set_ylabel("P&L ($)")
+    ax.grid(True, alpha=0.3)
+
+    # 2. Drawdown
+    ax = axes[0, 1]
+    equity = cum_pnl + initial_bankroll
+    running_peak = equity.cummax()
+    drawdown_pct = (running_peak - equity) / running_peak * 100
+    ax.fill_between(trade_num, drawdown_pct, color="#F44336", alpha=0.4)
+    ax.plot(trade_num, drawdown_pct, color="#F44336", linewidth=1.0)
+    ax.set_title("Drawdown")
+    ax.set_xlabel("Trade #")
+    ax.set_ylabel("Drawdown (%)")
+    ax.invert_yaxis()
+    ax.grid(True, alpha=0.3)
+
+    # 3. PnL Distribution
+    ax = axes[1, 0]
+    ax.hist(pnl, bins=min(30, len(pnl)), color="#9C27B0", alpha=0.7, edgecolor="white")
+    ax.axvline(x=0, color="gray", linestyle="--", linewidth=0.8)
+    mean_pnl = float(pnl.mean())
+    ax.axvline(x=mean_pnl, color="#FF9800", linewidth=1.5, label=f"Mean: ${mean_pnl:.2f}")
+    ax.set_title("P&L Distribution")
+    ax.set_xlabel("P&L ($)")
+    ax.set_ylabel("Frequency")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    # 4. Trade Outcomes
+    ax = axes[1, 1]
+    wins = int((results_df["outcome"] == "WIN").sum())
+    losses = int((results_df["outcome"] == "LOSS").sum())
+    bars = ax.bar(
+        ["Wins", "Losses"], [wins, losses],
+        color=["#4CAF50", "#F44336"], alpha=0.8, edgecolor="white",
+    )
+    for bar in bars:
+        h = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width() / 2.0, h, str(int(h)),
+                ha="center", va="bottom", fontweight="bold")
+    ax.set_title("Trade Outcomes")
+    ax.set_ylabel("Count")
+    ax.grid(True, alpha=0.3, axis="y")
+
+    plt.tight_layout()
+    plt.show()

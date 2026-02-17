@@ -1,7 +1,12 @@
 """Tests for backtester backend module."""
 
 from __future__ import annotations
-
+from cuic_quant.backtest import (
+    load_backtest_data,
+    backtest,
+    always_bet_home,
+    validate_backtest_results,
+)
 import pandas as pd
 import pytest
 
@@ -443,6 +448,26 @@ class TestValidateBacktestResults:
         assert report["passed"] is True, f"Failures: {report['failures']}"
         assert report["checks_passed"] == report["checks_run"]
 
+    def test_validates_results_with_costs(self) -> None:
+        """Validator should pass when cost params match the backtest."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, validate_backtest_results,
+        )
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02"]),
+            "game": ["A vs B", "C vs D"],
+            "home_team": ["A", "C"],
+            "away_team": ["B", "D"],
+            "home_odds": [2.00, 2.00],
+            "away_odds": [2.00, 2.00],
+            "home_win": [1, 0],
+        })
+
+        results = backtest(data, always_bet_home, cost_pct=0.05, cost_flat=1.0)
+        report = validate_backtest_results(results, data, cost_pct=0.05, cost_flat=1.0)
+        assert report["passed"] is True, f"Failures: {report['failures']}"
+
 
 class TestPackageExports:
     """Test that the backtest package exports all required functions."""
@@ -450,13 +475,338 @@ class TestPackageExports:
     def test_all_functions_importable_from_package(self) -> None:
         """All 4 functions should be importable from cuic_quant.backtest."""
         from cuic_quant.backtest import (
-            load_backtest_data, # pyright: ignore[reportAttributeAccessIssue]
-            backtest, # type: ignore
-            always_bet_home, # type: ignore
-            validate_backtest_results, # type: ignore
+            load_backtest_data,
+            backtest,
+            always_bet_home,
+            validate_backtest_results,
         )
 
         assert callable(load_backtest_data)
         assert callable(backtest)
         assert callable(always_bet_home)
         assert callable(validate_backtest_results)
+
+
+class TestTransactionCosts:
+    """Tests for transaction cost modeling."""
+
+    def test_cost_pct_reduces_win_pnl(self) -> None:
+        """A 5% cost_pct should reduce winning PnL by 5%."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(data, always_bet_home, cost_pct=0.05)
+        # WIN pnl = 100 * (2.0 - 1) * (1 - 0.05) - 0 = 95.0
+        assert results.iloc[0]["pnl"] == 95.0
+
+    def test_cost_flat_deducted_from_every_trade(self) -> None:
+        """A $2 flat fee should be deducted from every trade."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02"]),
+            "game": ["A vs B", "C vs D"],
+            "home_team": ["A", "C"],
+            "away_team": ["B", "D"],
+            "home_odds": [2.00, 2.00],
+            "away_odds": [2.00, 2.00],
+            "home_win": [1, 0],
+        })
+
+        results = backtest(data, always_bet_home, cost_flat=2.0)
+        # WIN: 100 * (2.0 - 1) * 1.0 - 2.0 = 98.0
+        assert results.iloc[0]["pnl"] == 98.0
+        # LOSS: -100 - 2.0 = -102.0
+        assert results.iloc[1]["pnl"] == -102.0
+
+    def test_both_costs_combined(self) -> None:
+        """Both cost_pct and cost_flat should apply together."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [3.00],
+            "away_odds": [1.50],
+            "home_win": [1],
+        })
+
+        results = backtest(data, always_bet_home, cost_pct=0.10, cost_flat=1.0)
+        # WIN: 100 * (3.0 - 1) * (1 - 0.10) - 1.0 = 200 * 0.9 - 1 = 179.0
+        assert results.iloc[0]["pnl"] == 179.0
+
+    def test_zero_costs_match_original_behavior(self) -> None:
+        """Default costs (0, 0) should produce identical results to no-cost backtest."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data, DUMMY_CSV,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results_default = backtest(data, always_bet_home)
+        results_zero = backtest(data, always_bet_home, cost_pct=0.0, cost_flat=0.0)
+
+        pd.testing.assert_frame_equal(results_default, results_zero)
+
+
+class TestKellySizing:
+    """Tests for Kelly criterion position sizing."""
+
+    def test_kelly_sizing_uses_confidence(self) -> None:
+        """When position_sizing='kelly', bet size should use strategy confidence."""
+        from cuic_quant.backtest.backtester_backend import backtest
+
+        def confident_strategy(row, context=None):
+            return {"action": "BUY_HOME", "confidence": 0.6, "size": 100.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(
+            data, confident_strategy,
+            initial_bankroll=10000.0,
+            position_sizing="kelly",
+            kelly_fraction=1.0,
+        )
+
+        # Kelly for p=0.6, odds=2.0: (0.6*2 - 0.4)/2 = 0.2
+        # Bet size = 0.2 * 10000 = 2000
+        assert results.iloc[0]["bet_size"] == 2000.0
+
+    def test_kelly_no_confidence_falls_back_to_size(self) -> None:
+        """Without confidence field, should fall back to strategy's size."""
+        from cuic_quant.backtest.backtester_backend import backtest
+
+        def no_confidence_strategy(row, context=None):
+            return {"action": "BUY_HOME", "size": 50.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(
+            data, no_confidence_strategy,
+            position_sizing="kelly",
+        )
+
+        assert results.iloc[0]["bet_size"] == 50.0
+
+    def test_kelly_half_kelly_fraction(self) -> None:
+        """Half-Kelly should halve the bet size."""
+        from cuic_quant.backtest.backtester_backend import backtest
+
+        def confident_strategy(row, context=None):
+            return {"action": "BUY_HOME", "confidence": 0.6, "size": 100.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        full = backtest(data, confident_strategy, position_sizing="kelly", kelly_fraction=1.0)
+        half = backtest(data, confident_strategy, position_sizing="kelly", kelly_fraction=0.5)
+
+        assert half.iloc[0]["bet_size"] == full.iloc[0]["bet_size"] / 2
+
+    def test_kelly_negative_edge_skips(self) -> None:
+        """Kelly should return 0 for negative edge, skipping the bet."""
+        from cuic_quant.backtest.backtester_backend import backtest
+
+        def low_confidence(row, context=None):
+            return {"action": "BUY_HOME", "confidence": 0.3, "size": 100.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(data, low_confidence, position_sizing="kelly")
+        # Kelly for p=0.3, odds=2.0: negative -> 0 -> skip
+        assert len(results) == 0
+
+
+class TestKellyBetHome:
+    """Tests for the kelly_bet_home example strategy."""
+
+    def test_returns_buy_home_action(self) -> None:
+        from cuic_quant.backtest import kelly_bet_home
+
+        row = pd.Series({"home_odds": 1.95, "away_odds": 2.05})
+        signal = kelly_bet_home(row)
+        assert signal["action"] == "BUY_HOME"
+
+    def test_confidence_based_on_odds(self) -> None:
+        from cuic_quant.backtest import kelly_bet_home
+
+        row = pd.Series({"home_odds": 1.50, "away_odds": 2.80})
+        signal = kelly_bet_home(row)
+        # Implied prob = 1/1.50 = 0.667, +0.05 edge = 0.717
+        assert 0 < signal["confidence"] < 1
+        assert abs(signal["confidence"] - 0.717) < 0.01
+
+    def test_confidence_capped_at_095(self) -> None:
+        from cuic_quant.backtest import kelly_bet_home
+
+        row = pd.Series({"home_odds": 1.05, "away_odds": 10.0})
+        signal = kelly_bet_home(row)
+        # Implied = 1/1.05 = 0.952, +0.05 = 1.002, capped at 0.95
+        assert signal["confidence"] == 0.95
+
+    def test_works_with_kelly_sizing(self) -> None:
+        from cuic_quant.backtest import kelly_bet_home, backtest
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(data, kelly_bet_home, position_sizing="kelly")
+        assert len(results) == 1
+        assert results.iloc[0]["bet_size"] > 0
+
+
+class TestEdgeCases:
+    """Edge case tests for financial extremes."""
+
+    def test_extreme_high_odds(self) -> None:
+        """Odds of 100.0 should produce correct large PnL."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [100.0],
+            "away_odds": [1.01],
+            "home_win": [1],
+        })
+
+        results = backtest(data, always_bet_home)
+        assert results.iloc[0]["pnl"] == round(100.0 * (100.0 - 1), 2)  # 9900.0
+
+    def test_extreme_low_odds(self) -> None:
+        """Odds of 1.001 should produce tiny payout that rounds correctly."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [1.001],
+            "away_odds": [100.0],
+            "home_win": [1],
+        })
+
+        results = backtest(data, always_bet_home)
+        assert results.iloc[0]["pnl"] == round(100.0 * (1.001 - 1), 2)  # 0.1
+
+    def test_zero_initial_bankroll(self) -> None:
+        """Zero bankroll should produce no trades."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, load_backtest_data, DUMMY_CSV, OUTPUT_COLUMNS,
+        )
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home, initial_bankroll=0.0)
+        assert len(results) == 0
+        assert results.columns.tolist() == OUTPUT_COLUMNS
+
+    def test_invalid_action_string_skipped(self) -> None:
+        """Strategy returning an invalid action should be skipped."""
+        from cuic_quant.backtest.backtester_backend import backtest
+
+        def bad_strategy(row, context=None):
+            return {"action": "INVALID_ACTION", "confidence": 0.5, "size": 100.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(data, bad_strategy)
+        assert len(results) == 0
+
+    def test_all_wins_bankroll_grows(self) -> None:
+        """All-win sequence should grow bankroll correctly."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"]),
+            "game": ["A vs B", "C vs D", "E vs F"],
+            "home_team": ["A", "C", "E"],
+            "away_team": ["B", "D", "F"],
+            "home_odds": [2.00, 2.00, 2.00],
+            "away_odds": [2.00, 2.00, 2.00],
+            "home_win": [1, 1, 1],
+        })
+
+        results = backtest(data, always_bet_home, initial_bankroll=1000.0)
+        assert len(results) == 3
+        assert all(results["outcome"] == "WIN")
+        # Each bet wins $100: bankroll = 1000 + 100 + 100 + 100 = 1300
+        assert results.iloc[-1]["bankroll"] == 1300.0
+
+    def test_all_losses_bankroll_shrinks(self) -> None:
+        """All-loss sequence should reduce bankroll correctly."""
+        from cuic_quant.backtest.backtester_backend import backtest, always_bet_home
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"]),
+            "game": ["A vs B", "C vs D", "E vs F"],
+            "home_team": ["A", "C", "E"],
+            "away_team": ["B", "D", "F"],
+            "home_odds": [2.00, 2.00, 2.00],
+            "away_odds": [2.00, 2.00, 2.00],
+            "home_win": [0, 0, 0],
+        })
+
+        results = backtest(data, always_bet_home, initial_bankroll=1000.0)
+        assert len(results) == 3
+        assert all(results["outcome"] == "LOSS")
+        # Each bet loses $100: bankroll = 1000 - 100 - 100 - 100 = 700
+        assert results.iloc[-1]["bankroll"] == 700.0
