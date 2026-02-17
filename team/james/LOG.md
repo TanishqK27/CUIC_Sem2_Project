@@ -15,6 +15,33 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### Feb 17, 2026
+
+**Backtester Cleanup — Import Fix, Code Extraction, Notebook Slimming**
+
+Fixed `ImportError` blocking the notebook from running: `always_bet_away` existed in `backtester_backend.py` but was missing from `__init__.py` exports.
+
+**Moved bulky code out of notebook into backend:**
+- `display_extended_metrics()` (~50 lines) — prints 12-metric performance table (Sharpe, Sortino, drawdown, profit factor, streaks, etc.). Uses Ben's `cuic_quant.metrics.calculate_all_metrics()`.
+- `plot_performance()` (~60 lines) — 2x2 matplotlib dashboard: cumulative PnL, drawdown, PnL distribution, trade outcomes.
+- Added `math` and `matplotlib.pyplot` imports to backend.
+- Updated `__init__.py` to export both new functions.
+
+**Removed Mya's test section from notebook:**
+- Deleted Mya's `test_games.csv` markdown cell and code cell (was ~40 lines running backtest against her 100-row dataset).
+- Removed `TEST_CSV` from config cell.
+- Notebook now runs purely against `dummy_backtest_input.csv`.
+
+**Added detailed validation documentation:**
+- Expanded the `validate_backtest_results()` docstring in backend to list all 11 checks numbered 1-11 by category.
+- Added detailed markdown cell in notebook (cell 12) explaining all 11 validation checks across schema, math correctness, and data leakage detection categories — including why leakage checks matter.
+
+**Notebook state:** 18 cells, zero function definitions, all logic imported from backend. Clean and presentation-ready.
+
+**Commits:** `ba05fe5`, `dc38569`, `c6e275c` — all pushed to `james_branch`.
+
+---
+
 ### Feb 13, 2026
 
 **Backtester Refactor — Extracted to Importable Module**

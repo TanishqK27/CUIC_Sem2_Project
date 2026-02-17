@@ -18,6 +18,10 @@ This will update both your personal `team/<name>/LOG.md` and this PROJECT_LOG.md
 
 ## Log Entries
 
+### 2026-02-17
+
+- **[james]** Backtester cleanup: fixed `always_bet_away` import error, moved `display_extended_metrics()` and `plot_performance()` from notebook to backend, removed Mya's test section from notebook, added detailed validation documentation (11 checks across schema/math/leakage). Notebook now 18 cells with zero function definitions. Updated `__init__.py` to export all 7 public functions.
+
 ### 2026-02-13
 
 - **[james]** Backtester refactor complete: extracted all logic from `tools/backtester.ipynb` into importable module `src/cuic_quant/backtest/backtester_backend.py` (4 functions: load_backtest_data, backtest, always_bet_home, validate_backtest_results). Added 11-check validation suite (schema, math, leakage). Notebook rewritten as thin caller. 22 unit tests, all passing. Interface unchanged — Ben's metrics and Ismaeel's tests unaffected.
