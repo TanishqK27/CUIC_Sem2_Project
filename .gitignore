@@ -300,11 +300,13 @@ models/*.onnx
 # Project instructions (internal)
 CLAUDE.md
 
-# Implementation plans (internal working docs)
-docs/plans/
 
-# Tan's work folder (internal)
-team/tan/work/
+# =============================================================================
+# Generated outputs
+# =============================================================================
+figures/
+proxies.txt
+*.pdf
 
 # =============================================================================
 # Miscellaneous
