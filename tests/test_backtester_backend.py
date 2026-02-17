@@ -557,3 +557,102 @@ class TestTransactionCosts:
         results_zero = backtest(data, always_bet_home, cost_pct=0.0, cost_flat=0.0)
 
         pd.testing.assert_frame_equal(results_default, results_zero)
+
+
+class TestKellySizing:
+    """Tests for Kelly criterion position sizing."""
+
+    def test_kelly_sizing_uses_confidence(self) -> None:
+        """When position_sizing='kelly', bet size should use strategy confidence."""
+        from cuic_quant.backtest.backtester_backend import backtest
+
+        def confident_strategy(row, context=None):
+            return {"action": "BUY_HOME", "confidence": 0.6, "size": 100.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(
+            data, confident_strategy,
+            initial_bankroll=10000.0,
+            position_sizing="kelly",
+            kelly_fraction=1.0,
+        )
+
+        # Kelly for p=0.6, odds=2.0: (0.6*2 - 0.4)/2 = 0.2
+        # Bet size = 0.2 * 10000 = 2000
+        assert results.iloc[0]["bet_size"] == 2000.0
+
+    def test_kelly_no_confidence_falls_back_to_size(self) -> None:
+        """Without confidence field, should fall back to strategy's size."""
+        from cuic_quant.backtest.backtester_backend import backtest
+
+        def no_confidence_strategy(row, context=None):
+            return {"action": "BUY_HOME", "size": 50.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(
+            data, no_confidence_strategy,
+            position_sizing="kelly",
+        )
+
+        assert results.iloc[0]["bet_size"] == 50.0
+
+    def test_kelly_half_kelly_fraction(self) -> None:
+        """Half-Kelly should halve the bet size."""
+        from cuic_quant.backtest.backtester_backend import backtest
+
+        def confident_strategy(row, context=None):
+            return {"action": "BUY_HOME", "confidence": 0.6, "size": 100.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        full = backtest(data, confident_strategy, position_sizing="kelly", kelly_fraction=1.0)
+        half = backtest(data, confident_strategy, position_sizing="kelly", kelly_fraction=0.5)
+
+        assert half.iloc[0]["bet_size"] == full.iloc[0]["bet_size"] / 2
+
+    def test_kelly_negative_edge_skips(self) -> None:
+        """Kelly should return 0 for negative edge, skipping the bet."""
+        from cuic_quant.backtest.backtester_backend import backtest
+
+        def low_confidence(row, context=None):
+            return {"action": "BUY_HOME", "confidence": 0.3, "size": 100.0}
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01"]),
+            "game": ["A vs B"],
+            "home_team": ["A"],
+            "away_team": ["B"],
+            "home_odds": [2.00],
+            "away_odds": [2.00],
+            "home_win": [1],
+        })
+
+        results = backtest(data, low_confidence, position_sizing="kelly")
+        # Kelly for p=0.3, odds=2.0: negative -> 0 -> skip
+        assert len(results) == 0
