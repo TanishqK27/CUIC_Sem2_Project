@@ -17,7 +17,9 @@ from cuic_quant.backtest.backtester_backend import (
     always_bet_away,
     always_bet_home,
     backtest,
+    display_extended_metrics,
     load_backtest_data,
+    plot_performance,
     validate_backtest_results,
 )
 
@@ -25,6 +27,8 @@ __all__ = [
     "always_bet_away",
     "always_bet_home",
     "backtest",
+    "display_extended_metrics",
     "load_backtest_data",
+    "plot_performance",
     "validate_backtest_results",
 ]
