@@ -19,6 +19,7 @@ Use the `/update-log` skill:
 
 - Ran James backtester notebook and Ben metrics notebook; noted syntax errors in James notebook
 - Created bug report and testing checklist for Week 1 QA
+- Added five basic strategies to `tools/backtester.ipynb`: Always Home, Always Away, Skip All, Alternate Home/Away, Best Odds Side
 
 ### 2025-02-01
 
