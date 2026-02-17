@@ -15,6 +15,42 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### Feb 17, 2026 (Part 2)
+
+**Missing Criteria Implementation — Transaction Costs, Kelly Sizing, Edge Cases**
+
+Implemented all remaining task brief requirements (except CLV, deferred — no closing odds data).
+
+**Transaction Cost Modeling:**
+- Added `cost_pct` (percentage on winning payouts) and `cost_flat` (flat fee per trade) parameters to `backtest()`
+- PnL formula: WIN = `bet_size * (odds-1) * (1 - cost_pct) - cost_flat`, LOSS = `-bet_size - cost_flat`
+- Updated `validate_backtest_results()` to accept matching cost params
+- All defaults are 0.0 — fully backwards-compatible
+
+**Kelly Criterion Integration:**
+- Added `position_sizing="kelly"` and `kelly_fraction` parameters to `backtest()`
+- When enabled, uses strategy's `confidence` field as win probability with `calculate_kelly_fraction()`
+- Falls back to strategy's `size` if no confidence provided
+- Half-Kelly (0.5) default for safer sizing
+- Added `kelly_bet_home()` example strategy — uses implied probability + 5% edge as confidence
+- Exported from `cuic_quant.backtest`
+
+**Edge Case Tests (6 new):**
+- Extreme high odds (100.0), extreme low odds (1.001)
+- Zero initial bankroll, invalid action string
+- All-wins sequence, all-losses sequence
+
+**Notebook Documentation:**
+- Fixed strategy inconsistency (was `always_bet_away`, now `always_bet_home` matching markdown)
+- Added Assumptions & Limitations cell (odds at face value, synthetic data, no CLV, costs/Kelly optional)
+- Added Conclusion cell (pipeline summary, usage tips)
+
+**Test suite: 47 tests, all passing** (was 22 before today). 25 new tests across 4 test classes.
+
+**Commits:** `b0e7c64` through `6e5d03f` (8 commits), all pushed to `james_branch`.
+
+---
+
 ### Feb 17, 2026
 
 **Backtester Cleanup — Import Fix, Code Extraction, Notebook Slimming**

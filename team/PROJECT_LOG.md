@@ -20,7 +20,8 @@ This will update both your personal `team/<name>/LOG.md` and this PROJECT_LOG.md
 
 ### 2026-02-17
 
-- **[james]** Backtester cleanup: fixed `always_bet_away` import error, moved `display_extended_metrics()` and `plot_performance()` from notebook to backend, removed Mya's test section from notebook, added detailed validation documentation (11 checks across schema/math/leakage). Notebook now 18 cells with zero function definitions. Updated `__init__.py` to export all 7 public functions.
+- **[james]** Missing criteria implementation: added transaction cost modeling (`cost_pct`, `cost_flat` params), Kelly Criterion position sizing (`position_sizing="kelly"`), `kelly_bet_home()` example strategy, 6 edge case tests (extreme odds, zero bankroll, invalid actions, all-wins/losses). Fixed notebook strategy inconsistency, added assumptions/limitations and conclusion cells. Test suite: 47 tests, all passing.
+- **[james]** Backtester cleanup: fixed `always_bet_away` import error, moved `display_extended_metrics()` and `plot_performance()` from notebook to backend, removed Mya's test section from notebook, added detailed validation documentation (11 checks across schema/math/leakage). Notebook now 20 cells with zero function definitions. Updated `__init__.py` to export all 8 public functions.
 
 ### 2026-02-13
 

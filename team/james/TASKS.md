@@ -13,6 +13,12 @@
 ### Completed
 | Task | Completed | Notes |
 |------|-----------|-------|
+| Add transaction cost modeling (`cost_pct`, `cost_flat`) | Feb 17 | New params in `backtest()` + validator, 4 tests |
+| Add Kelly criterion position sizing | Feb 17 | `position_sizing="kelly"` + `kelly_fraction` params, 4 tests |
+| Add `kelly_bet_home()` example strategy | Feb 17 | Uses implied prob + 5% edge as confidence, exported from package |
+| Add edge case tests (financial extremes) | Feb 17 | Extreme odds, zero bankroll, invalid action, all-wins/losses — 6 tests |
+| Fix notebook strategy inconsistency | Feb 17 | Changed to `always_bet_home`, updated imports |
+| Add assumptions/limitations + conclusion to notebook | Feb 17 | Two new markdown cells documenting scope and summarizing pipeline |
 | Fix `always_bet_away` import error | Feb 17 | Was missing from `__init__.py` exports — notebook couldn't run |
 | Move `display_extended_metrics()` to backend | Feb 17 | ~50 lines extracted from notebook into `backtester_backend.py` |
 | Move `plot_performance()` to backend | Feb 17 | ~60 lines extracted from notebook into `backtester_backend.py` |
