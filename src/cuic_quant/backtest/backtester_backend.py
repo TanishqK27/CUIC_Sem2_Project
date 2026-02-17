@@ -167,6 +167,8 @@ def backtest(
     data: pd.DataFrame,
     strategy_fn: Callable[[pd.Series, dict[str, Any] | None], dict[str, Any]],
     initial_bankroll: float = 10000.0,
+    cost_pct: float = 0.0,
+    cost_flat: float = 0.0,
 ) -> pd.DataFrame:
     """Run a backtest over historical game data using a strategy function.
 
@@ -201,6 +203,10 @@ def backtest(
             (row: pd.Series, context: dict | None) and returns a dict with
             keys: action, confidence, size, reason (optional).
         initial_bankroll: Starting bankroll in dollars. Defaults to 10000.
+        cost_pct: Percentage deducted from winning payouts (e.g. 0.02 for 2%).
+            Models bookmaker vig/margin. Default 0.0 (no cost).
+        cost_flat: Flat dollar fee deducted per trade regardless of outcome.
+            Default 0.0 (no fee).
 
     Returns:
         DataFrame with 9 columns: timestamp, game, action, bet_size, odds,
@@ -258,10 +264,10 @@ def backtest(
 
         # Calculate P&L (round immediately so stored and accumulated values match)
         if won:
-            pnl = round(bet_size * (odds - 1), 2)
+            pnl = round(bet_size * (odds - 1) * (1 - cost_pct) - cost_flat, 2)
             outcome = "WIN"
         else:
-            pnl = round(-bet_size, 2)
+            pnl = round(-bet_size - cost_flat, 2)
             outcome = "LOSS"
 
         cumulative_pnl += pnl
