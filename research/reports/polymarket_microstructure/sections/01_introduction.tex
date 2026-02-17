@@ -1,0 +1,123 @@
+% 01_introduction.tex
+% Section 1: Introduction to the Analysis
+
+\chapter{Introduction}
+\label{sec:introduction}
+
+%------------------------------------------------------------------------------
+% 1.1 Purpose and Scope
+%------------------------------------------------------------------------------
+\section{Purpose and Scope}
+
+This report presents a comprehensive exploratory data analysis of Polymarket's NBA game outcome prediction markets, examining internal market dynamics through the lens of market microstructure theory. Unlike comparative studies that benchmark prediction markets against traditional sportsbooks, this analysis focuses exclusively on Polymarket's internal mechanics: how liquidity forms, how prices evolve, and how traders interact within this emerging prediction market ecosystem.
+
+The primary audience for this report includes quantitative traders seeking alpha opportunities in prediction markets, researchers studying market microstructure in novel settings, and team members of the Cardiff University Investment Club interested in systematic approaches to sports-related markets. Throughout the analysis, we frame findings through the practical lens of trading and execution, providing actionable insights alongside theoretical understanding.
+
+Our investigation spans 67.9 million orderbook events collected from 114 NBA games between January 26 and February 12, 2026---the final day of regular season play before the NBA All-Star break. This dataset enables analysis across multiple dimensions: temporal patterns within individual games, cross-sectional variation across different game types, and aggregate market behavior patterns. By examining this rich dataset, we characterize the liquidity environment that traders face and identify systematic patterns that may inform trading strategies.
+
+%------------------------------------------------------------------------------
+% 1.2 Why Market Microstructure Matters
+%------------------------------------------------------------------------------
+\section{Why Market Microstructure Matters for Prediction Markets}
+
+Market microstructure---the study of how trading mechanisms affect price formation---has traditionally focused on equity and foreign exchange markets. However, prediction markets present unique microstructural challenges that warrant dedicated analysis. Unlike traditional assets with continuous price evolution, prediction market prices are bounded between zero and one and must converge to either extreme at resolution. This fundamental difference creates distinctive patterns in volatility, liquidity, and trader behavior.
+
+Understanding microstructure matters for three practical reasons. First, execution quality directly impacts profitability. A trader with a correct view on game outcomes can still lose money through poor execution if spreads are wide and slippage is high. Second, liquidity patterns inform when and how to trade. Markets with predictable liquidity cycles allow traders to optimize execution timing. Third, price dynamics reveal information about market efficiency. Patterns such as autocorrelation or mean reversion, if present, may offer exploitable trading opportunities.
+
+For prediction market participants specifically, microstructure analysis answers critical operational questions: What order sizes can execute without excessive market impact? When is liquidity deepest? How quickly does information get priced in? This report addresses each of these questions with empirical evidence from Polymarket's NBA markets.
+
+%------------------------------------------------------------------------------
+% 1.3 Polymarket Platform Overview
+%------------------------------------------------------------------------------
+\section{Polymarket Platform Overview}
+
+Polymarket operates as a blockchain-based prediction market platform where users can trade binary outcome contracts. For NBA games, each contest features two outcomes---home team wins or away team wins---priced between \$0.00 and \$1.00. At game resolution, the winning outcome pays \$1.00 while the losing outcome pays \$0.00. This structure means that prices directly represent implied probabilities: a home team priced at \$0.65 implies a 65\% probability of victory.
+
+Trading on Polymarket operates through a continuous limit order book, similar to traditional financial exchanges. Traders can submit limit orders at specified prices or market orders that execute against existing liquidity. The platform charges minimal fees, making it economically viable for active trading strategies. Settlement occurs automatically upon game conclusion using oracle-based outcome verification.
+
+The regulatory landscape for prediction markets in the United States remains complex, with the Commodity Futures Trading Commission (CFTC) maintaining oversight authority over event contracts. Polymarket has navigated this environment while building substantial liquidity in sports and political markets. For our analysis, we treat Polymarket as a functioning market without taking positions on regulatory considerations, focusing purely on empirical market behavior.
+
+\begin{methodbox}[Prediction Market Terminology]
+Throughout this report, several market microstructure and prediction market terms appear:
+
+\textbf{Bid-Ask Spread:} The difference between the highest price a buyer is willing to pay (bid) and the lowest price a seller is willing to accept (ask). A spread of 2.3\% means paying \$0.523 to buy an outcome priced at mid of \$0.50, or receiving \$0.477 to sell. The spread represents the cost of immediacy and provides profit margins for market makers.
+
+\textbf{Market Depth:} The total dollar value of limit orders resting in the orderbook at various price levels. Depth of \$142K means approximately \$142,000 of orders are available to trade against. Greater depth allows larger trades with less price impact.
+
+\textbf{Orderbook:} The list of all outstanding buy and sell orders at various prices. In a limit order book market like Polymarket, traders can either submit limit orders (wait for execution at a specific price) or market orders (execute immediately against existing orders).
+
+\textbf{Implied Probability:} In prediction markets, prices directly represent probabilities. A contract priced at \$0.65 implies a 65\% probability of that outcome occurring. At resolution, winning contracts pay \$1.00 and losing contracts pay \$0.00.
+
+\textbf{Slippage:} The difference between the expected execution price and the actual price received. Large orders ``walk'' through the orderbook, executing at progressively worse prices as they consume available liquidity.
+
+\textbf{Whale:} A trader executing large orders (typically \$1,000+). Whale trades can significantly impact prices and may signal informed trading activity.
+\end{methodbox}
+
+%------------------------------------------------------------------------------
+% 1.4 Dataset Overview
+%------------------------------------------------------------------------------
+\section{Dataset Overview}
+
+Our analysis draws on two primary data sources collected via Polymarket's WebSocket API. The first source comprises 67.9 million orderbook events capturing every quote update, trade execution, and price change across 114 NBA games. This high-frequency data enables analysis of market dynamics at the millisecond level, revealing patterns invisible in lower-frequency snapshots.
+
+The second source consists of 180,000+ price snapshots providing regular interval observations of mid-prices for both outcomes in each game. These snapshots facilitate cross-game comparisons and temporal pattern analysis where tick-by-tick data would be unwieldy.
+
+The dataset spans January 26 through February 12, 2026---18 days of NBA regular season action ending at the All-Star break. This period includes games across all days of the week, various tip-off times, and diverse game types ranging from competitive matchups to blowouts. While longer sample periods would strengthen generalizability, this dataset provides sufficient depth for robust pattern identification. Chapter~\ref{sec:data} presents detailed data quality assessment and descriptive statistics.
+
+%------------------------------------------------------------------------------
+% 1.5 Report Structure
+%------------------------------------------------------------------------------
+\section{Report Structure}
+
+This report is organized into twelve chapters, each examining a distinct aspect of Polymarket NBA market microstructure:
+
+\begin{itemize}
+    \item \textbf{Chapter~\ref{sec:data}} presents the data overview and quality assessment, including database schema, collection methodology, and descriptive statistics.
+
+    \item \textbf{Chapter~\ref{sec:orderbook}} analyzes orderbook structure, examining bid-ask spreads, market depth, and liquidity concentration patterns.
+
+    \item \textbf{Chapter~\ref{sec:price-dynamics}} examines price dynamics, including volatility patterns, autocorrelation structure, and mean reversion characteristics.
+
+    \item \textbf{Chapter~\ref{sec:trade-flow}} investigates trade flow patterns, covering trade size distributions, whale activity, and order flow imbalance.
+
+    \item \textbf{Chapter~\ref{sec:temporal}} documents temporal patterns across time of day, day of week, and game phases.
+
+    \item \textbf{Chapter~\ref{sec:cross-outcome}} explores cross-outcome relationships between home and away markets, including arbitrage detection.
+
+    \item \textbf{Chapter~\ref{sec:nba-specific}} covers NBA-specific phenomena such as momentum effects, blowout dynamics, and comeback patterns.
+
+    \item \textbf{Chapter~\ref{sec:market-makers}} analyzes evidence of market maker behavior and quote management patterns.
+
+    \item \textbf{Chapter~\ref{sec:execution}} provides execution quality guidance, including slippage estimates and optimal order sizing.
+
+    \item \textbf{Chapter~\ref{sec:case-studies}} presents detailed case studies of individual games representing different market conditions.
+
+    \item \textbf{Chapter~\ref{sec:summary}} summarizes findings and provides trading recommendations.
+\end{itemize}
+
+Throughout each chapter, methodology boxes (highlighted in blue) explain statistical concepts for readers with undergraduate-level statistics background. These inline explanations provide context without disrupting the analytical flow.
+
+%------------------------------------------------------------------------------
+% 1.6 Key Findings Preview
+%------------------------------------------------------------------------------
+\section{Key Findings Preview}
+
+Before diving into detailed analysis, we preview the major findings that emerge from this study:
+
+\begin{enumerate}
+    \item \textbf{Competitive Market Quality:} Polymarket NBA markets exhibit median spreads of 2.3\% and median depth of \$142K, indicating mature market infrastructure suitable for meaningful trading activity (Chapter~\ref{sec:orderbook}).
+
+    \item \textbf{Extreme Fat Tails:} Return distributions show kurtosis of 214 (95\% CI: [187, 249]), far exceeding normal distribution values, indicating that extreme price moves occur far more frequently than standard models predict. Risk management must account for this tail behavior (Chapter~\ref{sec:price-dynamics}).
+
+    \item \textbf{Mean Reversion Opportunity:} Weak negative autocorrelation with an estimated half-life of approximately 3 minutes suggests potential for short-term mean reversion strategies, though transaction costs must be carefully considered (Chapter~\ref{sec:price-dynamics}).
+
+    \item \textbf{Whale-Dominated Volume:} While median trade size is only \$21.52 (indicating retail participation), 1.3\% of trades account for 57.5\% of total volume. Understanding whale behavior is critical for interpreting price movements (Chapter~\ref{sec:trade-flow}).
+
+    \item \textbf{Predictable Liquidity Cycles:} Optimal trading conditions occur during US evening hours (7--11 PM EST) aligned with NBA game schedules. Liquidity deteriorates significantly outside these windows (Chapter~\ref{sec:temporal}).
+
+    \item \textbf{Near-Efficient Arbitrage Pricing:} Probability sums (home + away) center tightly around 99.8\%, indicating efficient market making with minimal persistent arbitrage opportunities (Chapter~\ref{sec:cross-outcome}).
+
+    \item \textbf{NBA-Specific Dynamics:} Game momentum creates predictable volatility patterns, with 10-0 scoring runs shifting probabilities by 12--18 percentage points. Blowout games see liquidity collapse once outcomes become near-certain (Chapter~\ref{sec:nba-specific}).
+\end{enumerate}
+
+These findings collectively paint a picture of a functional, reasonably efficient prediction market that offers opportunities for informed participants while presenting meaningful execution challenges. The remainder of this report develops each finding with full statistical support and practical trading implications.

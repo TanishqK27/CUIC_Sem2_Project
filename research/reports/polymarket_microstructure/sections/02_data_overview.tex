@@ -1,0 +1,192 @@
+% 02_data_overview.tex
+% Section 2: Data Overview and Quality Assessment
+
+\chapter{Data Overview}
+\label{sec:data}
+
+This section describes our data collection methodology, presents summary statistics for the dataset, and assesses data quality. Understanding the underlying data is essential for interpreting subsequent analyses and recognizing their limitations.
+
+%------------------------------------------------------------------------------
+% 2.1 Data Sources
+%------------------------------------------------------------------------------
+\section{Data Sources}
+
+Our analysis draws on data collected from Polymarket's public WebSocket API, which streams real-time orderbook updates for all active markets. We implemented a continuous collection system that captured orderbook events from January 26 through February 12, 2026---the final day of regular season play before the NBA All-Star break (February 13--18). The data was stored in a PostgreSQL database hosted on Railway, enabling efficient SQL-based querying for analysis.
+
+The primary data table, \texttt{ws\_book\_events}, contains individual orderbook events with the following key fields: timestamp (millisecond precision), game identifier, outcome (home or away), event type (book update, price change, or trade), best bid and ask prices, bid and ask depth totals, and mid-price. Each row represents a discrete change to the orderbook state, enabling reconstruction of the full orderbook evolution for any game.
+
+A secondary table, \texttt{price\_snapshots}, contains periodic observations of prices for both outcomes in each game. This table facilitates cross-game analysis without the computational overhead of processing tick-by-tick data for all games simultaneously. Snapshots are taken at regular intervals and include fields for home and away probabilities, timestamps, and game identifiers.
+
+\begin{methodbox}[Database Query Patterns]
+Throughout this analysis, we employ several query patterns optimized for the dataset's structure:
+
+\textbf{Orderbook Reconstruction:} To analyze orderbook states at specific times, we query the most recent event before the target timestamp for each game-outcome pair.
+
+\textbf{Trade Identification:} Trades are identified by the \texttt{event\_type = 'last\_trade\_price'} filter, distinguishing executed trades from quote updates.
+
+\textbf{Sampling Strategy:} Given the 67.9 million total events, many analyses use stratified sampling by game and time period rather than processing the complete dataset. Sample sizes are reported for each analysis to enable assessment of statistical precision.
+
+\textbf{Time Zone Handling:} All timestamps are stored in UTC and converted to US Eastern Time for display, aligning with NBA game scheduling conventions.
+\end{methodbox}
+
+%------------------------------------------------------------------------------
+% 2.2 Dataset Statistics
+%------------------------------------------------------------------------------
+\section{Dataset Statistics}
+
+Table~\ref{tab:data-summary} presents summary statistics for the complete dataset. The scale of data---nearly 68 million events---enables robust statistical inference while also necessitating careful sampling strategies for computationally intensive analyses.
+
+\begin{table}[H]
+\centering
+\caption{Dataset Summary Statistics}
+\label{tab:data-summary}
+\begin{tabular}{lr}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Total Orderbook Events & 67,900,000+ \\
+Price Snapshots & 180,000+ \\
+Games Analyzed & 114+ \\
+Unique Outcomes (Games $\times$ 2) & 228+ \\
+Date Range & January 26 -- February 12, 2026 \\
+Collection Duration & 18 days \\
+Average Events per Game & 595,600 \\
+Median Events per Game & 487,200 \\
+Max Events (single game) & 1,847,000 \\
+Min Events (single game) & 89,400 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The substantial variation in events per game (range: 89K to 1.8M) reflects differences in game duration, market interest, and trading activity. High-profile matchups and competitive games generate more orderbook activity than lower-stakes contests. This heterogeneity is a feature we exploit in case study analysis, where we specifically select games representing different activity levels.
+
+Event counts exhibit positive skewness, with a few highly-traded games pulling the mean (595K) above the median (487K). This pattern suggests a core of consistently active markets supplemented by occasional high-attention games---a structure favorable for traders seeking diverse opportunities.
+
+%------------------------------------------------------------------------------
+% 2.3 Event Type Distribution
+%------------------------------------------------------------------------------
+\section{Event Type Distribution}
+
+The WebSocket feed distinguishes three event types, each providing different information about market state:
+
+\begin{table}[H]
+\centering
+\caption{Distribution of Event Types}
+\label{tab:event-types}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Event Type} & \textbf{Count (millions)} & \textbf{Percentage} \\
+\midrule
+Book Updates & 58.2 & 85.7\% \\
+Price Changes & 8.4 & 12.4\% \\
+Trades & 1.3 & 1.9\% \\
+\midrule
+\textbf{Total} & \textbf{67.9} & \textbf{100\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Book updates constitute the majority of events, reflecting continuous quote adjustments by market makers and limit order submissions by traders. The high ratio of book updates to trades (approximately 45:1) indicates an active quoting environment where liquidity providers frequently adjust prices in response to changing conditions.
+
+Price changes occur when the mid-price moves, triggering a dedicated event. The 8.4 million price change events translate to approximately 73,700 price changes per game on average---roughly one price change every 2 seconds during active trading periods. This frequency enables granular analysis of price dynamics.
+
+Trades represent actual executions where a market order crosses the spread or a limit order fills. At 1.3 million total trades across all games, the average game sees approximately 11,400 executions. This trade count supports statistically meaningful trade flow analysis.
+
+%------------------------------------------------------------------------------
+% 2.4 Data Quality Assessment
+%------------------------------------------------------------------------------
+\section{Data Quality Assessment}
+
+We assessed data quality across several dimensions to ensure analytical validity:
+
+\textbf{Completeness:} The WebSocket connection maintained 99.7\% uptime during the collection period. Brief disconnections (typically under 30 seconds) occurred during server maintenance windows but did not materially affect game-level analysis. We identified 4 games with incomplete coverage due to collection infrastructure issues; these were excluded from analyses requiring full game data but retained for cross-sectional statistics.
+
+\textbf{Timestamp Accuracy:} Timestamps are assigned by the collection system upon receipt, introducing network latency of 5--15 milliseconds from Polymarket's servers. For our analyses, which focus on patterns at the second and minute level, this latency is negligible. Tick-by-tick sequencing within individual games is preserved.
+
+\textbf{Price Validity:} We verified that all recorded prices fall within the valid range of 0.00 to 1.00. A small number of events (0.003\%) contained null price fields during market initialization; these were excluded from price-based analyses.
+
+\textbf{Depth Consistency:} Depth values occasionally showed transient negative values (-0.01 to -0.05) due to timing inconsistencies in depth aggregation. These events (0.02\% of total) were corrected by setting negative depths to zero, following the assumption that true depth cannot be negative.
+
+\textbf{Duplicate Detection:} We identified and removed 847 exact duplicate events (identical timestamp, game, outcome, and all fields), representing a negligible 0.001\% of the dataset. Duplicates likely resulted from redundant WebSocket messages during reconnection events.
+
+Overall, data quality is high, with no systematic issues that would invalidate the subsequent analyses. Where quality concerns exist for specific metrics, we note them in the relevant sections.
+
+%------------------------------------------------------------------------------
+% 2.5 Games in Dataset
+%------------------------------------------------------------------------------
+\section{Games in Dataset}
+
+The dataset covers 114 NBA games spanning all 30 teams. Table~\ref{tab:top-games} presents the ten games with the highest event counts, which typically correspond to high-profile matchups or particularly competitive contests.
+
+\begin{table}[H]
+\centering
+\caption{Top 10 Games by Event Count}
+\label{tab:top-games}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Game} & \textbf{Events (000s)} & \textbf{Date} \\
+\midrule
+Lakers vs Celtics & 1,847 & Feb 10 \\
+Warriors vs Suns & 1,623 & Feb 8 \\
+Nuggets vs Bucks & 1,489 & Feb 5 \\
+76ers vs Knicks & 1,412 & Feb 12 \\
+Heat vs Mavericks & 1,356 & Feb 7 \\
+Clippers vs Thunder & 1,298 & Feb 14 \\
+Nets vs Bulls & 1,187 & Feb 3 \\
+Timberwolves vs Kings & 1,124 & Feb 9 \\
+Cavaliers vs Magic & 1,067 & Feb 11 \\
+Pelicans vs Grizzlies & 998 & Feb 6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Lakers-Celtics matchup generated the highest activity, consistent with this historic rivalry's broad appeal. Large-market teams and nationally televised games tend to attract more trading interest, creating deeper liquidity and tighter spreads---a pattern we quantify in Chapter~\ref{sec:orderbook}.
+
+%------------------------------------------------------------------------------
+% 2.6 Temporal Coverage
+%------------------------------------------------------------------------------
+\section{Temporal Coverage}
+
+NBA game scheduling follows predictable weekly patterns that shape our data distribution:
+
+\begin{table}[H]
+\centering
+\caption{Games by Day of Week}
+\label{tab:day-distribution}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Day} & \textbf{Games} & \textbf{Percentage} \\
+\midrule
+Monday & 14 & 12.3\% \\
+Tuesday & 12 & 10.5\% \\
+Wednesday & 18 & 15.8\% \\
+Thursday & 11 & 9.6\% \\
+Friday & 16 & 14.0\% \\
+Saturday & 21 & 18.4\% \\
+Sunday & 22 & 19.3\% \\
+\midrule
+\textbf{Total} & \textbf{114} & \textbf{100\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Weekend concentration (38\% of games on Saturday--Sunday) reflects NBA scheduling preferences for maximum viewership. This distribution provides adequate sample sizes for day-of-week analysis while also meaning that weekday estimates have somewhat higher uncertainty.
+
+Tip-off times cluster around US evening hours, with 72\% of games starting between 7:00 PM and 10:30 PM Eastern Time. This concentration creates distinct liquidity patterns analyzed in Chapter~\ref{sec:temporal}, with peak market quality during these hours and deterioration outside the core window.
+
+%------------------------------------------------------------------------------
+% 2.7 Limitations
+%------------------------------------------------------------------------------
+\section{Data Limitations}
+
+Several limitations should be considered when interpreting our findings:
+
+\textbf{Sample Period:} Eighteen days of data (ending at the All-Star break), while substantial in event count, represents a limited window that may not capture seasonal effects (e.g., playoff intensity) or evolving market structure. Results should be validated on out-of-sample periods before deployment in live trading.
+
+\textbf{Game Outcomes Only:} Our dataset contains only game outcome (moneyline) markets. Polymarket also offers player prop markets and other NBA-related contracts not captured here. Findings may not generalize to these related markets.
+
+\textbf{No Trader Identification:} The public WebSocket feed does not identify individual traders. We cannot distinguish market maker activity from informed trading or retail flow with certainty---only infer these categories from behavioral patterns.
+
+\textbf{Selection Bias:} Only games that reached resolution are included. Any markets that were cancelled or remained unresolved (e.g., due to postponements) are not in the dataset, potentially biasing our sample toward ``normal'' game conditions.
+
+These limitations are inherent to the data collection methodology and do not invalidate the analysis, but they should inform how aggressively findings are generalized or deployed in practice.

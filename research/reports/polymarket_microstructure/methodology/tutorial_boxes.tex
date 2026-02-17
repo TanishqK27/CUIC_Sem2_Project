@@ -1,0 +1,405 @@
+% tutorial_boxes.tex
+% Appendix A: Methodology Tutorials
+
+\section{Methodology Tutorials}
+\label{sec:methodology-appendix}
+
+{\small
+This appendix provides detailed explanations of the statistical and financial concepts used throughout this report. Each tutorial is designed for readers with undergraduate-level statistics background who may be encountering market microstructure concepts for the first time.}
+
+%------------------------------------------------------------------------------
+% A.1 Bid-Ask Spread
+%------------------------------------------------------------------------------
+\subsection{Understanding Bid-Ask Spread}
+\label{method:spread-appendix}
+
+The \textbf{bid-ask spread} is perhaps the most fundamental concept in market microstructure. It represents the cost of immediate trading and reflects the compensation that liquidity providers require.
+
+\textbf{Definition:} The spread is the difference between the best (lowest) asking price and the best (highest) bid price in a market.
+
+\begin{equation}
+\text{Spread} = P_{\text{ask}} - P_{\text{bid}}
+\end{equation}
+
+\textbf{Economic Intuition:} Market makers quote prices at which they will buy (bid) and sell (ask). The spread represents their compensation for three types of risk:
+
+\begin{enumerate}
+    \item \textbf{Inventory Risk:} Holding positions exposes market makers to price movements. If they buy at the bid and prices fall, they lose money. Wider spreads compensate for this risk.
+
+    \item \textbf{Adverse Selection:} Some traders have better information than market makers. When informed traders trade, they tend to profit at the market maker's expense. Spreads must be wide enough to offset losses from these ``toxic'' flows with profits from uninformed traders.
+
+    \item \textbf{Operating Costs:} Market makers incur costs for technology, capital, and operations. Spreads must cover these costs to make market making profitable.
+\end{enumerate}
+
+\textbf{Measurement in Prediction Markets:} In prediction markets where prices range from \$0 to \$1, we typically express spreads as percentages:
+
+\begin{equation}
+\text{Spread \%} = \frac{P_{\text{ask}} - P_{\text{bid}}}{\$1.00} \times 100\%
+\end{equation}
+
+A \$0.02 spread equals a 2\% spread. This percentage interpretation is intuitive: a 2\% spread means you ``lose'' 2\% of contract value to the spread on a round-trip (buy then sell).
+
+\textbf{Half-Spread:} For execution cost calculation, traders often use the \textit{half-spread}---the cost of executing one side (either buy or sell) assuming execution at mid-price is the benchmark:
+
+\begin{equation}
+\text{Half-Spread} = \frac{P_{\text{ask}} - P_{\text{bid}}}{2}
+\end{equation}
+
+If the spread is 2\%, the half-spread is 1\%, meaning a buy order ``costs'' 1\% relative to mid-price, and a sell order ``costs'' another 1\%.
+
+%------------------------------------------------------------------------------
+% A.2 Order Book Depth
+%------------------------------------------------------------------------------
+\subsection{Order Book Depth}
+\label{method:depth-appendix}
+
+\textbf{Depth} measures the total quantity (in dollars or contracts) available at each price level in the order book. It indicates how much trading can occur at current prices before prices move.
+
+\textbf{Calculation:}
+
+\begin{align}
+\text{Bid Depth} &= \sum_{i} \text{Size}_i \quad \text{for all bid price levels} \\
+\text{Ask Depth} &= \sum_{j} \text{Size}_j \quad \text{for all ask price levels} \\
+\text{Total Depth} &= \text{Bid Depth} + \text{Ask Depth}
+\end{align}
+
+\textbf{Depth Imbalance:} A useful summary statistic measuring the relative balance between buying and selling interest:
+
+\begin{equation}
+\text{Imbalance} = \frac{D_{\text{bid}} - D_{\text{ask}}}{D_{\text{bid}} + D_{\text{ask}}}
+\end{equation}
+
+This ratio ranges from $-1$ (all depth on ask side) to $+1$ (all depth on bid side). Values near zero indicate balanced depth.
+
+\textbf{Interpretation:}
+\begin{itemize}
+    \item \textbf{Higher depth = better liquidity:} Large orders can execute without ``walking the book'' (executing against multiple price levels).
+    \item \textbf{Positive imbalance:} More buying interest than selling interest; may signal bullish sentiment or market makers positioned short.
+    \item \textbf{Negative imbalance:} More selling interest than buying interest; may signal bearish sentiment or market makers positioned long.
+\end{itemize}
+
+\textbf{Depth vs Spread:} Spread measures the \textit{cost} of small trades; depth measures the \textit{capacity} for larger trades. A market can have tight spreads but thin depth (cheap for small trades, expensive for large trades) or wide spreads but deep depth (expensive for all trades, but large trades don't move prices much).
+
+%------------------------------------------------------------------------------
+% A.3 Autocorrelation Function
+%------------------------------------------------------------------------------
+\subsection{Autocorrelation Function (ACF)}
+\label{method:acf-appendix}
+
+The \textbf{autocorrelation function} measures how correlated a time series is with its own past values at various lags.
+
+\textbf{Formula:} For a time series $X_t$ with mean $\mu$ and variance $\sigma^2$, the autocorrelation at lag $k$ is:
+
+\begin{equation}
+\rho_k = \frac{E[(X_t - \mu)(X_{t-k} - \mu)]}{\sigma^2} = \frac{\text{Cov}(X_t, X_{t-k})}{\text{Var}(X_t)}
+\end{equation}
+
+By construction, $\rho_0 = 1$ (a series is perfectly correlated with itself) and $|\rho_k| \leq 1$ for all $k$.
+
+\textbf{Interpretation for Returns:}
+\begin{itemize}
+    \item $\rho_k > 0$: \textbf{Momentum}---positive returns tend to follow positive returns. The trend continues.
+    \item $\rho_k < 0$: \textbf{Mean Reversion}---positive returns tend to follow negative returns. Prices revert.
+    \item $\rho_k \approx 0$: \textbf{Random Walk}---past returns don't predict future returns. Market is efficient.
+\end{itemize}
+
+\textbf{Statistical Significance:} Under the null hypothesis of no autocorrelation (white noise), the standard error of ACF estimates is approximately $1/\sqrt{n}$ where $n$ is the sample size. The 95\% confidence bands are:
+
+\begin{equation}
+\pm \frac{1.96}{\sqrt{n}}
+\end{equation}
+
+ACF values within these bands are not statistically significant and consistent with random noise.
+
+\textbf{Partial Autocorrelation (PACF):} The PACF measures correlation at lag $k$ after removing the effect of intermediate lags. If ACF shows persistent correlation but PACF shows only lag-1 significance, the process is likely AR(1)---autocorrelation at longer lags is ``inherited'' from lag-1 rather than direct.
+
+%------------------------------------------------------------------------------
+% A.4 Half-Life Estimation
+%------------------------------------------------------------------------------
+\subsection{Half-Life of Mean Reversion}
+\label{method:halflife-appendix}
+
+For mean-reverting processes, the \textbf{half-life} measures how quickly deviations from equilibrium decay.
+
+\textbf{Model:} The Ornstein-Uhlenbeck (OU) process models mean reversion:
+
+\begin{equation}
+dX_t = \theta(\mu - X_t)dt + \sigma dW_t
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $\theta$ = speed of mean reversion (higher = faster reversion)
+    \item $\mu$ = long-run mean (equilibrium level)
+    \item $\sigma$ = volatility
+    \item $W_t$ = Wiener process (random noise)
+\end{itemize}
+
+The term $\theta(\mu - X_t)$ pulls the process back toward $\mu$ when $X_t$ deviates.
+
+\textbf{Half-Life Formula:} The half-life (time for a deviation to decay by 50\%) is:
+
+\begin{equation}
+t_{1/2} = \frac{\ln(2)}{\theta} \approx \frac{0.693}{\theta}
+\end{equation}
+
+\textbf{Estimation Procedure:}
+\begin{enumerate}
+    \item Discretize the OU process: $X_{t+1} - X_t = \alpha + \beta X_t + \epsilon_t$
+    \item Estimate $\beta$ via OLS regression of $\Delta X_t$ on $X_{t-1}$
+    \item Calculate: $\theta = -\ln(1 + \beta)$ per time unit
+    \item Calculate: $t_{1/2} = \ln(2) / \theta$
+\end{enumerate}
+
+\textbf{Interpretation Example:} A half-life of 3 minutes means:
+\begin{itemize}
+    \item A 10\% deviation will be 5\% after 3 minutes
+    \item Will be 2.5\% after 6 minutes
+    \item Will be 1.25\% after 9 minutes
+    \item And so on, exponentially decaying
+\end{itemize}
+
+\textbf{Trading Implication:} Shorter half-lives mean faster reversion, creating more frequent trading opportunities but requiring faster execution.
+
+%------------------------------------------------------------------------------
+% A.5 Realized Volatility
+%------------------------------------------------------------------------------
+\subsection{Realized Volatility}
+\label{method:volatility-appendix}
+
+\textbf{Realized volatility} measures the actual magnitude of price fluctuations over a historical period, distinct from implied volatility (market's expectation of future volatility).
+
+\textbf{Calculation:} For a series of log returns $r_1, r_2, \ldots, r_n$:
+
+\begin{equation}
+\sigma_{\text{RV}}^2 = \sum_{i=1}^{n} r_i^2
+\end{equation}
+
+where $r_i = \ln(P_i / P_{i-1})$ are continuously compounded returns.
+
+For returns that are demeaned (mean subtracted):
+
+\begin{equation}
+\sigma_{\text{RV}}^2 = \sum_{i=1}^{n} (r_i - \bar{r})^2
+\end{equation}
+
+\textbf{Why Squared Returns?} Under standard assumptions, the expected squared return equals the variance. Summing squared returns therefore estimates total variance over the period.
+
+\textbf{Annualization (Traditional Markets):} To compare volatilities across different time scales, traditional finance annualizes:
+
+\begin{equation}
+\sigma_{\text{annual}} = \sigma_{\text{daily}} \times \sqrt{252}
+\end{equation}
+
+\textbf{Prediction Markets:} Annualization is not meaningful for prediction markets with fixed horizons. We report volatility over relevant periods (per game, per hour) without annualizing.
+
+\textbf{Interpretation:} Higher realized volatility indicates larger price swings. In prediction markets, volatility spikes when information arrives (scores, injuries) and collapses as outcomes become certain.
+
+%------------------------------------------------------------------------------
+% A.6 Order Flow Imbalance
+%------------------------------------------------------------------------------
+\subsection{Order Flow Imbalance (OFI)}
+\label{method:ofi-appendix}
+
+\textbf{Order flow imbalance} measures net buying or selling pressure over a time period.
+
+\textbf{Formula:}
+
+\begin{equation}
+\text{OFI} = \frac{V_{\text{buy}} - V_{\text{sell}}}{V_{\text{buy}} + V_{\text{sell}}}
+\end{equation}
+
+where $V_{\text{buy}}$ is dollar volume of buy-initiated trades and $V_{\text{sell}}$ is dollar volume of sell-initiated trades.
+
+\textbf{Trade Classification (Lee-Ready Algorithm):}
+\begin{enumerate}
+    \item If trade price $>$ mid-price: classify as \textbf{buy} (buyer aggressive)
+    \item If trade price $<$ mid-price: classify as \textbf{sell} (seller aggressive)
+    \item If trade price $=$ mid-price: use tick rule (if price rose since last trade, it's a buy)
+\end{enumerate}
+
+\textbf{Interpretation:}
+\begin{itemize}
+    \item OFI $> 0$: Net buying pressure (more aggressive buyers)
+    \item OFI $< 0$: Net selling pressure (more aggressive sellers)
+    \item OFI $\approx 0$: Balanced flow
+\end{itemize}
+
+\textbf{Predictive Relationship:} Research shows OFI often predicts short-term returns---buying pressure tends to push prices up. This relationship can be tested by regressing future returns on lagged OFI:
+
+\begin{equation}
+r_{t+1} = \alpha + \beta \cdot \text{OFI}_t + \epsilon_t
+\end{equation}
+
+A positive $\beta$ confirms that buying pressure predicts positive returns.
+
+%------------------------------------------------------------------------------
+% A.7 Binary Market Arbitrage
+%------------------------------------------------------------------------------
+\subsection{Arbitrage in Binary Markets}
+\label{method:arbitrage-appendix}
+
+In a binary market with two mutually exclusive outcomes (A and B), efficient pricing requires:
+
+\begin{equation}
+P_A + P_B = 1
+\end{equation}
+
+\textbf{Arbitrage Opportunity:}
+
+If $P_A + P_B < 1$:
+\begin{itemize}
+    \item Buy one contract of A and one contract of B
+    \item Total cost: $P_A + P_B$
+    \item Guaranteed payout: \$1 (exactly one outcome wins)
+    \item Risk-free profit: $1 - P_A - P_B$
+\end{itemize}
+
+\textbf{Example:} If Home = \$0.52 and Away = \$0.46:
+\begin{itemize}
+    \item Total cost: \$0.98
+    \item Payout: \$1.00
+    \item Profit: \$0.02 (2.0\% return)
+\end{itemize}
+
+\textbf{Why Don't Prices Always Sum to 1?}
+\begin{itemize}
+    \item \textbf{Transaction costs:} Arbitrage requires executing both sides; costs may exceed profit
+    \item \textbf{Execution risk:} Prices may move between placing orders
+    \item \textbf{Capital constraints:} Arbitrage requires tying up capital until resolution
+    \item \textbf{Temporary dislocations:} Brief mispricings may correct before execution
+\end{itemize}
+
+In practice, only deviations exceeding transaction costs (typically 2--3\%) are profitably arbitrageable.
+
+%------------------------------------------------------------------------------
+% A.8 Market Maker Detection
+%------------------------------------------------------------------------------
+\subsection{Market Maker Behavior Patterns}
+\label{method:mm-appendix}
+
+\textbf{Market makers} provide liquidity by continuously quoting bid and ask prices. While we cannot directly identify market makers in anonymous markets, behavioral patterns reveal their presence:
+
+\textbf{Detection Signatures:}
+\begin{enumerate}
+    \item \textbf{Quote Symmetry:} Market makers maintain roughly balanced depth on both sides, adjusting dynamically. Look for correlated bid/ask updates.
+
+    \item \textbf{High Update Frequency:} Professional market makers update quotes frequently (sub-second) to stay competitive and manage risk. Manual traders update much more slowly.
+
+    \item \textbf{Rapid Post-Trade Response:} After a trade executes, market makers quickly refresh quotes. A median response time under 200ms suggests automated systems.
+
+    \item \textbf{Persistent Presence:} Unlike directional traders who enter and exit, market makers maintain quotes continuously throughout trading hours.
+
+    \item \textbf{Inventory Management:} When inventory accumulates (e.g., many buys without offsetting sells), market makers skew quotes to encourage offsetting flow.
+\end{enumerate}
+
+\textbf{Why It Matters:} Understanding market maker behavior helps traders:
+\begin{itemize}
+    \item Interpret spread changes (widening may signal MM uncertainty)
+    \item Time execution (trade when MMs are most active)
+    \item Recognize temporary vs permanent price impact
+\end{itemize}
+
+%------------------------------------------------------------------------------
+% A.9 Slippage and Market Impact
+%------------------------------------------------------------------------------
+\subsection{Slippage and Market Impact}
+\label{method:slippage-appendix}
+
+\textbf{Slippage} is the difference between expected execution price (typically mid-price) and actual execution price.
+
+\textbf{Components:}
+
+\begin{equation}
+\text{Total Slippage} = \text{Half-Spread} + \text{Market Impact} + \text{Timing Cost}
+\end{equation}
+
+\begin{itemize}
+    \item \textbf{Half-Spread:} The immediate cost of crossing to execute (buying at ask, selling at bid)
+    \item \textbf{Market Impact:} Additional price movement from consuming depth
+    \item \textbf{Timing Cost:} Price movement between decision and execution
+\end{itemize}
+
+\textbf{Market Impact Model (Square Root):} Empirically, market impact scales with the square root of order size relative to market depth:
+
+\begin{equation}
+\text{Impact} \approx \sigma \cdot \sqrt{\frac{V}{D}}
+\end{equation}
+
+where $\sigma$ is volatility, $V$ is order size, and $D$ is depth.
+
+\textbf{Implication:} Doubling order size increases impact by $\sqrt{2} \approx 1.4$, not by 2. Large orders are costly, but not as costly as linear scaling would suggest.
+
+\textbf{Temporary vs Permanent Impact:}
+\begin{itemize}
+    \item \textbf{Temporary:} Price reverts after trade as market makers replenish depth. Most impact in prediction markets is temporary.
+    \item \textbf{Permanent:} Price stays at new level because the trade conveyed information. Occurs when informed traders move prices.
+\end{itemize}
+
+%------------------------------------------------------------------------------
+% A.10 Bootstrap Confidence Intervals
+%------------------------------------------------------------------------------
+\subsection{Bootstrap Confidence Intervals}
+\label{method:bootstrap-appendix}
+
+\textbf{Bootstrap} is a resampling technique for estimating confidence intervals without assuming a particular distribution.
+
+\textbf{Algorithm:}
+\begin{enumerate}
+    \item From original sample of size $n$, draw $B$ bootstrap samples (typically $B = 1000$ to $10000$)
+    \item Each bootstrap sample: randomly select $n$ observations with replacement
+    \item Calculate statistic of interest (e.g., median) for each bootstrap sample
+    \item Use percentiles of bootstrap distribution as confidence interval bounds
+\end{enumerate}
+
+\textbf{95\% Confidence Interval:} Use the 2.5th and 97.5th percentiles of the bootstrap distribution.
+
+\textbf{Why Bootstrap?}
+\begin{itemize}
+    \item \textbf{No distributional assumptions:} Works for any statistic without assuming normality
+    \item \textbf{Handles complex statistics:} Works for medians, quantiles, ratios---not just means
+    \item \textbf{Accounts for dependence:} Block bootstrap variants handle time series dependence
+\end{itemize}
+
+\textbf{Example:} To estimate 95\% CI for median spread:
+\begin{enumerate}
+    \item Resample spread observations 10,000 times
+    \item Calculate median for each resample
+    \item Sort the 10,000 medians
+    \item 95\% CI: [250th value, 9750th value]
+\end{enumerate}
+
+%------------------------------------------------------------------------------
+% A.11 Hypothesis Testing
+%------------------------------------------------------------------------------
+\subsection{Hypothesis Testing in Financial Markets}
+\label{method:hypothesis-appendix}
+
+Statistical hypothesis testing determines whether observed patterns are statistically significant or could arise from random chance.
+
+\textbf{Key Tests Used in This Report:}
+
+\textbf{t-test:} Tests whether a mean differs from a hypothesized value or whether two means differ.
+\begin{equation}
+t = \frac{\bar{x} - \mu_0}{s / \sqrt{n}}
+\end{equation}
+
+\textbf{Jarque-Bera Test:} Tests whether data follows a normal distribution by examining skewness and kurtosis.
+\begin{equation}
+JB = \frac{n}{6}\left(S^2 + \frac{(K-3)^2}{4}\right)
+\end{equation}
+where $S$ is skewness and $K$ is kurtosis. Rejecting normality (high JB, low p-value) indicates fat tails or asymmetry.
+
+\textbf{Durbin-Watson Test:} Tests for autocorrelation in regression residuals.
+\begin{equation}
+DW = \frac{\sum_{t=2}^{n}(e_t - e_{t-1})^2}{\sum_{t=1}^{n}e_t^2}
+\end{equation}
+DW $\approx 2$ indicates no autocorrelation; DW $< 2$ indicates positive autocorrelation; DW $> 2$ indicates negative autocorrelation.
+
+\textbf{Multiple Testing Correction:} When running many tests, false positives accumulate. The Bonferroni correction adjusts significance level:
+\begin{equation}
+\alpha_{\text{adjusted}} = \frac{\alpha}{m}
+\end{equation}
+where $m$ is the number of tests. For 10 tests at $\alpha = 0.05$, use $\alpha_{\text{adjusted}} = 0.005$ for each test.
+
+\textbf{Interpretation Caution:} Statistical significance does not imply economic significance. A statistically significant effect may be too small to matter for trading (e.g., 0.1\% edge is significant with enough data but won't cover transaction costs).

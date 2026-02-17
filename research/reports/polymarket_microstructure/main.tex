@@ -1,0 +1,301 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Polymarket NBA Market Microstructure Analysis
+% Cardiff University Investment Club - Spring 2026
+%
+% A comprehensive exploratory data analysis of Polymarket's internal market
+% dynamics for NBA game outcome prediction markets.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11pt, a4paper]{report}
+
+%------------------------------------------------------------------------------
+% PACKAGES
+%------------------------------------------------------------------------------
+\usepackage[margin=0.8in, top=0.7in, bottom=0.7in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{setspace}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{parskip}
+
+% Tutorial box styling
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable,skins}
+
+% Font setup - Helvetica (sans-serif) to match NBA EDA report
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[T1]{fontenc}
+
+%------------------------------------------------------------------------------
+% COLOR DEFINITIONS
+%------------------------------------------------------------------------------
+\definecolor{cuicblue}{RGB}{0, 82, 147}       % CUIC primary blue
+\definecolor{methodblue}{RGB}{230, 242, 255}  % Light blue for method boxes
+\definecolor{methodborder}{RGB}{0, 102, 204}  % Border for method boxes
+\definecolor{findinggreen}{RGB}{230, 255, 230} % Light green for key findings
+\definecolor{findingborder}{RGB}{0, 153, 51}   % Border for findings
+\definecolor{warningorange}{RGB}{255, 243, 230} % Light orange for warnings
+\definecolor{warningborder}{RGB}{255, 153, 0}   % Border for warnings
+
+%------------------------------------------------------------------------------
+% HYPERREF SETUP
+%------------------------------------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=cuicblue,
+    citecolor=cuicblue,
+    urlcolor=cuicblue,
+    pdftitle={Polymarket NBA Market Microstructure Analysis},
+    pdfauthor={Cardiff University Investment Club},
+}
+
+%------------------------------------------------------------------------------
+% HEADER/FOOTER
+%------------------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{Polymarket NBA Market Microstructure}}
+\fancyhead[R]{\small\textit{CUIC Quantitative Research}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+%------------------------------------------------------------------------------
+% CHAPTER AND SECTION FORMATTING - Compact spacing
+%------------------------------------------------------------------------------
+\titleformat{\chapter}[display]
+    {\normalfont\huge\bfseries\color{cuicblue}}
+    {Chapter \thechapter}{20pt}{\Huge}
+\titleformat{\section}
+    {\normalfont\Large\bfseries\color{cuicblue}}
+    {\thesection}{1em}{}
+\titleformat{\subsection}
+    {\normalfont\large\bfseries}
+    {\thesubsection}{1em}{}
+
+% Reduce spacing before/after chapters and sections
+\titlespacing*{\chapter}{0pt}{-20pt}{20pt}
+\titlespacing*{\section}{0pt}{1.5ex plus 0.5ex minus 0.2ex}{1ex plus 0.2ex}
+\titlespacing*{\subsection}{0pt}{1.2ex plus 0.4ex minus 0.2ex}{0.8ex plus 0.2ex}
+\titlespacing*{\subsubsection}{0pt}{1ex plus 0.3ex minus 0.1ex}{0.6ex plus 0.1ex}
+
+% Compact list spacing
+\setlist{nosep, leftmargin=*, topsep=2pt, partopsep=0pt}
+\setlist[itemize]{itemsep=1pt}
+\setlist[enumerate]{itemsep=1pt}
+
+% Reduce caption spacing
+\captionsetup{skip=4pt, font=small}
+
+% Reduce figure/table float spacing
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+
+% Compact paragraph spacing
+\setlength{\parskip}{0.4ex plus 0.2ex minus 0.1ex}
+
+%------------------------------------------------------------------------------
+% TUTORIAL BOX ENVIRONMENTS
+%------------------------------------------------------------------------------
+\newtcolorbox{methodbox}[1][]{
+    enhanced,
+    breakable,
+    colback=methodblue,
+    colframe=methodborder,
+    fonttitle=\bfseries\small,
+    title={Methodology: #1},
+    attach boxed title to top left={yshift=-2mm, xshift=5mm},
+    boxed title style={colback=methodborder, colframe=methodborder},
+    top=2mm,
+    bottom=2mm,
+    left=3mm,
+    right=3mm,
+    arc=2mm,
+    boxsep=1mm,
+}
+
+\newtcolorbox{keyfindings}[1][Key Findings]{
+    enhanced,
+    breakable,
+    colback=findinggreen,
+    colframe=findingborder,
+    fonttitle=\bfseries\small,
+    title={#1},
+    attach boxed title to top left={yshift=-2mm, xshift=5mm},
+    boxed title style={colback=findingborder, colframe=findingborder},
+    top=2mm,
+    bottom=2mm,
+    left=3mm,
+    right=3mm,
+    arc=2mm,
+    boxsep=1mm,
+}
+
+\newtcolorbox{warningbox}[1][Important Note]{
+    enhanced,
+    breakable,
+    colback=warningorange,
+    colframe=warningborder,
+    fonttitle=\bfseries\small,
+    title={#1},
+    attach boxed title to top left={yshift=-2mm, xshift=5mm},
+    boxed title style={colback=warningborder, colframe=warningborder},
+    top=2mm,
+    bottom=2mm,
+    left=3mm,
+    right=3mm,
+    arc=2mm,
+    boxsep=1mm,
+}
+
+%------------------------------------------------------------------------------
+% CUSTOM COMMANDS
+%------------------------------------------------------------------------------
+\newcommand{\CI}[2]{95\% CI [$#1$, $#2$]}
+\newcommand{\pvalue}[1]{\textit{p} = #1}
+\newcommand{\meansd}[2]{#1 $\pm$ #2}
+
+%------------------------------------------------------------------------------
+% DOCUMENT START
+%------------------------------------------------------------------------------
+\begin{document}
+
+%------------------------------------------------------------------------------
+% TITLE PAGE
+%------------------------------------------------------------------------------
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\Huge\bfseries\color{cuicblue} Polymarket NBA Market\\[0.3cm] Microstructure Analysis}
+
+    \vspace{1cm}
+
+    {\Large Exploratory Data Analysis of Prediction Market Dynamics}
+
+    \vspace{2cm}
+
+    {\large Cardiff University Investment Club}\\[0.5cm]
+    {\large Quantitative Research Division}
+
+    \vspace{1.5cm}
+
+    {\large Spring 2026}
+
+    \vspace{2cm}
+
+    \begin{tabular}{rl}
+        \textbf{Data Coverage:} & January 26 -- February 12, 2026 \\[0.3cm]
+        \textbf{Markets Analyzed:} & 114+ NBA Games \\[0.3cm]
+        \textbf{Total Events:} & 67.9 Million Orderbook Events \\[0.3cm]
+        \textbf{Price Snapshots:} & 180,000+ Observations \\
+    \end{tabular}
+
+    \vfill
+
+    \textit{Internal Research Document}\\
+    \textit{For Educational Purposes Only}
+
+\end{titlepage}
+
+%------------------------------------------------------------------------------
+% EXECUTIVE SUMMARY
+%------------------------------------------------------------------------------
+\newpage
+\chapter*{Executive Summary}
+\addcontentsline{toc}{chapter}{Executive Summary}
+
+This exploratory data analysis examines 18 days of Polymarket NBA prediction market activity (January 26 -- February 12, 2026), comprising 67.9 million orderbook events across 114 games and approximately 1.3 million executed trades. The collection period ends at the NBA All-Star break, which began February 13. The analysis investigates market microstructure characteristics for applications in quantitative trading and sports betting research, specifically characterizing liquidity conditions, price dynamics, and execution quality.
+
+The central finding is that Polymarket NBA markets exhibit mature infrastructure with competitive spreads (median 2.3\%) and meaningful depth (median \$142K). This liquidity quality compares favorably to other prediction market platforms and supports position sizes up to approximately \$500 without excessive market impact. Market making appears professional and consistent during peak hours.
+
+Price dynamics show extreme fat tails (kurtosis = 214, 95\% CI: [187, 249]), indicating that large price movements occur far more frequently than normal distribution assumptions suggest. Weak negative autocorrelation (half-life approximately 3 minutes) indicates mild mean reversion, though the magnitude may be insufficient to overcome transaction costs for most traders. Volatility follows a predictable game-phase lifecycle: rising through the first half, peaking in the third quarter, and collapsing as outcomes become certain.
+
+Trade flow analysis reveals whale dominance: while median trade size is only \$21.52 (indicating substantial retail participation), 1.3\% of trades generate 57.5\% of total volume. Large trades cluster around information events, suggesting informed trading among whale participants. Order flow imbalance shows weak predictive power for future returns (Q5-Q1 spread of 0.26\%), insufficient to cover round-trip transaction costs as a standalone signal.
+
+These patterns suggest that success in Polymarket NBA markets requires: (1) competitive spreads favor informed participants but impose meaningful hurdles, (2) position sizing must assume extreme moves are possible, (3) timing execution during US evening hours (7--11 PM Eastern) materially improves execution quality, and (4) whale flow may provide directional signals but not sufficient for profitable standalone strategies.
+
+%------------------------------------------------------------------------------
+% TABLE OF CONTENTS
+%------------------------------------------------------------------------------
+\newpage
+\tableofcontents
+
+%------------------------------------------------------------------------------
+% MAIN CONTENT
+%------------------------------------------------------------------------------
+\newpage
+\setstretch{1.02}
+
+\input{sections/01_introduction}
+\input{sections/02_data_overview}
+\input{sections/03_orderbook}
+\input{sections/04_price_dynamics}
+\input{sections/05_trade_flow}
+\input{sections/06_temporal}
+\input{sections/07_cross_outcome}
+\input{sections/08_nba_specific}
+\input{sections/09_market_makers}
+\input{sections/10_execution}
+\input{sections/11_case_studies}
+\input{sections/12_summary}
+
+%------------------------------------------------------------------------------
+% APPENDIX: EXTENDED METHODOLOGY
+%------------------------------------------------------------------------------
+\newpage
+\appendix
+\chapter{Extended Statistical Methodology}
+\label{app:methodology}
+
+This appendix provides extended statistical background for readers seeking deeper understanding of the methods used throughout this report. Each methodology box in the main chapters provides practical interpretation; this appendix offers additional mathematical detail.
+
+\begingroup
+\footnotesize
+\setlength{\parskip}{0.2ex}
+\input{methodology/tutorial_boxes}
+\endgroup
+
+%------------------------------------------------------------------------------
+% REFERENCES
+%------------------------------------------------------------------------------
+\newpage
+\section*{References}
+\addcontentsline{toc}{section}{References}
+
+\begin{enumerate}[leftmargin=*]
+    \item Glosten, L. R., \& Milgrom, P. R. (1985). Bid, ask and transaction prices in a specialist market with heterogeneously informed traders. \textit{Journal of Financial Economics}, 14(1), 71-100.
+
+    \item Kyle, A. S. (1985). Continuous auctions and insider trading. \textit{Econometrica}, 53(6), 1315-1335.
+
+    \item Hasbrouck, J. (2007). \textit{Empirical Market Microstructure: The Institutions, Economics, and Econometrics of Securities Trading}. Oxford University Press.
+
+    \item Wolfers, J., \& Zitzewitz, E. (2004). Prediction markets. \textit{Journal of Economic Perspectives}, 18(2), 107-126.
+
+    \item Manski, C. F. (2006). Interpreting the predictions of prediction markets. \textit{Economics Letters}, 91(3), 425-429.
+
+    \item Arrow, K. J., et al. (2008). The promise of prediction markets. \textit{Science}, 320(5878), 877-878.
+
+    \item Cont, R. (2001). Empirical properties of asset returns: stylized facts and statistical issues. \textit{Quantitative Finance}, 1(2), 223-236.
+
+    \item Bouchaud, J. P., et al. (2009). How markets slowly digest changes in supply and demand. In \textit{Handbook of Financial Markets: Dynamics and Evolution} (pp. 57-160).
+
+    \item Avellaneda, M., \& Stoikov, S. (2008). High-frequency trading in a limit order book. \textit{Quantitative Finance}, 8(3), 217-224.
+
+    \item Berg, J. E., et al. (2008). Results from a dozen years of election futures markets research. In \textit{Handbook of Experimental Economics Results} (Vol. 1, pp. 742-751).
+\end{enumerate}
+
+\end{document}
