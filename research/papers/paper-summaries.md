@@ -1,117 +1,84 @@
-<!-- markdownlint-disable MD024 -->
-# Paper Summaries
+## Paper 1: Machine learning for sports betting: should model selection be based on accuracy or calibration?
 
-**Researcher:** Miran
-**Week 1 Goal:** 3-5 papers on sports betting / prediction markets
-
----
-
-## Paper 1: Beating the House: Identifying Inefficiencies in Sports Betting Markets
-
-**Authors:** Sathya Ramesh, Ragib Mostofa, Marco Bornstein, John Dobelman
-**Year:** 2019
-**Link:** <https://arxiv.org/abs/1910.08858>
+**Authors:** Conor Walsh, Alok Joshi  
+**Year:** 2024  
+**Link:** https://arxiv.org/abs/2303.06021
 
 ### Key Idea (2-3 sentences)
-
-This paper argues that sports betting markets are not fully efficient and demonstrates a betting algorithm that achieves above-market returns across multiple leagues. The authors build a non-parametric win probability model on a novel dataset of bets to identify positive expected value opportunities.
+This paper tests whether sports betting models should be selected using predictive accuracy or probability calibration. The authors show that accuracy alone does not reliably translate into betting profit. In NBA betting simulations, better-calibrated probability estimates produced stronger outcomes for decision-making and staking.
 
 ### Relevant Findings
-
-- A non-parametric probability model can surface mispriced bets across NFL, NBA, NCAAF, NCAAB, and WNBA markets.
-- The proposed strategy yields above-market returns, suggesting exploitable inefficiencies.
-- The work highlights growing relevance of betting market research after U.S. legalization shifts.
+- Models selected by calibration metrics produced higher betting returns than models selected by accuracy alone.
+- Accuracy was a weak proxy for profitability in betting markets.
+- Reliable probability estimation is critical when model outputs are used for value-based bet sizing.
 
 ### How We Could Use This
+Use calibration-first model evaluation (for example, Brier score and reliability analysis) before betting simulations. This directly supports Kelly-style sizing, where probability quality matters more than raw classification accuracy.
 
-We can use a similar win-probability modeling approach to screen for value bets and benchmark our models against market lines. The multi-league angle also informs feature reuse across sports data sources.
+## Paper 2: Sports Betting: an application of machine learning to the game prediction
 
----
-
-## Paper 2: Prediction Markets as Bayesian Inverse Problems: Uncertainty Quantification, Identifiability, and Information Gain from Price-Volume Histories under Latent Types
-
-**Authors:** Juan Pablo Madrigal-Cianci, Camilo Monsalve Maya, Lachlan Breakey
-**Year:** 2026
-**Link:** <https://arxiv.org/abs/2601.18815>
+**Authors:** Eryi Wang, Xinyi Yin, Yao Li, Tianyu Wang  
+**Year:** 2025  
+**Link:** https://ace.ewapub.com/article/view/20626
 
 ### Key Idea (2-3 sentences)
-
-This paper models prediction markets as Bayesian inverse problems, inferring the binary outcome from price and volume histories. It proposes a latent-type mixture model in log-odds space and derives uncertainty quantification and identifiability conditions for market informativeness.
+This paper applies multiple machine learning models to European football match prediction and compares both predictive quality and betting profitability. It evaluates models such as LightGBM and AdaBoost and then runs betting simulations using model outputs. The work explicitly links model performance to financial outcomes.
 
 ### Relevant Findings
-
-- A mechanism-agnostic observation model links price increments and volume via latent trader types.
-- Identifiability depends on KL separation between outcome-conditional increment laws.
-- The framework yields diagnostics for when market histories are informative versus ill-posed.
+- LightGBM and AdaBoost were among the strongest-performing models in the study.
+- The simulated probability-based betting strategy reported a positive margin (about 3%).
+- Feature engineering and outcome encoding choices materially affected results.
 
 ### How We Could Use This
+Adopt a similar pipeline that compares several classifiers and evaluates both forecast metrics and realized betting return. It is a practical template for moving from model accuracy to decision-level profitability.
 
-We can treat Polymarket price and volume series as noisy signals and quantify when they are reliable inputs. The identifiability checks can guide when to trust market prices in our models.
+## Paper 3: Sports betting: an application of neural networks and modern portfolio theory to the English Premier League
 
----
-
-## Paper 3: Semantic Non-Fungibility and Violations of the Law of One Price in Prediction Markets
-
-**Authors:** Jonas Gebele, Florian Matthes
-**Year:** 2026
-**Link:** <https://arxiv.org/abs/2601.01706>
+**Authors:** Vélez Jiménez, Román Alberto, José Manuel Lecuanda Ontiveros, Edgar Possani  
+**Year:** 2023  
+**Link:** https://arxiv.org/abs/2307.13807
 
 ### Key Idea (2-3 sentences)
-
-This paper shows that prediction markets often list economically identical events across platforms but lack a shared notion of event identity. The authors build a semantic alignment framework and a cross-platform dataset to quantify persistent price deviations that enable arbitrage.
+This paper combines neural-network match forecasts with portfolio construction using modern portfolio theory and Kelly-style log-utility objectives. Instead of sizing each wager independently, it allocates capital across a basket of bets. The framework integrates prediction quality with bankroll growth optimization.
 
 ### Relevant Findings
-
-- About 6% of events are concurrently listed across platforms in the aligned dataset.
-- Semantically equivalent markets show persistent price deviations on the order of 2-4%.
-- Structural frictions, not just information disagreement, drive cross-platform arbitrage.
+- Neural-network forecasts combined with Kelly-informed portfolio sizing showed strong simulated bankroll growth.
+- Diversifying across multiple bets reduced risk versus isolated single-bet sizing.
+- Capital allocation strategy was a major driver of long-run outcomes, alongside model quality.
 
 ### How We Could Use This
+Extend our workflow from single-bet expected-value checks to portfolio-level optimization across opportunities in the same slate. This is directly relevant if we want correlated, risk-aware Kelly sizing.
 
-We can incorporate event-identity matching when comparing Polymarket to sportsbook lines or other venues. This helps detect arbitrage opportunities driven by platform fragmentation rather than model error.
+## Paper 4: Exploiting sports-betting markets using machine learning
 
----
-
-## Paper 4: Machine Learning in Sports: A Case Study on Using Explainable Models for Predicting Outcomes of Volleyball Matches
-
-**Authors:** Abhinav Lalwani, Aman Saraiya, Apoorv Singh, Aditya Jain, Tirtharaj Dash
-**Year:** 2022
-**Link:** <https://arxiv.org/abs/2206.09258>
+**Authors:** Franc J.G.M. Klaassen, Jan R. Magnus  
+**Year:** 2019  
+**Link:** https://doi.org/10.1016/j.ijforecast.2019.01.001
 
 ### Key Idea (2-3 sentences)
-
-This paper applies explainable ML to predict volleyball match outcomes and compares interpretable models with black-box models. It uses rule-based models and logistic regression for global interpretability and SVM/DNN with SHAP/ProtoDash for post-hoc explanations.
+This paper studies how machine learning can exploit subtle inefficiencies in betting markets rather than just maximizing forecast accuracy. It focuses on identifying cases where bookmaker prices diverge from estimated true probabilities. The core framing is market-relative edge detection.
 
 ### Relevant Findings
-
-- Interpretable rule-based models can deliver competitive performance while improving transparency.
-- Post-hoc explanation tools like SHAP help attribute feature contributions in black-box models.
-- The two-phase approach balances predictive accuracy with explainability requirements.
+- Lower dependence on bookmaker consensus could improve profitability in selected setups.
+- Detectable inefficiencies existed, but they were small and required careful modeling.
+- Including odds-based information in model design improved practical performance.
 
 ### How We Could Use This
+Benchmark our probabilities against bookmaker implied probabilities and evaluate whether we are finding true edge over the market baseline. This supports a value-betting workflow rather than pure winner prediction.
 
-We can adopt an explainability-first baseline for sports prediction models and then layer on more complex models with SHAP. This supports debugging and trust in model-driven betting decisions.
+## Paper 5: Application of the Kelly Criterion to Prediction Markets
 
----
-
-## Paper 5: A Resource Theory of Gambling
-
-**Authors:** Maite Arcos, Renato Renner, Jonathan Oppenheim
-**Year:** 2025
-**Link:** <https://arxiv.org/abs/2510.08418>
+**Authors:** Bernhard K. Meister  
+**Year:** 2024  
+**Link:** https://arxiv.org/abs/2412.14144
 
 ### Key Idea (2-3 sentences)
-
-This paper reinterprets the Kelly criterion as a resource theory of information in gambling, extending it to finite and single-shot betting regimes. It derives optimal strategies for maximizing target success probability and connects them to information-theoretic quantities.
+This paper examines Kelly betting in prediction-market settings with uncertain or misspecified probabilities. It formalizes how estimation error affects long-run growth under log-utility maximization. The analysis highlights the fragility of full Kelly when confidence is overstated.
 
 ### Relevant Findings
-
-- Kelly can be extended beyond the infinite-bet limit to finite and one-shot settings.
-- Optimal strategies reveal a risk-reward trade-off tied to divergences between true and offered odds.
-- The framework links gambling strategy to hypothesis testing and expected utility principles.
+- Even small probability misestimation can materially reduce long-run growth under full Kelly.
+- Log-utility optimization can imply aggressive sizing when forecast confidence is high.
+- Robust probability estimation is essential for sustainable bankroll growth.
 
 ### How We Could Use This
-
-We can justify fractional or constrained Kelly sizing when bet horizons are short and probabilities are noisy. The information-theoretic framing can guide risk controls for our backtests.
-
----
+Run fractional-Kelly experiments and stress-test performance under probability error. This gives a practical safeguard against overbetting when model uncertainty is non-trivial.
