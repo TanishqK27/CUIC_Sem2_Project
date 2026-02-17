@@ -28,7 +28,7 @@ Welcome to the CUIC Quant Fund project! This guide will help you contribute effe
 
 ```bash
 # Clone the repository
-git clone https://github.com/CUIC/CUIC_Sem2_Project.git
+git clone https://github.com/TanishqK27/CUIC_Sem2_Project.git
 cd CUIC_Sem2_Project
 
 # Create and activate virtual environment
@@ -76,7 +76,7 @@ git checkout -b <your-name>/<feature-description>
 ### 2. Make Your Changes
 
 - Write clean, documented code
-- When using AI/Claude/Codex, be thorough and don't just push AI stuff without understanding and checking it first. 
+- When using AI/Claude/Codex, be thorough and don't just push AI stuff without understanding and checking it first.
 - Add tests for new functionality
 - Update relevant documentation
 
@@ -94,21 +94,7 @@ ruff format src/
 pre-commit run --all-files
 ```
 
-### 4. Update Your Log
-
-Update your personal log in `team/<your-name>/LOG.md`:
-
-```markdown
-## 2025-01-15
-
-- Implemented Polymarket API client
-- Added caching for market data
-- Fixed rate limiting issue
-```
-
-Or use the skill: `/update-log <your-name> Implemented Polymarket API client`
-
-### 5. Create Pull Request
+### 4. Create Pull Request
 
 ```bash
 # Push your branch
@@ -299,7 +285,6 @@ Before requesting review:
 - [ ] All tests pass (`pytest tests/ -v`)
 - [ ] Pre-commit hooks pass (`pre-commit run --all-files`)
 - [ ] Documentation updated if needed
-- [ ] Personal LOG.md updated
 - [ ] PR has clear description
 
 ---
@@ -385,44 +370,16 @@ git commit -m "WIP"
    - Analysis with visualizations
    - Conclusions and next steps
 
-3. **Document findings**:
-   - Update `research/ideas/README.md` with insights
-   - Add relevant papers to `research/papers/README.md`
-
-### Submitting Research Ideas
-
-Add to `research/ideas/README.md`:
-
-```markdown
-## [IDEA] Your Idea Title
-
-**Submitted by:** Your Name
-**Date:** 2025-01-15
-**Status:** Proposed / In Progress / Completed
-
-### Description
-Brief description of the research idea.
-
-### Hypothesis
-What you expect to find.
-
-### Data Required
-- Data source 1
-- Data source 2
-
-### Next Steps
-- Step 1
-- Step 2
-```
+3. **Document findings** in the [GitHub Wiki](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki)
 
 ---
 
 ## Getting Help
 
-- Check existing documentation in `docs/`
+- Check the [GitHub Wiki](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki) for guides and references
 - Review `CLAUDE.md` for project context
 - Ask in team communication channels
-- Create an issue for bugs or feature requests
+- Create a [GitHub Issue](https://github.com/TanishqK27/CUIC_Sem2_Project/issues) for bugs or feature requests
 
 ---
 
