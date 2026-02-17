@@ -14,6 +14,7 @@ Usage:
 """
 
 from cuic_quant.backtest.backtester_backend import (
+    always_bet_away,
     always_bet_home,
     backtest,
     load_backtest_data,
@@ -21,6 +22,7 @@ from cuic_quant.backtest.backtester_backend import (
 )
 
 __all__ = [
+    "always_bet_away",
     "always_bet_home",
     "backtest",
     "load_backtest_data",

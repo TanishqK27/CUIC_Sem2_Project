@@ -325,7 +325,16 @@ def always_bet_home(
         "reason": "Always bet home (test strategy)",
     }
 
-
+def always_bet_away(
+    row: pd.Series,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "action": "BUY_AWAY",
+        "confidence": 0.5,
+        "size": 100.0,
+        "reason": "Always bet away (test strategy)",
+    }
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------

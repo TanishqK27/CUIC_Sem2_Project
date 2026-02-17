@@ -1,7 +1,12 @@
 """Tests for backtester backend module."""
 
 from __future__ import annotations
-
+from cuic_quant.backtest import (
+    load_backtest_data,
+    backtest,
+    always_bet_home,
+    validate_backtest_results,
+)
 import pandas as pd
 import pytest
 
