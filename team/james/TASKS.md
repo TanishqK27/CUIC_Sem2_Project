@@ -13,6 +13,7 @@
 ### Completed
 | Task | Completed | Notes |
 |------|-----------|-------|
+| Add Kelly Criterion math annotation to notebook | Feb 17 | Formula, worked example, tweaking guide with file locations |
 | Add transaction cost modeling (`cost_pct`, `cost_flat`) | Feb 17 | New params in `backtest()` + validator, 4 tests |
 | Add Kelly criterion position sizing | Feb 17 | `position_sizing="kelly"` + `kelly_fraction` params, 4 tests |
 | Add `kelly_bet_home()` example strategy | Feb 17 | Uses implied prob + 5% edge as confidence, exported from package |

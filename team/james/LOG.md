@@ -15,6 +15,21 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### Feb 17, 2026 (Part 3)
+
+**Kelly Criterion Math Annotation in Notebook**
+
+Added detailed Kelly math documentation to the strategy cell in `tools/backtester.ipynb`:
+- Formula breakdown: `f* = (bp - q) / b` with variable reference table
+- Worked example tracing the first trade (Lakers vs Celtics, odds 1.95 → $513.16 bet)
+- Tweaking guide: three adjustment points (kelly_fraction, confidence, max_fraction) with exact file locations
+- Kelly fraction quick reference table (quarter/half/three-quarter/full) with risk profiles
+- Explanation of why half Kelly is the practical default
+
+**Commit:** `2f1d507`, pushed to `james_branch`.
+
+---
+
 ### Feb 17, 2026 (Part 2)
 
 **Missing Criteria Implementation — Transaction Costs, Kelly Sizing, Edge Cases**
