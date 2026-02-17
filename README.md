@@ -25,7 +25,7 @@ This project explores quantitative approaches to prediction markets and sports b
 
 ```bash
 # Clone the repository
-git clone https://github.com/CUIC/CUIC_Sem2_Project.git
+git clone https://github.com/TanishqK27/CUIC_Sem2_Project.git
 cd CUIC_Sem2_Project
 
 # Create virtual environment
@@ -72,18 +72,7 @@ CUIC_Sem2_Project/
 │
 ├── research/
 │   ├── notebooks/         # Jupyter notebooks by category
-│   ├── ideas/             # Research idea submissions
 │   └── papers/            # Academic references
-│
-├── team/                  # Team member workspaces
-│   ├── PROJECT_LOG.md     # Aggregated project log
-│   ├── PROJECT_TASKS.md   # Project-wide tasks
-│   └── <name>/            # Individual member folders
-│
-├── docs/                  # Documentation
-│   ├── platforms/         # Platform guides
-│   ├── setup/             # Setup instructions
-│   └── research/          # Research methodology
 │
 ├── tests/                 # Test suite
 ├── scripts/               # Utility scripts
@@ -113,22 +102,30 @@ CUIC_Sem2_Project/
 
 ## Documentation
 
+All documentation lives in the **[GitHub Wiki](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki)**.
+
 ### Getting Started
-- [Environment Setup](docs/setup/environment-setup.md) - Python, dependencies, IDE
-- [Git Workflow](docs/setup/git-workflow.md) - Branches, PRs, and collaboration
-- [Claude Code Guide](docs/setup/claude-code-guide.md) - AI assistant setup
-- [API Keys Setup](docs/setup/api-keys.md) - Configuring API access
+- [Environment Setup](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/Environment-Setup)
+- [Git Workflow](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/Git-Workflow)
+- [Claude Code Guide](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/Using-Claude-Code)
+- [API Keys Setup](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/API-Keys-Configuration)
 
 ### Platforms
-- [Polymarket Guide](docs/platforms/polymarket.md) - Decentralized prediction market
-- [Kalshi Guide](docs/platforms/kalshi.md) - Regulated event contracts
-- [Sports Betting Basics](docs/platforms/sports-betting-basics.md) - Odds and fundamentals
+- [Polymarket Guide](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/Polymarket)
+- [Kalshi Guide](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/Kalshi)
+- [Sports Betting Basics](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/Sports-Betting)
 
 ### Research
-- [Methodology](docs/research/methodology.md) - Research workflow and standards
+- [Methodology](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/Methodology)
 
 ### Contributing
-- [Contribution Guidelines](CONTRIBUTING.md) - How to contribute
+- [Contribution Guidelines](CONTRIBUTING.md)
+
+---
+
+## Task Management
+
+We use **[GitHub Issues](https://github.com/TanishqK27/CUIC_Sem2_Project/issues)** for task tracking and the **[Sprint Board](https://github.com/users/TanishqK27/projects/3)** for sprint planning.
 
 ---
 
@@ -222,11 +219,6 @@ pytest tests/test_strategies.py -v
 
 2. Document your work in the notebook's markdown cells
 
-3. Update your personal log:
-   ```
-   /update-log <your-name> Completed market efficiency analysis
-   ```
-
 ---
 
 ## Development Workflow
@@ -236,30 +228,17 @@ pytest tests/test_strategies.py -v
 1. **Pull latest:** `git pull origin main`
 2. **Create branch:** `git checkout -b <name>/<feature>`
 3. **Do work, run tests:** `pytest tests/ -v`
-4. **Update your log:** `/update-log <name> <summary>`
-5. **Commit & push:** `git add . && git commit -m "message"`
-6. **Create PR** when ready for review
+4. **Commit & push:** `git add . && git commit -m "message"`
+5. **Create PR** when ready for review
 
 ### Slash Commands
 
 | Command | Purpose | Example |
 |---------|---------|---------|
-| `/update-log` | Update your work log | `/update-log tan Fixed API bug` |
 | `/research-template` | Create research notebook | `/research-template polymarket price-discovery` |
 | `/weekly-standup` | Generate team summary | `/weekly-standup` |
 
-See [Skills Reference](docs/setup/skills-reference.md) for detailed documentation.
-
-### Task Management
-
-We use markdown files for task tracking:
-
-- **[PROJECT_TASKS.md](team/PROJECT_TASKS.md)** - Project milestones and shared tasks
-- **`team/<name>/TASKS.md`** - Individual to-do lists
-
-### Weekly Standup
-
-Run `/weekly-standup` to generate a summary from all team logs.
+See [Skills Reference](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/Skills-Reference) for detailed documentation.
 
 ---
 
