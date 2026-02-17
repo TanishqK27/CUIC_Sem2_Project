@@ -352,6 +352,8 @@ def validate_backtest_results(
     results: pd.DataFrame,
     input_data: pd.DataFrame,
     initial_bankroll: float = 10000.0,
+    cost_pct: float = 0.0,
+    cost_flat: float = 0.0,
 ) -> dict[str, Any]:
     """Validate backtest results for correctness and data leakage.
 
@@ -491,9 +493,9 @@ def validate_backtest_results(
     pnl_errors = []
     for idx, row in results.iterrows():
         if row["outcome"] == "WIN":
-            expected_pnl = round(row["bet_size"] * (row["odds"] - 1), 2)
+            expected_pnl = round(row["bet_size"] * (row["odds"] - 1) * (1 - cost_pct) - cost_flat, 2)
         else:
-            expected_pnl = round(-row["bet_size"], 2)
+            expected_pnl = round(-row["bet_size"] - cost_flat, 2)
 
         if abs(row["pnl"] - expected_pnl) > 0.01:
             pnl_errors.append(

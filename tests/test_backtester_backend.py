@@ -448,6 +448,26 @@ class TestValidateBacktestResults:
         assert report["passed"] is True, f"Failures: {report['failures']}"
         assert report["checks_passed"] == report["checks_run"]
 
+    def test_validates_results_with_costs(self) -> None:
+        """Validator should pass when cost params match the backtest."""
+        from cuic_quant.backtest.backtester_backend import (
+            backtest, always_bet_home, validate_backtest_results,
+        )
+
+        data = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02"]),
+            "game": ["A vs B", "C vs D"],
+            "home_team": ["A", "C"],
+            "away_team": ["B", "D"],
+            "home_odds": [2.00, 2.00],
+            "away_odds": [2.00, 2.00],
+            "home_win": [1, 0],
+        })
+
+        results = backtest(data, always_bet_home, cost_pct=0.05, cost_flat=1.0)
+        report = validate_backtest_results(results, data, cost_pct=0.05, cost_flat=1.0)
+        assert report["passed"] is True, f"Failures: {report['failures']}"
+
 
 class TestPackageExports:
     """Test that the backtest package exports all required functions."""
