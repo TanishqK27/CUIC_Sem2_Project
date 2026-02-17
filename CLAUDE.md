@@ -11,19 +11,21 @@ Cardiff University Investment Club (CUIC) quantitative research project focused 
 
 ## Team Roster
 
-| Member     | Folder          | Focus Area (TBD) |
-|------------|-----------------|------------------|
-| Tan        | `team/tan/`     | Lead / Infrastructure |
-| Andrii     | `team/andrii/`  | - |
-| Dietrich   | `team/dietrich/`| - |
-| Ben        | `team/ben/`     | - |
-| Alfie      | `team/alfie/`   | - |
-| Max        | `team/max/`     | - |
-| Miran      | `team/miran/`   | - |
-| Mya        | `team/mya/`     | - |
-| Ismaeel    | `team/ismaeel/` | - |
-| Vansheeka  | `team/vansheeka/`| - |
-| James      | `team/james/`   | - |
+| Member     | Focus Area (TBD) |
+|------------|------------------|
+| Tan        | Lead / Infrastructure |
+| Andrii     | - |
+| Dietrich   | - |
+| Ben        | - |
+| Alfie      | - |
+| Max        | - |
+| Miran      | - |
+| Mya        | - |
+| Ismaeel    | - |
+| Vansheeka  | - |
+| James      | - |
+
+> Team pages and logs are on the [GitHub Wiki](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki).
 
 ---
 
@@ -45,9 +47,6 @@ ruff format src/
 
 # Start Jupyter
 jupyter lab
-
-# Sync team logs to PROJECT_LOG.md
-python scripts/sync_logs.py
 ```
 
 ---
@@ -101,23 +100,15 @@ def calculate_kelly_fraction(
 ### Daily Workflow
 1. Pull latest changes: `git pull origin main`
 2. Create feature branch: `git checkout -b <name>/<feature>`
-3. Update your `team/<name>/LOG.md` with progress
-4. Run tests before committing: `pytest tests/ -v`
-5. Create PR when ready for review
+3. Run tests before committing: `pytest tests/ -v`
+4. Create PR when ready for review
 
-> **Full Git guide:** See [docs/guides/git-workflow.md](docs/guides/git-workflow.md) for branching, PRs, and common commands.
+> **Full Git guide:** See the [Git Workflow](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/Git-Workflow) wiki page.
 
 ### Research Workflow
 1. Use `/research-template <category> <name>` to create notebook from template
 2. Document findings in notebook markdown cells
 3. Move successful experiments to `src/cuic_quant/`
-4. Update `research/ideas/README.md` with new ideas
-
-### Log Updates
-Use the `/update-log` skill to add entries:
-```
-/update-log tan Completed Kalshi API client implementation
-```
 
 ---
 
@@ -129,10 +120,9 @@ Use the `/update-log` skill to add entries:
 | API clients | `src/cuic_quant/data/` |
 | Trading strategies | `src/cuic_quant/strategies/` |
 | Research notebooks | `research/notebooks/` |
-| Team logs | `team/<name>/LOG.md` |
-| Project log | `team/PROJECT_LOG.md` |
-| Documentation | `docs/` |
 | Configuration | `configs/` |
+| Documentation | [GitHub Wiki](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki) |
+| Task tracking | [GitHub Issues](https://github.com/TanishqK27/CUIC_Sem2_Project/issues) |
 
 ---
 
@@ -157,7 +147,7 @@ Use the `/update-log` skill to add entries:
 
 - Use `.env` files for secrets (already in `.gitignore`)
 - Reference `configs/example.env` for required variables
-- See `docs/guides/api-keys.md` for configuration guide
+- See [API Keys Configuration](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/API-Keys-Configuration) wiki page
 
 ---
 
@@ -165,11 +155,10 @@ Use the `/update-log` skill to add entries:
 
 | Skill | Usage | Description |
 |-------|-------|-------------|
-| `/update-log` | `/update-log <name> <message>` | Updates personal LOG.md and PROJECT_LOG.md |
 | `/research-template` | `/research-template <category> <name>` | Creates notebook from template |
 | `/weekly-standup` | `/weekly-standup` | Generates weekly progress summary |
 
-> **Full documentation:** See [docs/guides/skills-reference.md](docs/guides/skills-reference.md) for detailed usage and examples.
+> **Full documentation:** See the [Skills Reference](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki/Skills-Reference) wiki page.
 
 ---
 
@@ -195,8 +184,7 @@ Use the `/update-log` skill to add entries:
 
 ## Getting Help
 
-1. Check `docs/` for platform guides and setup instructions
+1. Check the [GitHub Wiki](https://github.com/TanishqK27/CUIC_Sem2_Project/wiki) for guides and references
 2. Review `research/papers/README.md` for academic references
-3. Ask in team chat or update `research/ideas/README.md`
-4. See `docs/setup/claude-code-guide.md` for Claude Code usage
-5. See `docs/setup/git-workflow.md` for Git/GitHub workflow
+3. Ask in team chat
+4. Create a [GitHub Issue](https://github.com/TanishqK27/CUIC_Sem2_Project/issues) for bugs or feature requests
