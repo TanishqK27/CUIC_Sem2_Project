@@ -15,6 +15,10 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-17
+
+- Added five basic strategies to `tools/backtester.ipynb`: Always Home, Always Away, Skip All, Alternate Home/Away, Best Odds Side
+
 ### 2026-02-12
 
 - Ran James backtester notebook and Ben metrics notebook; noted syntax errors in James notebook
