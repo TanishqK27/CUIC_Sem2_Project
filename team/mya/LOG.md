@@ -18,6 +18,9 @@ Use the `/update-log` skill:
 ### 2025-02-01
 
 - Joined CUIC Quant Fund project
+- ### 2025-02-23
+
+- Found Sports Betting & Prediction Market Papers 
 
 ---
 
