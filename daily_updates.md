@@ -1,3 +1,5 @@
+# Week 2-3
+
 ## Friday, February 13
 
 | Names | Progress | Notes |
@@ -142,14 +144,14 @@
 
 | Names | Progress | Notes |
 |---|---|---|
-| Alfie |  |  |
-| Andrii |  |  |
+| Alfie | ✅ | Checked Andrii's co |
+| Andrii | ✅ | Progress remains unchanged |
 | Ben |  |  |
 | Dietrich |  |  |
 | Ismaeel |  |  |
 | James |  |  |
 | Max |  |  |
-| Mya |  |  |
+| Mya | ✅ | Summarised papers |
 | Vansheeka |  |  |
 
 ## Wednesday, February 25
