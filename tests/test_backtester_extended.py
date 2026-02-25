@@ -643,3 +643,252 @@ class TestNoneAndInfSize:
         assert len(results) == 1
         # bet_size should be capped at bankroll (10000), not infinity
         assert results.iloc[0]["bet_size"] == 10000.0
+
+
+# ============================================================================
+# M1 — Kelly growth rate metric
+# ============================================================================
+
+
+class TestKellyGrowthRate:
+    """Tests for calculate_kelly_growth_rate (M1 fix)."""
+
+    def test_positive_growth_on_wins(self) -> None:
+        """All-win backtest should have positive Kelly growth rate."""
+        from cuic_quant.metrics import calculate_kelly_growth_rate
+
+        results = _make_results(n=5, home_wins=[1, 1, 1, 1, 1], odds=2.00)
+        rate = calculate_kelly_growth_rate(results)
+        assert rate > 0, f"Expected positive growth rate, got {rate}"
+
+    def test_negative_growth_on_losses(self) -> None:
+        """All-loss backtest should have negative Kelly growth rate."""
+        from cuic_quant.metrics import calculate_kelly_growth_rate
+
+        results = _make_results(n=5, home_wins=[0, 0, 0, 0, 0], odds=2.00)
+        rate = calculate_kelly_growth_rate(results)
+        assert rate < 0, f"Expected negative growth rate, got {rate}"
+
+    def test_zero_on_empty(self) -> None:
+        """Empty results should return 0."""
+        from cuic_quant.metrics import calculate_kelly_growth_rate
+
+        empty = pd.DataFrame(columns=OUTPUT_COLUMNS)
+        assert calculate_kelly_growth_rate(empty) == 0.0
+
+    def test_included_in_calculate_all_metrics(self) -> None:
+        """kelly_growth_rate should appear in calculate_all_metrics output."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        results = _make_results(n=5, home_wins=[1, 0, 1, 1, 0])
+        metrics = calculate_all_metrics(results)
+        assert "kelly_growth_rate" in metrics
+        assert isinstance(metrics["kelly_growth_rate"], float)
+
+
+# ============================================================================
+# M2 — CLV (Closing Line Value) metric
+# ============================================================================
+
+
+class TestCLV:
+    """Tests for CLV infrastructure and calculate_clv (M2 fix)."""
+
+    def test_closing_odds_in_output_with_input(self) -> None:
+        """Output should have closing_odds when input has closing odds columns."""
+        data = _make_input_data(n=3, home_wins=[1, 0, 1])
+        data["closing_home_odds"] = [1.85, 2.10, 1.90]
+        data["closing_away_odds"] = [2.10, 1.85, 2.10]
+
+        results = backtest(data, always_bet_home, initial_bankroll=10000.0)
+        assert "closing_odds" in results.columns
+        # Since we bet BUY_HOME, closing_odds = closing_home_odds
+        assert results.iloc[0]["closing_odds"] == 1.85
+        assert results.iloc[1]["closing_odds"] == 2.10
+
+    def test_closing_odds_nan_without_input(self) -> None:
+        """Output should have closing_odds=NaN when input lacks closing odds."""
+        data = _make_input_data(n=2, home_wins=[1, 0])
+        results = backtest(data, always_bet_home, initial_bankroll=10000.0)
+        assert "closing_odds" in results.columns
+        assert results["closing_odds"].isna().all()
+
+    def test_clv_positive_when_better_price(self) -> None:
+        """CLV should be positive when bet odds > closing odds (got better price)."""
+        from cuic_quant.metrics import calculate_clv
+
+        results = pd.DataFrame({
+            "odds": [2.00, 1.90, 2.10],
+            "closing_odds": [1.85, 1.80, 2.00],  # closing < opening
+        })
+        clv = calculate_clv(results)
+        assert clv > 0, f"Expected positive CLV, got {clv}"
+
+    def test_clv_negative_when_worse_price(self) -> None:
+        """CLV should be negative when bet odds < closing odds (got worse price)."""
+        from cuic_quant.metrics import calculate_clv
+
+        results = pd.DataFrame({
+            "odds": [1.80, 1.85, 1.90],
+            "closing_odds": [1.95, 2.00, 2.05],  # closing > opening
+        })
+        clv = calculate_clv(results)
+        assert clv < 0, f"Expected negative CLV, got {clv}"
+
+    def test_clv_nan_without_column(self) -> None:
+        """CLV should be NaN when closing_odds column is missing."""
+        from cuic_quant.metrics import calculate_clv
+        import math
+
+        results = pd.DataFrame({"odds": [2.0], "pnl": [100.0]})
+        assert math.isnan(calculate_clv(results))
+
+    def test_clv_in_calculate_all_metrics(self) -> None:
+        """CLV should appear in calculate_all_metrics when closing_odds present."""
+        from cuic_quant.metrics import calculate_all_metrics
+        from cuic_quant.backtest.backtester_backend import load_backtest_data, DUMMY_CSV
+
+        data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+        results = backtest(data, always_bet_home)
+        metrics = calculate_all_metrics(results)
+        assert "clv" in metrics
+
+
+# ============================================================================
+# M4 — Confidence in DataFrame + Brier Score / Log Loss
+# ============================================================================
+
+
+class TestConfidenceInOutput:
+    """Tests for confidence column in output DataFrame (M4 fix)."""
+
+    def test_confidence_stored_in_dataframe(self) -> None:
+        """Confidence should be a proper column, not just in attrs."""
+        results = _make_results(n=3, home_wins=[1, 0, 1])
+        assert "confidence" in results.columns
+        # always_bet_home returns confidence=0.5
+        assert (results["confidence"] == 0.5).all()
+
+    def test_confidence_nan_when_not_provided(self) -> None:
+        """Strategies that don't return confidence should have NaN."""
+        def no_conf_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+            return {"action": "BUY_HOME", "size": 100.0}
+
+        data = _make_input_data(n=2, home_wins=[1, 1])
+        results = backtest(data, no_conf_strategy, initial_bankroll=10000.0)
+        assert "confidence" in results.columns
+        assert results["confidence"].isna().all()
+
+    def test_mixed_confidence_values(self) -> None:
+        """Some trades with confidence, some without."""
+        call_count = {"n": 0}
+
+        def mixed_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                return {"action": "BUY_HOME", "confidence": 0.7, "size": 100.0}
+            return {"action": "BUY_HOME", "size": 100.0}  # no confidence
+
+        data = _make_input_data(n=2, home_wins=[1, 1])
+        results = backtest(data, mixed_strategy, initial_bankroll=10000.0)
+        assert results.iloc[0]["confidence"] == 0.7
+        assert pd.isna(results.iloc[1]["confidence"])
+
+
+class TestBrierScore:
+    """Tests for calculate_brier_score (M4 fix)."""
+
+    def test_perfect_predictions(self) -> None:
+        """Perfect confidence = perfect predictions -> Brier = 0."""
+        from cuic_quant.metrics import calculate_brier_score
+
+        results = pd.DataFrame({
+            "confidence": [1.0, 0.0, 1.0],
+            "outcome": ["WIN", "LOSS", "WIN"],
+        })
+        brier = calculate_brier_score(results)
+        assert abs(brier) < 1e-10
+
+    def test_worst_predictions(self) -> None:
+        """Completely wrong predictions -> Brier = 1.0."""
+        from cuic_quant.metrics import calculate_brier_score
+
+        results = pd.DataFrame({
+            "confidence": [0.0, 1.0, 0.0],
+            "outcome": ["WIN", "LOSS", "WIN"],
+        })
+        brier = calculate_brier_score(results)
+        assert abs(brier - 1.0) < 1e-10
+
+    def test_random_predictions(self) -> None:
+        """p=0.5 for all -> Brier = 0.25."""
+        from cuic_quant.metrics import calculate_brier_score
+
+        results = pd.DataFrame({
+            "confidence": [0.5, 0.5, 0.5, 0.5],
+            "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
+        })
+        brier = calculate_brier_score(results)
+        assert abs(brier - 0.25) < 1e-10
+
+    def test_nan_without_confidence(self) -> None:
+        """Should return NaN when confidence column missing."""
+        from cuic_quant.metrics import calculate_brier_score
+        import math
+
+        results = pd.DataFrame({"outcome": ["WIN", "LOSS"]})
+        assert math.isnan(calculate_brier_score(results))
+
+    def test_in_calculate_all_metrics(self) -> None:
+        """brier_score should appear in calculate_all_metrics output."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        results = _make_results(n=5, home_wins=[1, 0, 1, 1, 0])
+        metrics = calculate_all_metrics(results)
+        assert "brier_score" in metrics
+
+
+class TestLogLoss:
+    """Tests for calculate_log_loss (M4 fix)."""
+
+    def test_random_predictions(self) -> None:
+        """p=0.5 for all -> Log Loss ≈ 0.693 (ln(2))."""
+        from cuic_quant.metrics import calculate_log_loss
+        import math
+
+        results = pd.DataFrame({
+            "confidence": [0.5, 0.5, 0.5, 0.5],
+            "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
+        })
+        ll = calculate_log_loss(results)
+        assert abs(ll - math.log(2)) < 1e-10
+
+    def test_good_predictions_lower_than_random(self) -> None:
+        """Good predictions should have lower log loss than random."""
+        from cuic_quant.metrics import calculate_log_loss
+
+        good = pd.DataFrame({
+            "confidence": [0.8, 0.2, 0.9, 0.1],
+            "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
+        })
+        random_pred = pd.DataFrame({
+            "confidence": [0.5, 0.5, 0.5, 0.5],
+            "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
+        })
+        assert calculate_log_loss(good) < calculate_log_loss(random_pred)
+
+    def test_nan_without_confidence(self) -> None:
+        """Should return NaN when confidence column missing."""
+        from cuic_quant.metrics import calculate_log_loss
+        import math
+
+        results = pd.DataFrame({"outcome": ["WIN", "LOSS"]})
+        assert math.isnan(calculate_log_loss(results))
+
+    def test_in_calculate_all_metrics(self) -> None:
+        """log_loss should appear in calculate_all_metrics output."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        results = _make_results(n=5, home_wins=[1, 0, 1, 1, 0])
+        metrics = calculate_all_metrics(results)
+        assert "log_loss" in metrics

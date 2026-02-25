@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import warnings
 
+import numpy as np
 import pandas as pd
 
 
@@ -167,6 +168,164 @@ def calculate_profit_factor(pnl: pd.Series) -> float:
     return float(gross_profit / gross_loss)
 
 
+def calculate_kelly_growth_rate(trades_df: pd.DataFrame) -> float:
+    """Calculate realized Kelly growth rate: mean of ln(1 + return_per_bet).
+
+    The Kelly criterion maximizes the expected geometric growth rate of
+    bankroll. This computes the *realized* growth rate from actual
+    backtest returns so you can compare it to the theoretical optimum.
+
+    Formula: G = (1/N) * sum(ln(1 + r_i))
+    where r_i = pnl_i / bankroll_before_bet_i.
+
+    Args:
+        trades_df: DataFrame from backtest() with pnl and bankroll columns.
+
+    Returns:
+        Mean log growth rate per bet. Positive = growing, negative = shrinking.
+        Returns 0.0 if insufficient data.
+    """
+    if "bankroll" not in trades_df.columns or "pnl" not in trades_df.columns:
+        return 0.0
+
+    bankroll = _coerce_numeric(trades_df["bankroll"])
+    pnl = _coerce_numeric(trades_df["pnl"])
+
+    if bankroll.empty or pnl.empty:
+        return 0.0
+
+    # bankroll is AFTER the trade, so bankroll_before = bankroll - pnl
+    bankroll_before = bankroll - pnl
+    valid_mask = bankroll_before > 1e-9
+
+    if not valid_mask.any():
+        return 0.0
+
+    returns = pnl[valid_mask] / bankroll_before[valid_mask]
+    # Clip returns to prevent log(0) when bankroll is wiped out
+    returns_clipped = returns.clip(lower=-0.9999)
+    log_returns = np.log(1 + returns_clipped)
+    return float(log_returns.mean())
+
+
+def calculate_clv(trades_df: pd.DataFrame) -> float:
+    """Calculate average Closing Line Value.
+
+    CLV measures how much edge you captured vs the closing line — the gold
+    standard metric in sports betting. Positive CLV means you consistently
+    got better prices than the final market odds.
+
+    Formula: CLV = mean(bet_odds / closing_odds - 1)
+
+    A CLV of 0.03 means you got 3% better odds than closing on average.
+    CLV detects genuine skill in ~50 bets vs ~2000+ needed for P&L.
+
+    Args:
+        trades_df: DataFrame with odds and closing_odds columns.
+
+    Returns:
+        Average CLV as a decimal (0.03 = 3%). Returns NaN if closing_odds
+        not available or all NaN.
+    """
+    if "closing_odds" not in trades_df.columns or "odds" not in trades_df.columns:
+        return float("nan")
+
+    odds = _coerce_numeric(trades_df["odds"])
+    closing = _coerce_numeric(trades_df["closing_odds"])
+
+    # Align indices and filter valid pairs (both non-NaN)
+    valid = odds.index.intersection(closing.index)
+    if len(valid) == 0:
+        return float("nan")
+
+    odds_valid = odds[valid]
+    closing_valid = closing[valid]
+
+    # Guard against zero/invalid closing odds
+    mask = closing_valid > 1.0
+    if not mask.any():
+        return float("nan")
+
+    clv = odds_valid[mask] / closing_valid[mask] - 1
+    return float(clv.mean())
+
+
+def calculate_brier_score(trades_df: pd.DataFrame) -> float:
+    """Calculate Brier Score for probability calibration.
+
+    Brier Score = (1/N) * sum((confidence - outcome)^2)
+    where outcome is 1 for WIN, 0 for LOSS.
+
+    Lower is better: 0.0 = perfect, 0.25 = random (p=0.5), 1.0 = worst.
+
+    Args:
+        trades_df: DataFrame with confidence and outcome columns.
+
+    Returns:
+        Brier Score. Returns NaN if confidence not available.
+    """
+    if "confidence" not in trades_df.columns:
+        return float("nan")
+
+    conf = _coerce_numeric(trades_df["confidence"])
+    if conf.empty:
+        return float("nan")
+
+    outcomes = trades_df["outcome"]
+    valid = conf.index.intersection(outcomes.index)
+    if len(valid) == 0:
+        return float("nan")
+
+    actual = (outcomes[valid] == "WIN").astype(float)
+    predicted = conf[valid]
+
+    # Filter out NaN confidence values
+    mask = predicted.notna()
+    if not mask.any():
+        return float("nan")
+
+    return float(((predicted[mask] - actual[mask]) ** 2).mean())
+
+
+def calculate_log_loss(trades_df: pd.DataFrame) -> float:
+    """Calculate Log Loss (cross-entropy) for probability calibration.
+
+    Log Loss = -(1/N) * sum(y * ln(p) + (1-y) * ln(1-p))
+    where y is outcome (1=WIN, 0=LOSS) and p is confidence.
+
+    Lower is better: 0.0 = perfect, 0.693 = random (p=0.5).
+    Clips probabilities to [1e-15, 1-1e-15] to avoid log(0).
+
+    Args:
+        trades_df: DataFrame with confidence and outcome columns.
+
+    Returns:
+        Log Loss. Returns NaN if confidence not available.
+    """
+    if "confidence" not in trades_df.columns:
+        return float("nan")
+
+    conf = _coerce_numeric(trades_df["confidence"])
+    if conf.empty:
+        return float("nan")
+
+    outcomes = trades_df["outcome"]
+    valid = conf.index.intersection(outcomes.index)
+    if len(valid) == 0:
+        return float("nan")
+
+    actual = (outcomes[valid] == "WIN").astype(float)
+    predicted = conf[valid]
+
+    mask = predicted.notna()
+    if not mask.any():
+        return float("nan")
+
+    p = predicted[mask].clip(1e-15, 1 - 1e-15)
+    y = actual[mask]
+    return float(-(y * np.log(p) + (1 - y) * np.log(1 - p)).mean())
+
+
 def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
     """Calculate all required metrics from backtester trade output.
 
@@ -264,6 +423,24 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
     # Store the annualization factor used (for transparency)
     metrics["periods_per_year"] = periods_per_year
 
+    # M1: Kelly growth rate — realized geometric growth rate per bet
+    metrics["kelly_growth_rate"] = calculate_kelly_growth_rate(trades_df)
+
+    # M2: CLV — Closing Line Value (when closing_odds available)
+    if "closing_odds" in trades_df.columns:
+        clv = calculate_clv(trades_df)
+        if not math.isnan(clv):
+            metrics["clv"] = clv
+
+    # M4: Brier Score and Log Loss (when confidence available)
+    if "confidence" in trades_df.columns:
+        brier = calculate_brier_score(trades_df)
+        if not math.isnan(brier):
+            metrics["brier_score"] = brier
+        logloss = calculate_log_loss(trades_df)
+        if not math.isnan(logloss):
+            metrics["log_loss"] = logloss
+
     return metrics
 
 
@@ -273,5 +450,9 @@ __all__ = [
     "calculate_max_drawdown",
     "calculate_win_rate",
     "calculate_profit_factor",
+    "calculate_kelly_growth_rate",
+    "calculate_clv",
+    "calculate_brier_score",
+    "calculate_log_loss",
     "calculate_all_metrics",
 ]

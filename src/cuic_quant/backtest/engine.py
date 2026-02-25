@@ -20,11 +20,18 @@ import pandas as pd
 OUTPUT_COLUMNS = [
     "timestamp", "game", "action", "bet_size",
     "odds", "outcome", "pnl", "cumulative_pnl", "bankroll",
+    "confidence", "closing_odds",
 ]
-"""The 9 required columns in backtester output. This is the contract that
+"""The 11 required columns in backtester output. This is the contract that
 downstream consumers (Ben's metrics module, Ismaeel's tests) depend on.
 Do NOT remove or rename columns without coordinating per
-docs/SOPs/modularity-upgrades.md."""
+docs/SOPs/modularity-upgrades.md.
+
+M4: confidence is stored directly in the DataFrame (not just attrs) so
+    that Brier Score and Log Loss can be computed by the metrics module.
+M2: closing_odds is always present (NaN when input has no closing odds)
+    so that CLV can be computed when closing line data is available.
+"""
 
 # Common strategy signal key misspellings -> correct key name
 _SIGNAL_KEY_TYPOS: dict[str, str] = {
@@ -111,7 +118,10 @@ def backtest(
     bankroll = initial_bankroll
     cumulative_pnl = 0.0
     trades: list[dict[str, Any]] = []
-    confidence_values: list[float | None] = []
+
+    # M2: Pre-check whether closing odds columns exist in input
+    _has_closing_home = "closing_home_odds" in data.columns
+    _has_closing_away = "closing_away_odds" in data.columns
 
     context: dict[str, Any] = {
         "initial_bankroll": initial_bankroll,
@@ -150,8 +160,15 @@ def backtest(
         context["history"] = list(trades)  # U3: snapshot of past trades
         context["past_games"] = data.loc[:row_idx].iloc[:-1]  # U3: all rows before current
 
-        # Remove outcome column to prevent data leakage
-        strategy_row = row.drop(labels=["home_win"])
+        # Remove outcome and closing odds to prevent data leakage
+        # Closing odds are post-hoc evaluation data — strategies should only
+        # see opening odds available at decision time.
+        _drop_labels = ["home_win"]
+        if _has_closing_home:
+            _drop_labels.append("closing_home_odds")
+        if _has_closing_away:
+            _drop_labels.append("closing_away_odds")
+        strategy_row = row.drop(labels=_drop_labels)
 
         # B3: Catch strategy exceptions to preserve prior trades
         try:
@@ -262,6 +279,25 @@ def backtest(
         cumulative_pnl += pnl
         bankroll += pnl
 
+        # M2: Resolve closing odds for the side we bet on
+        closing_odds_val = float("nan")
+        if action == "BUY_HOME" and _has_closing_home:
+            val = row.get("closing_home_odds")
+            if pd.notna(val):
+                closing_odds_val = float(val)
+        elif action == "BUY_AWAY" and _has_closing_away:
+            val = row.get("closing_away_odds")
+            if pd.notna(val):
+                closing_odds_val = float(val)
+
+        # M4: Store confidence directly in output (not just attrs)
+        stored_confidence = float("nan")
+        if confidence is not None:
+            try:
+                stored_confidence = float(confidence)
+            except (TypeError, ValueError):
+                stored_confidence = float("nan")
+
         trades.append({
             "timestamp": row["timestamp"],
             "game": row["game"],
@@ -272,8 +308,9 @@ def backtest(
             "pnl": pnl,
             "cumulative_pnl": round(cumulative_pnl, 2),
             "bankroll": round(bankroll, 2),
+            "confidence": stored_confidence,
+            "closing_odds": closing_odds_val,
         })
-        confidence_values.append(confidence)  # M4: track confidence
 
     # Return DataFrame with correct columns even if empty
     if not trades:
@@ -285,7 +322,6 @@ def backtest(
     result.attrs["cost_pct"] = cost_pct
     result.attrs["cost_flat"] = cost_flat
     result.attrs["initial_bankroll"] = initial_bankroll
-    result.attrs["confidence_values"] = confidence_values  # M4: confidence stored in attrs
     return result
 
 

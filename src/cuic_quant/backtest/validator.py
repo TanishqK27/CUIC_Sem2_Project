@@ -60,9 +60,10 @@ def validate_backtest_results(
     checks_run = 0
 
     # --- Handle empty results ---
+    required_set = set(OUTPUT_COLUMNS)
     if len(results) == 0:
         checks_run += 1
-        if results.columns.tolist() == OUTPUT_COLUMNS:
+        if required_set.issubset(set(results.columns)):
             return {
                 "passed": True,
                 "checks_run": checks_run,
@@ -70,9 +71,9 @@ def validate_backtest_results(
                 "failures": [],
             }
         else:
+            missing = sorted(required_set - set(results.columns))
             failures.append(
-                f"Schema: empty results have wrong columns. "
-                f"Expected {OUTPUT_COLUMNS}, got {results.columns.tolist()}"
+                f"Schema: empty results missing required columns: {missing}"
             )
             return {
                 "passed": False,
@@ -85,12 +86,12 @@ def validate_backtest_results(
     # Category 1: Schema Validation
     # ===================================================================
 
-    # Check 1: Column names
+    # Check 1: Required columns present (extra columns like closing_odds OK)
     checks_run += 1
-    if results.columns.tolist() != OUTPUT_COLUMNS:
+    if not required_set.issubset(set(results.columns)):
+        missing = sorted(required_set - set(results.columns))
         failures.append(
-            f"Schema: column mismatch. "
-            f"Expected {OUTPUT_COLUMNS}, got {results.columns.tolist()}"
+            f"Schema: missing required columns: {missing}"
         )
         return {
             "passed": False,

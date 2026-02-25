@@ -88,12 +88,15 @@ class TestLoadBacktestData:
         from cuic_quant.backtest.backtester_backend import load_backtest_data, DUMMY_CSV
 
         df = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
-        expected_cols = [
+        required_cols = {
             "timestamp", "game", "home_team", "away_team",
             "home_odds", "away_odds", "home_win",
-        ]
-        assert df.columns.tolist() == expected_cols
+        }
+        assert required_cols.issubset(set(df.columns))
         assert len(df) == 25
+        # M2: dummy CSV now includes closing odds for CLV
+        assert "closing_home_odds" in df.columns
+        assert "closing_away_odds" in df.columns
 
     def test_filters_by_date_range(self) -> None:
         """Should only return rows within the date range."""
@@ -133,8 +136,8 @@ class TestLoadBacktestData:
 class TestBacktest:
     """Tests for the backtest function."""
 
-    def test_returns_nine_columns(self) -> None:
-        """Backtest output must have exactly 9 required columns."""
+    def test_returns_required_columns(self) -> None:
+        """Backtest output must have all required columns (M4: includes confidence, M2: closing_odds)."""
         from cuic_quant.backtest.backtester_backend import (
             backtest, always_bet_home, load_backtest_data,
             DUMMY_CSV, OUTPUT_COLUMNS,

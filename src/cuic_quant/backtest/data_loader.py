@@ -64,6 +64,8 @@ def load_backtest_data(
         DataFrame with columns: timestamp (datetime), game (str),
         home_team (str), away_team (str), home_odds (float),
         away_odds (float), home_win (int: 1 or 0).
+        Optionally includes closing_home_odds and closing_away_odds
+        (M2: CLV support — these enable Closing Line Value computation).
         Sorted by timestamp ascending.
 
     Raises:
@@ -78,6 +80,11 @@ def load_backtest_data(
             from sqlalchemy import create_engine, text
 
             engine = create_engine(database_url)
+            # M2: closing_home_odds/closing_away_odds enable CLV computation.
+            # If the DB schema doesn't have these columns yet, the query
+            # will fail and fall back to CSV (existing error handling).
+            # To add CLV support to the DB, add closing_home_odds and
+            # closing_away_odds columns to the sportsbook_odds table.
             query = text("""
                 SELECT
                     m.commence_time AS timestamp,
@@ -86,7 +93,9 @@ def load_backtest_data(
                     m.away_team,
                     o.home_odds,
                     o.away_odds,
-                    m.home_win
+                    m.home_win,
+                    o.closing_home_odds,
+                    o.closing_away_odds
                 FROM sportsbook_matches m
                 JOIN sportsbook_odds o ON m.id = o.match_id
                 WHERE m.commence_time >= :start_date
