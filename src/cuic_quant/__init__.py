@@ -12,8 +12,12 @@ Example:
     >>> fraction = calculate_kelly_fraction(0.55, 2.0)
 """
 
+import logging
+
 __version__ = "0.1.0"
 __author__ = "Cardiff University Investment Club Quant Team"
+
+_logger = logging.getLogger(__name__)
 
 # Convenience imports (optional in lightweight environments like notebook tests)
 __all__ = []
@@ -25,10 +29,8 @@ try:
         "KalshiClient",
         "OddsAPIClient",
     ])
-except Exception:
-    # Allow importing subpackages (e.g., cuic_quant.metrics) even when
-    # optional runtime deps for API clients are unavailable.
-    pass
+except ImportError:
+    _logger.debug("Could not import data clients (missing dependencies)")
 
 try:
     from cuic_quant.strategies import (
@@ -42,6 +44,5 @@ try:
         "find_arbitrage",
         "mean_reversion_signal",
     ])
-except Exception:
-    # Same rationale as above: keep package import non-fatal for metrics workflows.
-    pass
+except ImportError:
+    _logger.debug("Could not import strategies (missing dependencies)")
