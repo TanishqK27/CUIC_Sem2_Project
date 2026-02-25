@@ -1,0 +1,409 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage{parskip}
+
+% Colours
+\definecolor{cuicblue}{RGB}{0,82,155}
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codegreen}{RGB}{0,128,0}
+\definecolor{codered}{RGB}{180,0,0}
+
+% Hyperlinks
+\hypersetup{
+    colorlinks=true,
+    linkcolor=cuicblue,
+    urlcolor=cuicblue,
+}
+
+% Code style
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{gray!40},
+    breaklines=true,
+    keywordstyle=\color{cuicblue}\bfseries,
+    commentstyle=\color{codegreen},
+    stringstyle=\color{codered},
+    showstringspaces=false,
+    language=Python,
+    xleftmargin=1em,
+    framexleftmargin=0.5em,
+}
+
+% Section styling
+\titleformat{\section}{\Large\bfseries\color{cuicblue}}{}{0em}{}[\titlerule]
+\titleformat{\subsection}{\large\bfseries\color{cuicblue!80}}{}{0em}{}
+
+% Header/footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{gray}{CUIC Quant Fund}}
+\fancyhead[R]{\small\textcolor{gray}{Backtester Module}}
+\fancyfoot[C]{\small\textcolor{gray}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\begin{document}
+
+% ============================================================
+% TITLE PAGE
+% ============================================================
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+
+{\Huge\bfseries\color{cuicblue} Backtester Module\par}
+\vspace{0.5cm}
+{\Large Sports Betting Strategy Evaluation Engine\par}
+\vspace{2cm}
+
+{\large
+\begin{tabular}{rl}
+\textbf{Presenter:} & James \\
+\textbf{Date:} & 25 February 2026 \\
+\textbf{Branch:} & \texttt{james\_branch} $\rightarrow$ \texttt{main} \\
+\textbf{PR:} & \#53 \\
+\textbf{Tests:} & 57/57 passing \\
+\end{tabular}
+\par}
+
+\vspace{2cm}
+
+{\large Cardiff University Investment Club\\Quant Team --- Semester 2\par}
+
+\vfill
+\end{titlepage}
+
+% ============================================================
+% TABLE OF CONTENTS
+% ============================================================
+\tableofcontents
+\newpage
+
+% ============================================================
+% SECTION 1: WHAT I BUILT
+% ============================================================
+\section{What I Built}
+
+A complete backtesting engine for evaluating sports betting strategies against historical data, implemented as an importable Python module at:
+
+\begin{center}
+\texttt{src/cuic\_quant/backtest/backtester\_backend.py}
+\end{center}
+
+\subsection{Core Functions}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lp{9cm}@{}}
+\toprule
+\textbf{Function} & \textbf{Purpose} \\
+\midrule
+\texttt{load\_backtest\_data()} & Loads historical games from Railway DB or local CSV \\
+\texttt{backtest()} & Runs a strategy over historical data, tracks PnL and bankroll \\
+\texttt{validate\_backtest\_results()} & 11-check validation suite (schema, math, data leakage) \\
+\texttt{display\_extended\_metrics()} & 12-metric performance table (Sharpe, Sortino, drawdown, etc.) \\
+\texttt{plot\_performance()} & 2$\times$2 matplotlib dashboard \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Example Strategies}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lp{9cm}@{}}
+\toprule
+\textbf{Strategy} & \textbf{Behaviour} \\
+\midrule
+\texttt{always\_bet\_home()} & Fixed \$100 on home team every game --- deterministic test strategy \\
+\texttt{always\_bet\_away()} & Fixed \$100 on away team --- tests BUY\_AWAY logic path \\
+\texttt{kelly\_bet\_home\_demo()} & Kelly-sized home bets --- \textbf{demo only}, shows plumbing \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 2: THE PIPELINE
+% ============================================================
+\section{The Pipeline}
+
+\begin{center}
+\fbox{\parbox{0.9\textwidth}{\centering\ttfamily\small
+CSV / Database $\;\rightarrow\;$ load\_backtest\_data() $\;\rightarrow\;$ DataFrame (25 games)\\[4pt]
+$\downarrow$\\[4pt]
+backtest(data, strategy)\\[4pt]
+$\downarrow$\\[4pt]
+Results DataFrame (9 columns)\\[4pt]
+$\swarrow$ \hspace{3cm} $\downarrow$ \hspace{3cm} $\searrow$\\[4pt]
+validate\_backtest\_results() \quad display\_extended\_metrics() \quad plot\_performance()\\
+(11 checks) \hspace{2.2cm} (12 metrics) \hspace{2.7cm} (2$\times$2 dashboard)
+}}
+\end{center}
+
+\subsection{9-Column Output Format}
+
+Every strategy produces the same output --- this is the contract that Ben's metrics and Ismaeel's tests depend on:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Column} & \textbf{Type} & \textbf{Example} \\
+\midrule
+timestamp & datetime & 2026-01-01 \\
+game & str & Lakers vs Celtics \\
+action & str & BUY\_HOME \\
+bet\_size & float & 256.58 \\
+odds & float & 1.95 \\
+outcome & str & WIN \\
+pnl & float & 243.75 \\
+cumulative\_pnl & float & 243.75 \\
+bankroll & float & 10243.75 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 3: KEY FEATURES
+% ============================================================
+\section{Key Features}
+
+\subsection{Data Leakage Prevention}
+
+The backtester \textbf{strips \texttt{home\_win} from the row} before passing it to the strategy function. Strategies cannot cheat by looking at the outcome. A dedicated ``spy strategy'' test verifies no strategy ever receives \texttt{home\_win}.
+
+\subsection{Transaction Cost Modeling}
+
+Two cost parameters model real-world betting friction:
+\begin{itemize}[nosep]
+    \item \texttt{cost\_pct} --- Percentage deducted from winning payouts (models bookmaker vig)
+    \item \texttt{cost\_flat} --- Flat dollar fee per trade regardless of outcome
+\end{itemize}
+
+\textbf{PnL formulas:}
+\begin{align*}
+\text{WIN:} \quad & \texttt{bet\_size} \times (\texttt{odds} - 1) \times (1 - \texttt{cost\_pct}) - \texttt{cost\_flat} \\
+\text{LOSS:} \quad & -\texttt{bet\_size} - \texttt{cost\_flat}
+\end{align*}
+
+\subsection{Kelly Criterion Position Sizing}
+
+Instead of flat \$100 bets, Kelly sizes each bet as a fraction of bankroll based on estimated edge:
+
+\[
+f^* = \frac{bp - q}{b}
+\]
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}clll@{}}
+\toprule
+\textbf{Variable} & \textbf{Meaning} & \textbf{Example (odds = 1.95)} \\
+\midrule
+$f^*$ & Fraction of bankroll to bet & 0.1026 ($\approx$10.3\%) \\
+$b$ & Net odds = decimal\_odds $-$ 1 & $1.95 - 1 = 0.95$ \\
+$p$ & Estimated win probability & 0.5628 \\
+$q$ & Loss probability = $1 - p$ & 0.4372 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}clll@{}}
+\toprule
+\textbf{Kelly Fraction} & \textbf{Name} & \textbf{Risk Profile} \\
+\midrule
+0.25 & Quarter Kelly & Very conservative \\
+0.50 & Half Kelly & Moderate (default) \\
+0.75 & Three-quarter Kelly & Aggressive \\
+1.00 & Full Kelly & Maximum growth (unrealistic) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Validation Suite (11 Checks)}
+
+\begin{itemize}[nosep]
+    \item \textbf{Schema (5 checks):} Correct columns, valid actions/outcomes, positive bets, valid odds
+    \item \textbf{Math (4 checks):} PnL formula correctness, cumulative PnL running sum, bankroll tracking, no overbetting
+    \item \textbf{Data Leakage (2 checks):} Outcomes match input data, chronological order
+\end{itemize}
+
+% ============================================================
+% SECTION 4: DEMO RESULTS
+% ============================================================
+\section{Demo Results}
+
+Running \texttt{kelly\_bet\_home\_demo} with quarter-Kelly on 25 NBA games:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Win Rate & 60.0\% (15W / 10L) \\
+Total PnL & \$1,123.02 \\
+Final Bankroll & \$11,123.02 \\
+ROI & 11.2\% \\
+Sharpe Ratio & 2.808 \\
+Max Drawdown & 4.8\% \\
+Profit Factor & 1.434 \\
+Validation & 12/12 checks passed \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 5: PR REVIEW FIXES
+% ============================================================
+\section{PR Review Fixes}
+
+The first PR was reviewed by Tan and returned with feedback across three categories. \textbf{All items have been addressed.}
+
+\subsection{Critical Fixes (C1--C5)}
+
+\textbf{C1. \texttt{except Exception:} silently swallowed ALL errors}
+\begin{itemize}[nosep]
+    \item \textbf{Problem:} \texttt{\_\_init\_\_.py} caught SyntaxError, AttributeError, RecursionError --- not just ImportError.
+    \item \textbf{Fix:} Changed to \texttt{except ImportError:} with \texttt{logging.debug()}.
+\end{itemize}
+
+\textbf{C2. \texttt{kelly\_bet\_home} had circular edge logic}
+\begin{itemize}[nosep]
+    \item \textbf{Problem:} Confidence = implied\_prob + 5\%. Since Kelly is positive whenever $p > 1/\text{odds}$, and here $p = 1/\text{odds} + 0.05$, the strategy always bets. Tautological.
+    \item \textbf{Fix:} Renamed to \texttt{kelly\_bet\_home\_demo} with a prominent WARNING docstring.
+\end{itemize}
+
+\textbf{C3. Sharpe/Sortino ratios were mathematically meaningless}
+\begin{itemize}[nosep]
+    \item \textbf{Problem:} (1) Used raw dollar PnL, not \% returns. (2) Annualized with $\sqrt{252}$ (trading days). (3) Sortino used $\text{std}(\text{losses\_only})$.
+    \item \textbf{Fix:} (1) Now uses \texttt{pnl / bankroll\_before\_bet}. (2) Annualizes with $\sqrt{365}$. (3) New \texttt{calculate\_sortino\_ratio()} with correct downside deviation:
+    \[
+    \sigma_d = \sqrt{\frac{1}{N}\sum_{i=1}^{N} \min(0, r_i)^2}
+    \]
+\end{itemize}
+
+\textbf{C4. Bankroll could go negative with \texttt{cost\_flat}}
+\begin{itemize}[nosep]
+    \item \textbf{Problem:} \texttt{bet\_size} capped at \texttt{bankroll}, but loss $= -(\text{bet\_size} + \text{cost\_flat})$ could exceed bankroll.
+    \item \textbf{Fix:} \texttt{bet\_size = min(bet\_size, max(0, bankroll - cost\_flat))}
+\end{itemize}
+
+\textbf{C5. Database fallback silently loaded dummy CSV}
+\begin{itemize}[nosep]
+    \item \textbf{Problem:} When DATABASE\_URL was set but query failed, code \texttt{print()}'d a message and loaded synthetic data.
+    \item \textbf{Fix:} \texttt{warnings.warn(..., RuntimeWarning)}. Added \texttt{strict=True} mode that raises.
+\end{itemize}
+
+\subsection{Important Fixes (I1--I8)}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}cp{10cm}@{}}
+\toprule
+\textbf{Fix} & \textbf{What Changed} \\
+\midrule
+I1 & Kelly import moved from inside for-loop to top of function \\
+I2 & Warning when Kelly falls back to flat sizing (confidence outside $(0,1)$) \\
+I3 & Input column validation --- raises \texttt{ValueError} for missing columns \\
+I4 & \texttt{try/except ImportError} fallback in \texttt{display\_extended\_metrics()} \\
+I5 & Warning on unrecognized strategy actions (e.g.\ ``BUY\_DRAW'') \\
+I6 & Google-style docstring added to \texttt{always\_bet\_away()} \\
+I7 & Cost params stored in \texttt{DataFrame.attrs} metadata \\
+I8 & matplotlib import moved inside \texttt{plot\_performance()} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Test Gaps Filled}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}p{5cm}p{8cm}@{}}
+\toprule
+\textbf{Test} & \textbf{What It Verifies} \\
+\midrule
+Bankroll negative with cost\_flat & Bankroll $\geq 0$ at all times with flat fees (validates C4) \\
+Multi-trade PnL with costs & Row-by-row PnL verification across 5 trades \\
+\texttt{always\_bet\_away} dedicated test & Action, context handling, docstring existence \\
+Kelly confidence boundaries & 0.0 and 1.0 correctly fall back to flat sizing \\
+Empty DataFrame input & Returns empty results with correct 9 columns \\
+All-rows bankroll check & Every row has bankroll $\geq 0$, not just the last \\
+Missing columns & Raises \texttt{ValueError} (validates I3) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{center}
+\textbf{Test suite: 57 tests, all passing.}
+\end{center}
+
+% ============================================================
+% SECTION 6: FILES CHANGED
+% ============================================================
+\section{Files Changed}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lrl@{}}
+\toprule
+\textbf{File} & \textbf{Lines} & \textbf{Role} \\
+\midrule
+\texttt{src/cuic\_quant/\_\_init\_\_.py} & 50 & Package init \\
+\texttt{src/cuic\_quant/backtest/backtester\_backend.py} & 934 & Core backtester \\
+\texttt{src/cuic\_quant/backtest/\_\_init\_\_.py} & 37 & Package exports \\
+\texttt{src/cuic\_quant/metrics/\_\_init\_\_.py} & 185 & Performance metrics \\
+\texttt{tests/test\_backtester\_backend.py} & 999 & 57 tests \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 7: ROADMAP
+% ============================================================
+\section{What's Next (Roadmap)}
+
+Items flagged in review as ``Domain Fitness'' --- not blocking merge but tracked for future work:
+
+\begin{itemize}[nosep]
+    \item Walk-forward validation / train--test split for real strategy evaluation
+    \item Closing Line Value (CLV) --- the \#1 metric for sports betting skill
+    \item Polymarket/Kalshi compatibility (CLOB / YES--NO contracts)
+    \item Multi-bookmaker odds (OddsAPIClient already supports this)
+    \item Point spreads (currently moneyline only)
+    \item Expose Kelly \texttt{max\_fraction=0.25} cap in \texttt{backtest()} parameters
+\end{itemize}
+
+% ============================================================
+% SECTION 8: HOW TO RUN
+% ============================================================
+\section{How to Run}
+
+\begin{lstlisting}
+# Run the demo notebook
+jupyter lab tools/backtester.ipynb
+
+# Run tests
+pytest tests/test_backtester_backend.py -v
+
+# Use in your own code
+from cuic_quant.backtest import backtest, load_backtest_data
+
+data = load_backtest_data("2026-01-01", "2026-01-31")
+results = backtest(data, your_strategy, position_sizing="kelly")
+\end{lstlisting}
+
+\end{document}
