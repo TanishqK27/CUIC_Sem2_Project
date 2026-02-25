@@ -146,15 +146,29 @@
 |---|---|---|
 | Alfie | ✅ | Checked Andrii's co |
 | Andrii | ✅ | Progress remains unchanged |
+| Ben |  | No updates provided  |
+| Dietrich |  | No updates provided  |
+| Ismaeel |  | No updates provided  |
+| James |  | No updates provided  |
+| Max |  | No updates provided  |
+| Mya | ✅ | Summarised papers |
+| Vansheeka |  | No updates provided  |
+
+## Wednesday, February 25
+
+| Names | Progress | Notes |
+|---|---|---|
+| Alfie |  |  |
+| Andrii |  |  |
 | Ben |  |  |
 | Dietrich |  |  |
 | Ismaeel |  |  |
 | James |  |  |
 | Max |  |  |
-| Mya | ✅ | Summarised papers |
+| Mya |  |  |
 | Vansheeka |  |  |
 
-## Wednesday, February 25
+## Wednesday, February 27
 
 | Names | Progress | Notes |
 |---|---|---|
