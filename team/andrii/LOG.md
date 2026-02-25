@@ -16,6 +16,15 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-02-25
+
+- Created NBA Data Understanding & Audit notebook — forensic exploration of `combined_player_stats` (137k rows, 428 cols)
+- Analysed 6 information layers: core box score, per-quarter, advanced, hustle/tracking, pregame features, availability
+- Built data dictionary with column meanings, fill rates, and plain-English descriptions
+- Investigated coverage gaps (2023-24 season 13% incomplete), missingness patterns (hustle stats game-level), PACE corruption
+- Quantified 8 research edge hypotheses: early-season mispricing, hustle alpha, Q1 live betting, trade system change, B2B fatigue, blowout distortion, rookie uncertainty, overlooked tracking features
+- Produced polished readable notebook (`NBA_Data_Understanding_and_Audit_READABLE.ipynb`) and PDF report (`NBA_Data_Understanding_and_Audit_Report.pdf`)
+
 ### 2026-02-16
 
 - Refactored cleaning pipeline based on code review feedback
