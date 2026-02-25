@@ -658,35 +658,35 @@ class TestKellySizing:
         assert len(results) == 0
 
 
-class TestKellyBetHome:
-    """Tests for the kelly_bet_home example strategy."""
+class TestKellyBetHomeDemo:
+    """Tests for the kelly_bet_home_demo example strategy."""
 
     def test_returns_buy_home_action(self) -> None:
-        from cuic_quant.backtest import kelly_bet_home
+        from cuic_quant.backtest import kelly_bet_home_demo
 
         row = pd.Series({"home_odds": 1.95, "away_odds": 2.05})
-        signal = kelly_bet_home(row)
+        signal = kelly_bet_home_demo(row)
         assert signal["action"] == "BUY_HOME"
 
     def test_confidence_based_on_odds(self) -> None:
-        from cuic_quant.backtest import kelly_bet_home
+        from cuic_quant.backtest import kelly_bet_home_demo
 
         row = pd.Series({"home_odds": 1.50, "away_odds": 2.80})
-        signal = kelly_bet_home(row)
+        signal = kelly_bet_home_demo(row)
         # Implied prob = 1/1.50 = 0.667, +0.05 edge = 0.717
         assert 0 < signal["confidence"] < 1
         assert abs(signal["confidence"] - 0.717) < 0.01
 
     def test_confidence_capped_at_095(self) -> None:
-        from cuic_quant.backtest import kelly_bet_home
+        from cuic_quant.backtest import kelly_bet_home_demo
 
         row = pd.Series({"home_odds": 1.05, "away_odds": 10.0})
-        signal = kelly_bet_home(row)
+        signal = kelly_bet_home_demo(row)
         # Implied = 1/1.05 = 0.952, +0.05 = 1.002, capped at 0.95
         assert signal["confidence"] == 0.95
 
     def test_works_with_kelly_sizing(self) -> None:
-        from cuic_quant.backtest import kelly_bet_home, backtest
+        from cuic_quant.backtest import kelly_bet_home_demo, backtest
 
         data = pd.DataFrame({
             "timestamp": pd.to_datetime(["2026-01-01"]),
@@ -698,7 +698,7 @@ class TestKellyBetHome:
             "home_win": [1],
         })
 
-        results = backtest(data, kelly_bet_home, position_sizing="kelly")
+        results = backtest(data, kelly_bet_home_demo, position_sizing="kelly")
         assert len(results) == 1
         assert results.iloc[0]["bet_size"] > 0
 

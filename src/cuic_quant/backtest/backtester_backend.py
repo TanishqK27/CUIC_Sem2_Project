@@ -371,15 +371,21 @@ def always_bet_away(
     }
 
 
-def kelly_bet_home(
+def kelly_bet_home_demo(
     row: pd.Series,
     context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Example strategy that bets on home team with confidence based on odds.
+    """DEMO ONLY — Example strategy showing Kelly sizing plumbing.
 
-    Uses implied probability from odds plus a small edge (5%) as the
-    confidence value. Designed to work with position_sizing="kelly" in
-    backtest() for Kelly Criterion bet sizing.
+    WARNING: This is a plumbing demonstration, NOT a real edge model.
+    The confidence value is derived from implied probability + a flat 5%,
+    which is tautological — Kelly will always bet on every game because
+    p > 1/odds is guaranteed by construction. Do NOT use this as a
+    template for real strategy development.
+
+    What: Bets on home team with confidence = implied_prob + 0.05.
+    Why: Demonstrates how to wire a strategy's confidence field into
+        the Kelly position sizing system in backtest().
 
     Args:
         row: Game data row with home_odds, away_odds, etc.
@@ -394,7 +400,7 @@ def kelly_bet_home(
         "action": "BUY_HOME",
         "confidence": confidence,
         "size": 100.0,
-        "reason": f"Kelly home bet (implied={implied_prob:.2f}, conf={confidence:.2f})",
+        "reason": f"DEMO kelly home bet (implied={implied_prob:.2f}, conf={confidence:.2f})",
     }
 
 
