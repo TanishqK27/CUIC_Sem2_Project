@@ -31,7 +31,6 @@ import warnings
 from pathlib import Path
 from typing import Any, Callable
 
-import matplotlib.pyplot as plt
 import pandas as pd
 
 
@@ -225,7 +224,8 @@ def backtest(
             Default 0.0 (no fee).
         position_sizing: Position sizing method. None = use strategy's size field,
             "kelly" = Kelly Criterion sizing using strategy's confidence as
-            win probability. Default None.
+            win probability. If confidence is None, 0.0, or 1.0, falls back
+            to the strategy's raw size field with a warning. Default None.
         kelly_fraction: Fraction of Kelly to use when position_sizing="kelly".
             0.5 = half-Kelly (safer), 1.0 = full Kelly. Default 0.5.
 
@@ -244,6 +244,17 @@ def backtest(
         "trade_count": 0,
         "cumulative_pnl": 0.0,
     }
+
+    # Validate required columns
+    required = {"timestamp", "game", "home_team", "away_team", "home_odds", "away_odds", "home_win"}
+    missing = required - set(data.columns)
+    if missing:
+        raise ValueError(f"Missing required columns: {missing}")
+
+    # Pre-import Kelly if needed (avoid importing inside the loop)
+    _calc_kelly = None
+    if position_sizing == "kelly":
+        from cuic_quant.strategies.kelly_criterion import calculate_kelly_fraction as _calc_kelly
 
     for _, row in data.iterrows():
         if bankroll <= 0:
@@ -281,14 +292,18 @@ def backtest(
             odds = row["away_odds"]
             won = row["home_win"] == 0
         else:
-            continue  # Invalid action, skip
+            warnings.warn(
+                f"Unrecognized action '{action}' from strategy for game "
+                f"'{row['game']}' — skipping. Valid actions: {VALID_ACTIONS}",
+                stacklevel=2,
+            )
+            continue
 
         # Apply Kelly position sizing if enabled
         if position_sizing == "kelly":
             confidence = signal.get("confidence")
             if confidence is not None and 0 < confidence < 1:
-                from cuic_quant.strategies.kelly_criterion import calculate_kelly_fraction as calc_kelly
-                kelly_size = calc_kelly(
+                kelly_size = _calc_kelly(
                     win_probability=confidence,
                     decimal_odds=odds,
                     kelly_fraction=kelly_fraction,
@@ -296,6 +311,13 @@ def backtest(
                 bet_size = round(kelly_size * bankroll, 2)
                 if bet_size <= 0:
                     continue
+            else:
+                warnings.warn(
+                    f"Kelly sizing enabled but confidence={confidence!r} is "
+                    f"outside (0, 1) — falling back to strategy's raw size "
+                    f"({bet_size}) for game '{row['game']}'.",
+                    stacklevel=2,
+                )
 
         # Cap bet at bankroll minus flat fee to prevent negative bankroll
         bet_size = min(bet_size, max(0.0, bankroll - cost_flat))
@@ -327,8 +349,15 @@ def backtest(
 
     # Return DataFrame with correct columns even if empty
     if not trades:
-        return pd.DataFrame(columns=OUTPUT_COLUMNS)
-    return pd.DataFrame(trades)[OUTPUT_COLUMNS]
+        result = pd.DataFrame(columns=OUTPUT_COLUMNS)
+    else:
+        result = pd.DataFrame(trades)[OUTPUT_COLUMNS]
+
+    # Store cost params in metadata so validator can auto-read them
+    result.attrs["cost_pct"] = cost_pct
+    result.attrs["cost_flat"] = cost_flat
+    result.attrs["initial_bankroll"] = initial_bankroll
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -377,6 +406,28 @@ def always_bet_away(
     row: pd.Series,
     context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Example strategy that always bets $100 on the away team.
+
+    What: A naive strategy that unconditionally backs the away team
+    for every game, regardless of odds or context.
+
+    Why: This exists as a companion to always_bet_home for testing
+    BUY_AWAY logic paths in the backtester. It validates that away
+    team odds and outcomes are handled correctly.
+
+    Args:
+        row: Game data row with home_odds, away_odds, etc.
+            Must NOT contain home_win (the backtester strips it).
+        context: Optional dict from the backtester with current state
+            (bankroll, trade_count, cumulative_pnl). Ignored by this strategy.
+
+    Returns:
+        Signal dict conforming to the strategy interface:
+        - action: 'BUY_AWAY'
+        - confidence: 0.5
+        - size: 100.0
+        - reason: Human-readable explanation
+    """
     return {
         "action": "BUY_AWAY",
         "confidence": 0.5,
@@ -486,6 +537,11 @@ def validate_backtest_results(
         - checks_run (int): Total number of checks executed.
         - checks_passed (int): Number of checks that passed.
         - failures (list[str]): Descriptions of each failed check.
+
+    Note:
+        If the results DataFrame was produced by backtest(), it contains
+        cost_pct, cost_flat, and initial_bankroll in its .attrs metadata.
+        Pass the same cost params you used in backtest() when validating.
     """
     failures: list[str] = []
     checks_run = 0
@@ -727,9 +783,24 @@ def display_extended_metrics(
         print("No trades to analyze.")
         return
 
-    from cuic_quant.metrics import calculate_all_metrics
-
-    metrics = calculate_all_metrics(results_df)
+    try:
+        from cuic_quant.metrics import calculate_all_metrics
+        metrics = calculate_all_metrics(results_df)
+    except ImportError:
+        # Fallback: compute basic metrics locally
+        pnl_series = pd.to_numeric(results_df["pnl"], errors="coerce").dropna()
+        outcomes = results_df["outcome"]
+        wins = int((outcomes == "WIN").sum())
+        total = len(outcomes)
+        metrics = {
+            "total_trades": total,
+            "win_rate": wins / total if total > 0 else 0.0,
+            "total_pnl": float(pnl_series.sum()) if not pnl_series.empty else 0.0,
+            "sharpe_ratio": 0.0,
+            "sortino_ratio": 0.0,
+            "max_drawdown": 0.0,
+            "profit_factor": 0.0,
+        }
 
     pnl = results_df["pnl"]
     wins_pnl = pnl[results_df["outcome"] == "WIN"]
@@ -787,6 +858,8 @@ def plot_performance(
         title: Plot super-title.
         initial_bankroll: Starting bankroll used in the backtest.
     """
+    import matplotlib.pyplot as plt
+
     if len(results_df) == 0:
         print("No trades to plot.")
         return
