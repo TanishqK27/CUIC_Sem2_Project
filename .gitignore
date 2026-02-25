@@ -232,6 +232,9 @@ data/cache/
 # Exceptions: allow example/small data files
 !**/examples/*.csv
 !**/fixtures/*.csv
+!data/dummy_backtest_input.csv
+!data/dummy_backtest_output.csv
+!data/test_games.csv
 
 # =============================================================================
 # OS Generated Files

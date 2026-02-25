@@ -1,0 +1,101 @@
+timestamp,game,home_team,away_team,home_odds,away_odds,home_win
+2026-01-01 00:00:00,Brooklyn Nets vs Phoenix Suns,Brooklyn Nets,Phoenix Suns,2.388,2.267,0
+2026-01-01 00:01:00,LA Clippers vs Miami Heat,LA Clippers,Miami Heat,2.511,2.365,0
+2026-01-01 00:02:00,Portland Trail Blazers vs Los Angeles Lakers,Portland Trail Blazers,Los Angeles Lakers,2.875,2.208,0
+2026-01-01 00:03:00,Milwaukee Bucks vs Houston Rockets,Milwaukee Bucks,Houston Rockets,2.11,2.208,1
+2026-01-01 00:04:00,Washington Wizards vs Portland Trail Blazers,Washington Wizards,Portland Trail Blazers,2.668,1.89,0
+2026-01-01 00:05:00,New Orleans Pelicans vs Los Angeles Lakers,New Orleans Pelicans,Los Angeles Lakers,2.114,1.714,0
+2026-01-01 00:06:00,Memphis Grizzlies vs Boston Celtics,Memphis Grizzlies,Boston Celtics,3.0,2.319,0
+2026-01-01 00:07:00,LA Clippers vs Chicago Bulls,LA Clippers,Chicago Bulls,2.017,2.209,1
+2026-01-01 00:08:00,Los Angeles Lakers vs Charlotte Hornets,Los Angeles Lakers,Charlotte Hornets,2.237,2.615,1
+2026-01-01 00:09:00,Los Angeles Lakers vs Chicago Bulls,Los Angeles Lakers,Chicago Bulls,2.518,1.844,0
+2026-01-01 00:10:00,LA Clippers vs Portland Trail Blazers,LA Clippers,Portland Trail Blazers,2.251,2.406,1
+2026-01-01 00:11:00,Portland Trail Blazers vs Indiana Pacers,Portland Trail Blazers,Indiana Pacers,2.366,2.914,1
+2026-01-01 00:12:00,Orlando Magic vs Los Angeles Lakers,Orlando Magic,Los Angeles Lakers,2.126,2.28,1
+2026-01-01 00:13:00,Denver Nuggets vs Philadelphia 76ers,Denver Nuggets,Philadelphia 76ers,2.492,2.018,0
+2026-01-01 00:14:00,Brooklyn Nets vs Philadelphia 76ers,Brooklyn Nets,Philadelphia 76ers,2.393,2.115,0
+2026-01-01 00:15:00,Washington Wizards vs New Orleans Pelicans,Washington Wizards,New Orleans Pelicans,1.736,2.092,1
+2026-01-01 00:16:00,Sacramento Kings vs Utah Jazz,Sacramento Kings,Utah Jazz,1.81,2.08,1
+2026-01-01 00:17:00,Dallas Mavericks vs Los Angeles Lakers,Dallas Mavericks,Los Angeles Lakers,2.911,2.362,0
+2026-01-01 00:18:00,LA Clippers vs Indiana Pacers,LA Clippers,Indiana Pacers,1.525,1.643,1
+2026-01-01 00:19:00,Phoenix Suns vs Washington Wizards,Phoenix Suns,Washington Wizards,1.677,2.103,1
+2026-01-01 00:20:00,Chicago Bulls vs Toronto Raptors,Chicago Bulls,Toronto Raptors,1.919,2.195,1
+2026-01-01 00:21:00,Oklahoma City Thunder vs Washington Wizards,Oklahoma City Thunder,Washington Wizards,1.596,1.735,1
+2026-01-01 00:22:00,Utah Jazz vs Golden State Warriors,Utah Jazz,Golden State Warriors,2.569,1.792,0
+2026-01-01 00:23:00,San Antonio Spurs vs Denver Nuggets,San Antonio Spurs,Denver Nuggets,2.248,1.994,0
+2026-01-01 00:24:00,Washington Wizards vs Brooklyn Nets,Washington Wizards,Brooklyn Nets,1.723,2.002,1
+2026-01-01 00:25:00,San Antonio Spurs vs Portland Trail Blazers,San Antonio Spurs,Portland Trail Blazers,2.442,3.0,1
+2026-01-01 00:26:00,Memphis Grizzlies vs Orlando Magic,Memphis Grizzlies,Orlando Magic,2.68,2.143,0
+2026-01-01 00:27:00,New Orleans Pelicans vs LA Clippers,New Orleans Pelicans,LA Clippers,1.546,1.966,1
+2026-01-01 00:28:00,Cleveland Cavaliers vs Golden State Warriors,Cleveland Cavaliers,Golden State Warriors,2.146,2.324,1
+2026-01-01 00:29:00,Chicago Bulls vs Detroit Pistons,Chicago Bulls,Detroit Pistons,2.375,1.882,0
+2026-01-01 00:30:00,Atlanta Hawks vs Detroit Pistons,Atlanta Hawks,Detroit Pistons,2.361,2.473,1
+2026-01-01 00:31:00,Detroit Pistons vs Toronto Raptors,Detroit Pistons,Toronto Raptors,2.532,3.0,1
+2026-01-01 00:32:00,Miami Heat vs Memphis Grizzlies,Miami Heat,Memphis Grizzlies,2.073,2.452,1
+2026-01-01 00:33:00,Detroit Pistons vs Denver Nuggets,Detroit Pistons,Denver Nuggets,2.641,2.486,0
+2026-01-01 00:34:00,Milwaukee Bucks vs Detroit Pistons,Milwaukee Bucks,Detroit Pistons,2.354,1.809,0
+2026-01-01 00:35:00,Charlotte Hornets vs Orlando Magic,Charlotte Hornets,Orlando Magic,2.356,1.619,0
+2026-01-01 00:36:00,Dallas Mavericks vs Utah Jazz,Dallas Mavericks,Utah Jazz,2.58,1.908,0
+2026-01-01 00:37:00,Boston Celtics vs Los Angeles Lakers,Boston Celtics,Los Angeles Lakers,2.548,2.816,1
+2026-01-01 00:38:00,New Orleans Pelicans vs Miami Heat,New Orleans Pelicans,Miami Heat,1.765,1.681,0
+2026-01-01 00:39:00,Detroit Pistons vs Denver Nuggets,Detroit Pistons,Denver Nuggets,3.0,2.481,0
+2026-01-01 00:40:00,San Antonio Spurs vs Portland Trail Blazers,San Antonio Spurs,Portland Trail Blazers,1.848,2.477,1
+2026-01-01 00:41:00,Sacramento Kings vs Houston Rockets,Sacramento Kings,Houston Rockets,1.604,2.214,1
+2026-01-01 00:42:00,Denver Nuggets vs Indiana Pacers,Denver Nuggets,Indiana Pacers,1.635,2.308,1
+2026-01-01 00:43:00,San Antonio Spurs vs Toronto Raptors,San Antonio Spurs,Toronto Raptors,2.159,2.865,1
+2026-01-01 00:44:00,Cleveland Cavaliers vs Boston Celtics,Cleveland Cavaliers,Boston Celtics,2.995,2.569,0
+2026-01-01 00:45:00,Los Angeles Lakers vs Detroit Pistons,Los Angeles Lakers,Detroit Pistons,1.753,1.901,1
+2026-01-01 00:46:00,Atlanta Hawks vs Oklahoma City Thunder,Atlanta Hawks,Oklahoma City Thunder,2.264,2.75,1
+2026-01-01 00:47:00,LA Clippers vs Charlotte Hornets,LA Clippers,Charlotte Hornets,2.891,2.287,0
+2026-01-01 00:48:00,Charlotte Hornets vs Phoenix Suns,Charlotte Hornets,Phoenix Suns,2.213,1.937,0
+2026-01-01 00:49:00,Washington Wizards vs Charlotte Hornets,Washington Wizards,Charlotte Hornets,2.816,2.551,0
+2026-01-01 00:50:00,Washington Wizards vs Toronto Raptors,Washington Wizards,Toronto Raptors,2.327,2.197,0
+2026-01-01 00:51:00,Orlando Magic vs Atlanta Hawks,Orlando Magic,Atlanta Hawks,2.563,3.0,1
+2026-01-01 00:52:00,Cleveland Cavaliers vs Toronto Raptors,Cleveland Cavaliers,Toronto Raptors,2.363,2.427,1
+2026-01-01 00:53:00,New York Knicks vs Phoenix Suns,New York Knicks,Phoenix Suns,2.601,2.376,0
+2026-01-01 00:54:00,Golden State Warriors vs Miami Heat,Golden State Warriors,Miami Heat,2.523,2.163,0
+2026-01-01 00:55:00,Charlotte Hornets vs Minnesota Timberwolves,Charlotte Hornets,Minnesota Timberwolves,2.217,2.918,1
+2026-01-01 00:56:00,Denver Nuggets vs Los Angeles Lakers,Denver Nuggets,Los Angeles Lakers,2.321,2.983,1
+2026-01-01 00:57:00,Utah Jazz vs Denver Nuggets,Utah Jazz,Denver Nuggets,2.154,2.314,1
+2026-01-01 00:58:00,Portland Trail Blazers vs Cleveland Cavaliers,Portland Trail Blazers,Cleveland Cavaliers,2.513,2.687,1
+2026-01-01 00:59:00,Chicago Bulls vs Detroit Pistons,Chicago Bulls,Detroit Pistons,1.627,1.693,1
+2026-01-01 01:00:00,Boston Celtics vs Oklahoma City Thunder,Boston Celtics,Oklahoma City Thunder,2.15,2.711,1
+2026-01-01 01:01:00,Portland Trail Blazers vs Cleveland Cavaliers,Portland Trail Blazers,Cleveland Cavaliers,2.055,2.761,1
+2026-01-01 01:02:00,Philadelphia 76ers vs Sacramento Kings,Philadelphia 76ers,Sacramento Kings,1.76,1.997,1
+2026-01-01 01:03:00,Boston Celtics vs New York Knicks,Boston Celtics,New York Knicks,1.554,1.884,1
+2026-01-01 01:04:00,San Antonio Spurs vs Miami Heat,San Antonio Spurs,Miami Heat,2.301,1.557,0
+2026-01-01 01:05:00,Oklahoma City Thunder vs Brooklyn Nets,Oklahoma City Thunder,Brooklyn Nets,3.0,2.493,0
+2026-01-01 01:06:00,Golden State Warriors vs Portland Trail Blazers,Golden State Warriors,Portland Trail Blazers,2.508,2.357,0
+2026-01-01 01:07:00,Philadelphia 76ers vs Portland Trail Blazers,Philadelphia 76ers,Portland Trail Blazers,2.443,2.84,1
+2026-01-01 01:08:00,Philadelphia 76ers vs Indiana Pacers,Philadelphia 76ers,Indiana Pacers,1.654,2.062,1
+2026-01-01 01:09:00,Chicago Bulls vs New Orleans Pelicans,Chicago Bulls,New Orleans Pelicans,1.904,2.229,1
+2026-01-01 01:10:00,Golden State Warriors vs Orlando Magic,Golden State Warriors,Orlando Magic,2.588,1.827,0
+2026-01-01 01:11:00,Indiana Pacers vs Oklahoma City Thunder,Indiana Pacers,Oklahoma City Thunder,1.861,2.313,1
+2026-01-01 01:12:00,Sacramento Kings vs Toronto Raptors,Sacramento Kings,Toronto Raptors,2.611,2.086,0
+2026-01-01 01:13:00,Brooklyn Nets vs New Orleans Pelicans,Brooklyn Nets,New Orleans Pelicans,2.294,1.723,0
+2026-01-01 01:14:00,Memphis Grizzlies vs Sacramento Kings,Memphis Grizzlies,Sacramento Kings,2.199,1.605,0
+2026-01-01 01:15:00,Minnesota Timberwolves vs Charlotte Hornets,Minnesota Timberwolves,Charlotte Hornets,2.42,1.651,0
+2026-01-01 01:16:00,Portland Trail Blazers vs Chicago Bulls,Portland Trail Blazers,Chicago Bulls,3.0,2.375,0
+2026-01-01 01:17:00,Brooklyn Nets vs Minnesota Timberwolves,Brooklyn Nets,Minnesota Timberwolves,2.117,1.605,0
+2026-01-01 01:18:00,Cleveland Cavaliers vs Chicago Bulls,Cleveland Cavaliers,Chicago Bulls,2.455,2.013,0
+2026-01-01 01:19:00,Milwaukee Bucks vs Orlando Magic,Milwaukee Bucks,Orlando Magic,2.541,2.041,0
+2026-01-01 01:20:00,Chicago Bulls vs Toronto Raptors,Chicago Bulls,Toronto Raptors,1.596,2.14,1
+2026-01-01 01:21:00,Orlando Magic vs Charlotte Hornets,Orlando Magic,Charlotte Hornets,2.539,2.238,0
+2026-01-01 01:22:00,Orlando Magic vs San Antonio Spurs,Orlando Magic,San Antonio Spurs,1.901,2.186,1
+2026-01-01 01:23:00,Golden State Warriors vs Philadelphia 76ers,Golden State Warriors,Philadelphia 76ers,2.53,2.908,1
+2026-01-01 01:24:00,Indiana Pacers vs Orlando Magic,Indiana Pacers,Orlando Magic,3.0,2.53,0
+2026-01-01 01:25:00,New Orleans Pelicans vs Orlando Magic,New Orleans Pelicans,Orlando Magic,2.585,3.0,1
+2026-01-01 01:26:00,Utah Jazz vs Portland Trail Blazers,Utah Jazz,Portland Trail Blazers,2.342,2.201,0
+2026-01-01 01:27:00,Charlotte Hornets vs Memphis Grizzlies,Charlotte Hornets,Memphis Grizzlies,1.904,1.514,0
+2026-01-01 01:28:00,Portland Trail Blazers vs Oklahoma City Thunder,Portland Trail Blazers,Oklahoma City Thunder,1.987,2.263,1
+2026-01-01 01:29:00,Detroit Pistons vs Miami Heat,Detroit Pistons,Miami Heat,2.419,1.622,0
+2026-01-01 01:30:00,Boston Celtics vs San Antonio Spurs,Boston Celtics,San Antonio Spurs,2.416,1.617,0
+2026-01-01 01:31:00,Detroit Pistons vs Atlanta Hawks,Detroit Pistons,Atlanta Hawks,2.322,1.599,0
+2026-01-01 01:32:00,Atlanta Hawks vs Sacramento Kings,Atlanta Hawks,Sacramento Kings,2.354,2.553,1
+2026-01-01 01:33:00,Dallas Mavericks vs Atlanta Hawks,Dallas Mavericks,Atlanta Hawks,1.594,1.54,0
+2026-01-01 01:34:00,Chicago Bulls vs Boston Celtics,Chicago Bulls,Boston Celtics,2.449,1.762,0
+2026-01-01 01:35:00,Denver Nuggets vs Minnesota Timberwolves,Denver Nuggets,Minnesota Timberwolves,3.0,2.521,0
+2026-01-01 01:36:00,Portland Trail Blazers vs Oklahoma City Thunder,Portland Trail Blazers,Oklahoma City Thunder,1.722,1.866,1
+2026-01-01 01:37:00,Portland Trail Blazers vs Oklahoma City Thunder,Portland Trail Blazers,Oklahoma City Thunder,2.881,2.193,0
+2026-01-01 01:38:00,Los Angeles Lakers vs Chicago Bulls,Los Angeles Lakers,Chicago Bulls,1.798,2.38,1
+2026-01-01 01:39:00,Orlando Magic vs Miami Heat,Orlando Magic,Miami Heat,2.072,1.56,0

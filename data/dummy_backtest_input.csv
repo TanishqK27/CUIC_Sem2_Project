@@ -1,0 +1,26 @@
+timestamp,game,home_team,away_team,home_odds,away_odds,home_win
+2026-01-01,Lakers vs Celtics,Lakers,Celtics,1.95,2.05,1
+2026-01-02,Warriors vs Heat,Warriors,Heat,1.80,2.20,1
+2026-01-03,Bucks vs Nets,Bucks,Nets,1.65,2.45,1
+2026-01-04,Nuggets vs Suns,Nuggets,Suns,2.10,1.85,0
+2026-01-05,76ers vs Knicks,76ers,Knicks,1.90,2.00,1
+2026-01-06,Celtics vs Heat,Celtics,Heat,1.70,2.30,1
+2026-01-07,Lakers vs Warriors,Lakers,Warriors,2.15,1.78,0
+2026-01-08,Nets vs Bucks,Nets,Bucks,2.40,1.60,0
+2026-01-09,Suns vs 76ers,Suns,76ers,1.95,2.00,1
+2026-01-10,Knicks vs Nuggets,Knicks,Nuggets,2.25,1.72,0
+2026-01-11,Heat vs Lakers,Heat,Lakers,2.05,1.90,1
+2026-01-12,Warriors vs Celtics,Warriors,Celtics,2.00,1.95,0
+2026-01-13,Bucks vs Suns,Bucks,Suns,1.75,2.25,1
+2026-01-14,76ers vs Nets,76ers,Nets,1.85,2.10,0
+2026-01-15,Nuggets vs Knicks,Nuggets,Knicks,1.70,2.35,1
+2026-01-16,Celtics vs Warriors,Celtics,Warriors,1.88,2.08,1
+2026-01-17,Heat vs Bucks,Heat,Bucks,2.30,1.68,0
+2026-01-18,Lakers vs 76ers,Lakers,76ers,1.92,2.02,1
+2026-01-19,Suns vs Nets,Suns,Nets,1.78,2.18,1
+2026-01-20,Knicks vs Celtics,Knicks,Celtics,2.20,1.75,0
+2026-01-21,Warriors vs Nuggets,Warriors,Nuggets,2.05,1.88,1
+2026-01-22,Bucks vs Lakers,Bucks,Lakers,1.82,2.12,1
+2026-01-23,Heat vs Suns,Heat,Suns,2.10,1.85,0
+2026-01-24,Nets vs Knicks,Nets,Knicks,2.15,1.80,1
+2026-01-25,76ers vs Warriors,76ers,Warriors,2.00,1.95,0
