@@ -810,10 +810,18 @@ def display_extended_metrics(
     avg_loss = float(losses_pnl.mean()) if len(losses_pnl) > 0 else 0.0
     wl_ratio = abs(avg_win / avg_loss) if avg_loss != 0 else float("inf")
 
-    # Sortino Ratio (penalizes downside volatility only)
-    downside = pnl[pnl < 0]
-    downside_std = float(downside.std(ddof=1)) if len(downside) > 1 else 0.0
-    sortino = (float(pnl.mean()) / downside_std * math.sqrt(252)) if downside_std > 0 else 0.0
+    # Sortino Ratio (correct formula using percentage returns)
+    try:
+        from cuic_quant.metrics import calculate_sortino_ratio
+        bankroll_series = results_df["bankroll"]
+        pnl_series = results_df["pnl"]
+        bankroll_before = bankroll_series - pnl_series
+        valid_mask = bankroll_before.abs() > 1e-9
+        pct_returns = pd.Series(0.0, index=pnl_series.index)
+        pct_returns[valid_mask] = pnl_series[valid_mask] / bankroll_before[valid_mask]
+        sortino = calculate_sortino_ratio(pct_returns, periods_per_year=365)
+    except ImportError:
+        sortino = 0.0
 
     ev_per_bet = float(pnl.mean())
 
