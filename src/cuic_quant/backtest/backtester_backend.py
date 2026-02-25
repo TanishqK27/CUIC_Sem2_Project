@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import math
 import os
+import warnings
 from pathlib import Path
 from typing import Any, Callable
 
@@ -70,6 +71,7 @@ def load_backtest_data(
     start_date: str,
     end_date: str,
     csv_path: str | Path | None = None,
+    strict: bool = False,
 ) -> pd.DataFrame:
     """Load historical game data for backtesting.
 
@@ -93,6 +95,8 @@ def load_backtest_data(
         end_date: End of date range, inclusive. Format: "YYYY-MM-DD".
         csv_path: Path to fallback CSV file. If None, defaults to
             data/dummy_backtest_input.csv.
+        strict: If True, raise RuntimeError when the database query fails
+            instead of falling back to CSV. Default False.
 
     Returns:
         DataFrame with columns: timestamp (datetime), game (str),
@@ -103,6 +107,7 @@ def load_backtest_data(
     Raises:
         FileNotFoundError: If no database is available and no CSV exists
             at the specified path.
+        RuntimeError: If strict=True and the database query fails.
     """
     database_url = os.environ.get("DATABASE_URL")
 
@@ -138,7 +143,16 @@ def load_backtest_data(
             return df
 
         except Exception as e:
-            print(f"Database connection failed ({e}), falling back to CSV.")
+            if strict:
+                raise RuntimeError(
+                    f"Database query failed and strict=True: {e}"
+                ) from e
+            warnings.warn(
+                f"DATABASE_URL is set but query failed ({e}). "
+                f"Falling back to local CSV — results may use synthetic data.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     # Fallback to CSV
     if csv_path is None:
