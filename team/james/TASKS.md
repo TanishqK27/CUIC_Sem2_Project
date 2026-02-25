@@ -1,6 +1,6 @@
 # James's Tasks
 
-## Week 2: Backtester Refactor + Cleanup (Feb 13+)
+## Week 3: PR Review Fixes (Feb 25)
 
 ### To Do
 - [ ] Give Ismaeel access to new backtester module for testing
@@ -9,6 +9,28 @@
 | Task | Started | Notes |
 |------|---------|-------|
 | | | |
+
+### Completed
+| Task | Completed | Notes |
+|------|-----------|-------|
+| Fix C1: except Exception to except ImportError | Feb 25 | Added logging.debug for visibility |
+| Fix C2: Rename kelly_bet_home to kelly_bet_home_demo | Feb 25 | Prominent warning docstring about tautological edge |
+| Fix C3: Correct Sharpe/Sortino ratios | Feb 25 | Percentage returns, 365 annualization, new Sortino formula |
+| Fix C4: Bankroll negative with cost_flat | Feb 25 | bet_size capped at bankroll - cost_flat |
+| Fix C5: DB fallback warning + strict mode | Feb 25 | warnings.warn(RuntimeWarning), strict=True param |
+| Fix I1: Kelly import out of for-loop | Feb 25 | Moved to top of function |
+| Fix I2: Warn on Kelly to flat fallback | Feb 25 | warnings.warn when confidence outside (0,1) |
+| Fix I3: Input validation on backtest() | Feb 25 | ValueError for missing columns |
+| Fix I4: display_extended_metrics error handling | Feb 25 | try/except ImportError fallback |
+| Fix I5: Warn on unrecognized actions | Feb 25 | warnings.warn for invalid actions |
+| Fix I6: always_bet_away docstring | Feb 25 | Google-style, matches always_bet_home |
+| Fix I7: Store cost params in metadata | Feb 25 | DataFrame.attrs for cost_pct, cost_flat, initial_bankroll |
+| Fix I8: Move matplotlib import | Feb 25 | Lazy import inside plot_performance() |
+| Add missing tests from PR review | Feb 25 | 10 new tests: bankroll, PnL math, always_bet_away, Kelly bounds, empty DF |
+
+---
+
+## Week 2: Backtester Refactor + Cleanup (Feb 13+)
 
 ### Completed
 | Task | Completed | Notes |

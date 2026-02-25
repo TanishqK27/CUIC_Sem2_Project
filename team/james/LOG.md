@@ -15,6 +15,42 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### Feb 25, 2026
+
+**PR Review Fixes — All Critical, Important, and Test Gap Items**
+
+Addressed all feedback from TanishqK's review of the james_branch to main PR.
+
+**Critical Fixes (5):**
+- **C1:** Narrowed `except Exception:` to `except ImportError:` in `__init__.py` with debug logging
+- **C2:** Renamed `kelly_bet_home` to `kelly_bet_home_demo` with prominent warning that it's a plumbing demonstration with tautological edge
+- **C3:** Fixed Sharpe/Sortino to use percentage returns (`pnl/bankroll_before_bet`), changed annualization from 252 to 365, added `calculate_sortino_ratio()` with correct downside deviation formula
+- **C4:** Fixed bankroll going negative with `cost_flat` — capped `bet_size` at `bankroll - cost_flat`
+- **C5:** Replaced silent `print()` with `warnings.warn(RuntimeWarning)` on DB fallback. Added `strict=True` mode that raises instead of falling back
+
+**Important Fixes (8):**
+- **I1:** Moved Kelly import from inside for-loop to top of function
+- **I2:** Added warning when Kelly falls back to flat sizing (confidence outside (0,1))
+- **I3:** Added input column validation at start of `backtest()` — raises `ValueError` with clear message
+- **I4:** Added `try/except ImportError` fallback in `display_extended_metrics()`
+- **I5:** Added `warnings.warn()` for unrecognized strategy actions
+- **I6:** Added Google-style docstring to `always_bet_away()`
+- **I7:** Stored `cost_pct`/`cost_flat`/`initial_bankroll` in `DataFrame.attrs` metadata
+- **I8:** Moved matplotlib import inside `plot_performance()` (lazy import)
+
+**Test Gaps Filled (10 new tests, 57 total):**
+- Bankroll never negative with cost_flat (validates C4 fix)
+- Multi-trade PnL with costs (5 trades, row-by-row verification)
+- `always_bet_away` dedicated test class (action, context, docstring)
+- Kelly confidence boundaries (0.0 and 1.0 fallback)
+- Empty DataFrame input
+- Bankroll >= 0 on ALL rows (strengthened existing test)
+- Missing columns raises ValueError (validates I3)
+
+**Commits:** `5a90cf1` through `f4414bf` (7 commits), all on `james_branch`.
+
+---
+
 ### Feb 17, 2026 (Part 3)
 
 **Kelly Criterion Math Annotation in Notebook**
