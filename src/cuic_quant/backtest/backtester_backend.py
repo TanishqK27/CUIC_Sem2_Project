@@ -283,8 +283,8 @@ def backtest(
                 if bet_size <= 0:
                     continue
 
-        # Cap bet at bankroll (needed for both Kelly and non-Kelly paths)
-        bet_size = min(bet_size, bankroll)
+        # Cap bet at bankroll minus flat fee to prevent negative bankroll
+        bet_size = min(bet_size, max(0.0, bankroll - cost_flat))
         if bet_size <= 0:
             continue
 
