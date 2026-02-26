@@ -33,21 +33,28 @@ def calculate_p_value(
     win_rate: float,
     n_trades: int,
     null_hypothesis: float = 0.5,
+    alternative: str = "greater",
 ) -> float:
     """Binomial test p-value for win rate vs null hypothesis.
+
+    Uses a one-sided test by default ("greater") because in betting strategy
+    evaluation, we care whether the win rate is *better* than the null — a
+    strategy with a 30% win rate is not "significant" in a useful sense.
 
     Args:
         win_rate: Observed win rate (0-1).
         n_trades: Number of trades.
         null_hypothesis: Expected win rate under null (default 0.5 = no edge).
+        alternative: Test direction. "greater" (default) tests if win_rate
+            exceeds null. "two-sided" tests if it differs in either direction.
 
     Returns:
-        Two-sided p-value. Lower means more significant.
+        P-value. Lower means more significant (win rate > null with high confidence).
     """
     if n_trades <= 0:
         return 1.0
     wins = int(round(win_rate * n_trades))
-    result = stats.binomtest(wins, n_trades, null_hypothesis, alternative="two-sided")
+    result = stats.binomtest(wins, n_trades, null_hypothesis, alternative=alternative)
     return float(result.pvalue)
 
 
@@ -260,6 +267,8 @@ def deflated_sharpe_ratio(
     n_trials: int,
     n_observations: int,
     sharpe_std: float = 1.0,
+    skewness: float = 0.0,
+    kurtosis: float = 3.0,
 ) -> float:
     """Deflated Sharpe Ratio (Bailey & Lopez de Prado, 2014).
 
@@ -267,11 +276,20 @@ def deflated_sharpe_ratio(
     observed Sharpe ratio exceeds what we'd expect from the best of
     n_trials random strategies.
 
+    Uses the full standard error formula from the paper that accounts for
+    non-normality via skewness and kurtosis terms. This is important for
+    binary betting returns which are typically highly skewed (skew -1 to -3)
+    with excess kurtosis (5+).
+
     Args:
         observed_sharpe: The observed annualized Sharpe ratio.
         n_trials: Number of strategies tested (e.g., 55 for 11 members * 5 each).
         n_observations: Number of return observations.
         sharpe_std: Assumed standard deviation of Sharpe ratios across trials.
+        skewness: Skewness of returns. Default 0.0 (Gaussian). Binary betting
+            returns typically have skewness -1 to -3.
+        kurtosis: Kurtosis of returns (not excess). Default 3.0 (Gaussian).
+            Binary betting returns typically have kurtosis 5+.
 
     Returns:
         DSR p-value (probability that observed Sharpe is due to chance).
@@ -287,9 +305,13 @@ def deflated_sharpe_ratio(
         + euler_mascheroni * stats.norm.ppf(1 - 1 / (n_trials * math.e))
     )
 
-    # Standard error of the Sharpe ratio
+    # Standard error of the Sharpe ratio — full formula from Bailey & LdP (2014)
+    # SE(SR) = sqrt( (1 - skew*SR + (kurtosis-1)/4 * SR^2) / (n-1) )
+    # Where kurtosis here is the standard kurtosis (excess_kurtosis + 3)
+    sr2 = observed_sharpe ** 2
+    excess_kurtosis = kurtosis - 3.0  # convert to excess kurtosis for the formula
     se_sharpe = math.sqrt(
-        (1 + 0.5 * observed_sharpe**2) / (n_observations - 1)
+        (1 - skewness * observed_sharpe + (excess_kurtosis / 4) * sr2) / max(n_observations - 1, 1)
     )
 
     if se_sharpe < 1e-10:
@@ -306,17 +328,29 @@ def probability_of_backtest_overfitting(
     sharpe_ratios_in_sample: list[float],
     sharpe_ratios_out_of_sample: list[float],
 ) -> float:
-    """Probability of Backtest Overfitting (PBO).
+    """Simplified overfitting probability estimate.
+
+    NOTE: This is a simplified single-split rank test, NOT the full
+    Combinatorial Symmetric Cross-Validation (CSCV) algorithm from
+    Bailey et al. (2017). The full CSCV algorithm uses all possible
+    train/test partition combinations and a logit model. This simplified
+    version gives a coarse estimate from a single IS/OOS split.
+
+    For N strategies, output is quantized to multiples of 1/(N-1).
+    For rigorous PBO, use combinatorial_purged_cv() from walk_forward.py
+    with multiple split combinations.
 
     Estimates the probability that the best in-sample strategy
-    underperforms out-of-sample.
+    underperforms out-of-sample by checking what fraction of other
+    strategies beat it OOS.
 
     Args:
         sharpe_ratios_in_sample: In-sample Sharpe for each strategy.
         sharpe_ratios_out_of_sample: Out-of-sample Sharpe for same strategies.
 
     Returns:
-        PBO estimate (0-1). Higher means more likely overfitting.
+        Overfitting estimate (0-1). Higher means more likely overfitting.
+        Quantized to 1/(N-1) increments.
     """
     if len(sharpe_ratios_in_sample) != len(sharpe_ratios_out_of_sample):
         raise ValueError("IS and OOS lists must have same length")
@@ -335,7 +369,7 @@ def probability_of_backtest_overfitting(
         if i != best_is_idx and sharpe_ratios_out_of_sample[i] > best_is_oos
     )
 
-    # PBO = fraction of strategies that beat the "best" IS strategy OOS
+    # Fraction of strategies that beat the "best" IS strategy OOS
     pbo = n_better_oos / (n - 1) if n > 1 else 0.0
     return float(pbo)
 

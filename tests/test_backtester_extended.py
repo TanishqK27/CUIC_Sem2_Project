@@ -121,18 +121,20 @@ class TestPlotPerformance:
         plt.close("all")
 
     def test_creates_figure_for_valid_results(self) -> None:
-        """Should create matplotlib figure without error."""
+        """Should create matplotlib figure with 4 subplots."""
         import matplotlib.pyplot as plt
 
         results = _make_results(n=10, home_wins=[1, 0, 1, 1, 0, 0, 1, 0, 1, 1])
         # Patch plt.show to prevent display attempt
         with patch.object(plt, "show"):
             plot_performance(results)
-        # If we get here without error, the test passes
-        fig_count = len(plt.get_fignums())
+        # Verify a figure was actually created with subplots
+        fig_nums = plt.get_fignums()
+        assert len(fig_nums) > 0, "plot_performance should create at least one figure"
+        fig = plt.figure(fig_nums[-1])
+        axes = fig.get_axes()
+        assert len(axes) >= 2, f"Expected at least 2 subplots, got {len(axes)}"
         plt.close("all")
-        # The function called plt.show() so the figure was created
-        assert True  # no exception raised
 
     def test_handles_empty_results(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Should print 'No trades to plot.' for empty DF."""

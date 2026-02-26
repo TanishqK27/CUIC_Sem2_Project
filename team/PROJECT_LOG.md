@@ -18,6 +18,11 @@ This will update both your personal `team/<name>/LOG.md` and this PROJECT_LOG.md
 
 ## Log Entries
 
+### 2026-02-26
+
+- **[james]** 10-agent comprehensive audit and fix pass: fixed 33 bugs across 6 source modules (engine.py 14 fixes, metrics 5, statistics 3, walk_forward 4, comparison 4, validator 3). Created `tests/test_audit_fixes.py` with 42+ new tests. Fixed 3 existing test files. **200/200 tests passing.** All 30 PR review items (B1-B5, S1-S5, M1-M4, U1-U5, T1-T6, D1-D5) verified as still FIXED. Wrote 35-page LaTeX reference document covering full backtester architecture, math, and workflow.
+- **[james]** Full bug audit: 5-agent triple-pass verification of all 30 checklist items (B1-B5, S1-S5, M1-M4, U1-U5, T1-T6, D1-D5). Results: **30/30 FULLY FIXED**. Fixed remaining 2 partial items: U1 (added 7 tests for rank_strategies/display_comparison, 13 total comparison tests pass), D1 (expanded notebook metrics cell to 16 explanations across 4 categories with Sharpe/Sortino correction details).
+
 ### 2026-02-17
 
 - **[james]** Added Kelly Criterion math annotation to notebook: formula breakdown, worked example tracing first trade ($513.16), tweaking guide (kelly_fraction, confidence, max_fraction) with exact file locations and risk profile reference table.

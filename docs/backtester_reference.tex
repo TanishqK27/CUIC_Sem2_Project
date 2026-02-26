@@ -1,0 +1,2079 @@
+% ==========================================================================
+% CUIC Quant Fund — Backtester Reference Document
+% A comprehensive guide to the sports-betting backtesting framework
+% ==========================================================================
+\documentclass[12pt,a4paper]{report}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{parskip}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{pifont}
+
+% --- Hyperref setup ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!60!black,
+    citecolor=green!50!black,
+    urlcolor=blue!70!black,
+    pdfauthor={James — Cardiff University Investment Club},
+    pdftitle={CUIC Backtester Reference Document},
+    pdfsubject={Quantitative Sports Betting Backtesting Framework},
+}
+
+% --- Code listing style ---
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codeframe}{RGB}{200,200,200}
+\definecolor{codekw}{RGB}{0,0,180}
+\definecolor{codecomment}{RGB}{0,128,0}
+\definecolor{codestring}{RGB}{163,21,21}
+
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{codeframe},
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codekw}\bfseries,
+    commentstyle=\color{codecomment}\itshape,
+    stringstyle=\color{codestring},
+    showstringspaces=false,
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=4,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=8pt,
+    xleftmargin=1.5em,
+    framexleftmargin=1em,
+    captionpos=b,
+}
+\lstset{style=pythonstyle}
+
+% --- Header/Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small CUIC Quant Fund}
+\fancyhead[R]{\small Backtester Reference}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- Theorem environments ---
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{remark}{Remark}[chapter]
+\newtheorem{example}{Example}[chapter]
+
+% --- Custom commands ---
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\file}[1]{\texttt{#1}}
+\newcommand{\func}[1]{\texttt{#1()}}
+\newcommand{\pnl}{\text{PnL}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
+% --- Title ---
+\title{
+    \vspace{-1cm}
+    {\Huge\bfseries CUIC Quant Fund}\\[0.5cm]
+    {\LARGE Backtester Reference Document}\\[0.3cm]
+    {\large A Complete Technical Guide to the Sports-Betting\\Backtesting Framework}\\[1cm]
+    {\normalsize Version 2.0 — February 2026}
+}
+\author{
+    James\\
+    Cardiff University Investment Club\\
+    \texttt{james\_branch}
+}
+\date{26 February 2026}
+
+% ==========================================================================
+\begin{document}
+% ==========================================================================
+
+\maketitle
+\thispagestyle{empty}
+
+\vfill
+\begin{center}
+\textit{This document covers every module, every formula, and every design decision\\
+in the CUIC backtesting framework so that no question goes unanswered.}
+\end{center}
+\vfill
+
+\clearpage
+\setcounter{page}{1}
+
+% ==========================================================================
+\tableofcontents
+\clearpage
+\listoftables
+\listofalgorithms
+\clearpage
+% ==========================================================================
+
+
+% ##########################################################################
+\chapter{Introduction}
+\label{ch:introduction}
+% ##########################################################################
+
+\section{Purpose of This Document}
+
+This reference document provides a complete, self-contained explanation of the CUIC Quant Fund's sports-betting backtesting framework. It is written so that any team member—or external reviewer—can understand:
+
+\begin{itemize}
+    \item What the backtester does and why it exists,
+    \item How data flows through the system from loading to final metrics,
+    \item The mathematical formulas behind every metric,
+    \item How walk-forward analysis prevents overfitting,
+    \item How the validation and anomaly detection systems work,
+    \item How to write a strategy function and integrate it.
+\end{itemize}
+
+\section{Project Context}
+
+The Cardiff University Investment Club (CUIC) Quant Fund researches quantitative strategies for sports betting and prediction markets. The backtester is the central evaluation tool: every strategy must pass through it before being considered for live deployment.
+
+\textbf{Key constraints:}
+\begin{enumerate}
+    \item \textbf{Data leakage prevention.} A strategy must never see the outcome of the game it is betting on. This is the single most critical requirement.
+    \item \textbf{Standardised output.} The backtester produces an 11-column DataFrame that downstream modules (metrics, visualisation, walk-forward) depend on.
+    \item \textbf{Statistical rigour.} Results must be accompanied by p-values, confidence intervals, and overfitting diagnostics.
+\end{enumerate}
+
+\section{Architecture Overview}
+
+The framework is split into seven modules inside \file{src/cuic\_quant/}:
+
+\begin{table}[H]
+\centering
+\caption{Module overview.}
+\label{tab:modules}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Module} & \textbf{File} & \textbf{Responsibility} \\
+\midrule
+Data Loader     & \file{backtest/data\_loader.py}  & Load games from Railway DB or CSV \\
+Engine          & \file{backtest/engine.py}         & Core backtest loop \\
+Validator       & \file{backtest/validator.py}       & 12-check result validation \\
+Metrics         & \file{metrics/\_\_init\_\_.py}     & Performance metric calculations \\
+Statistics      & \file{backtest/statistics.py}      & p-values, bootstrap CI, DSR, PBO \\
+Walk-Forward    & \file{backtest/walk\_forward.py}   & Train/test splits, rolling/expanding windows, CPCV \\
+Comparison      & \file{backtest/comparison.py}      & Multi-strategy comparison, anomaly detection \\
+Kelly Criterion & \file{strategies/kelly\_criterion.py} & Optimal bet sizing \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 2cm,
+    block/.style={rectangle, draw, rounded corners, minimum width=3cm, minimum height=1cm, align=center, fill=blue!8},
+    arrow/.style={-{Stealth[length=3mm]}, thick},
+]
+    \node[block] (loader) {Data Loader};
+    \node[block, right=of loader] (engine) {Engine\\(\func{backtest})};
+    \node[block, right=of engine] (validator) {Validator\\(12 checks)};
+    \node[block, below=of engine] (metrics) {Metrics\\Module};
+    \node[block, below=of loader] (wf) {Walk-Forward\\Analysis};
+    \node[block, below=of validator] (stats) {Statistics\\Module};
+    \node[block, below=of metrics] (comp) {Comparison\\+ Anomaly};
+    \node[block, above=of engine] (strategy) {Strategy\\Function};
+
+    \draw[arrow] (loader) -- (engine);
+    \draw[arrow] (strategy) -- (engine);
+    \draw[arrow] (engine) -- (validator);
+    \draw[arrow] (engine) -- (metrics);
+    \draw[arrow] (metrics) -- (stats);
+    \draw[arrow] (engine) -- (wf);
+    \draw[arrow] (wf) -- (metrics);
+    \draw[arrow] (metrics) -- (comp);
+\end{tikzpicture}
+\caption{High-level data flow through the backtesting framework.}
+\label{fig:architecture}
+\end{figure}
+
+
+% ##########################################################################
+\chapter{Data Loading}
+\label{ch:data-loading}
+% ##########################################################################
+
+\section{Overview}
+
+The function \func{load\_backtest\_data} in \file{backtest/data\_loader.py} is the entry point for all historical game data. It abstracts the data source behind a single interface.
+
+\section{Data Sources}
+
+\subsection{Railway PostgreSQL (Production)}
+
+When the \code{DATABASE\_URL} environment variable is set, the loader queries the \code{sportsbook\_matches} and \code{sportsbook\_odds} tables via SQLAlchemy:
+
+\begin{lstlisting}[caption={Database query for historical games.}]
+SELECT
+    m.commence_time AS timestamp,
+    m.home_team || ' vs ' || m.away_team AS game,
+    m.home_team, m.away_team,
+    o.home_odds, o.away_odds,
+    m.home_win,
+    o.closing_home_odds, o.closing_away_odds
+FROM sportsbook_matches m
+JOIN sportsbook_odds o ON m.id = o.match_id
+WHERE m.commence_time >= :start_date
+  AND m.commence_time <= :end_date
+ORDER BY m.commence_time ASC
+\end{lstlisting}
+
+The closing odds columns (\code{closing\_home\_odds}, \code{closing\_away\_odds}) enable Closing Line Value (CLV) computation when available.
+
+\subsection{CSV Fallback (Development)}
+
+If no database is configured, or the query fails, the loader reads from a local CSV file (default: \file{data/dummy\_backtest\_input.csv}).
+
+\begin{itemize}
+    \item \textbf{Strict mode} (\code{strict=True}): raises \code{RuntimeError} if the DB query fails instead of falling back.
+    \item \textbf{Warning}: When fallback occurs, a \code{RuntimeWarning} is emitted so the user knows results may use synthetic data.
+\end{itemize}
+
+\section{Required Input Columns}
+
+\begin{table}[H]
+\centering
+\caption{Required columns in input data.}
+\label{tab:input-columns}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Column} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\code{timestamp}   & datetime  & When the game started \\
+\code{game}        & str       & Human-readable match identifier (e.g., ``Lakers vs Celtics'') \\
+\code{home\_team}  & str       & Home team name \\
+\code{away\_team}  & str       & Away team name \\
+\code{home\_odds}  & float     & Decimal odds for the home team (must be $> 1.0$) \\
+\code{away\_odds}  & float     & Decimal odds for the away team (must be $> 1.0$) \\
+\code{home\_win}   & int       & 1 if home team won, 0 if away team won \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Optional columns:}
+\begin{itemize}
+    \item \code{closing\_home\_odds}, \code{closing\_away\_odds}: Post-market closing odds for CLV computation.
+\end{itemize}
+
+\section{Sorting Guarantee}
+
+Both the DB and CSV paths sort the output by \code{["timestamp", "game"]} to ensure deterministic ordering. This is critical because the backtest loop processes rows sequentially and chronological order prevents future data leakage.
+
+
+% ##########################################################################
+\chapter{The Strategy Interface}
+\label{ch:strategy-interface}
+% ##########################################################################
+
+\section{What Is a Strategy Function?}
+
+A strategy function is a Python callable that takes a game row and optional context, and returns a \emph{signal} dictionary telling the backtester what to do.
+
+\begin{definition}[Strategy Function]
+A strategy function is a callable with signature:
+\[
+    f: (\text{row}: \texttt{pd.Series},\ \text{context}: \texttt{dict} \mid \texttt{None}) \to \texttt{dict}
+\]
+\end{definition}
+
+\section{Input: The Row}
+
+The row is a Pandas Series containing all columns from the input data \emph{except} \code{home\_win} (and closing odds if present). This is the data leakage prevention mechanism—the strategy cannot see the outcome.
+
+\textbf{Available fields in the row:}
+\begin{itemize}
+    \item \code{timestamp}, \code{game}, \code{home\_team}, \code{away\_team}
+    \item \code{home\_odds}, \code{away\_odds}
+\end{itemize}
+
+\section{Input: The Context}
+
+The context dictionary provides the strategy with historical state:
+
+\begin{table}[H]
+\centering
+\caption{Context dictionary fields.}
+\label{tab:context}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Key} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\code{initial\_bankroll} & \code{float}       & Starting bankroll \\
+\code{bankroll}          & \code{float}       & Current bankroll \\
+\code{trade\_count}      & \code{int}         & Number of trades so far \\
+\code{cumulative\_pnl}   & \code{float}       & Running P\&L total \\
+\code{history}           & \code{list[dict]}  & Deep copy of all past trades \\
+\code{past\_games}       & \code{DataFrame}   & All previous game rows (\textbf{without} \code{home\_win}) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{remark}[Deep Copy Semantics]
+Both \code{history} and \code{past\_games} are deep copies. Modifying them inside the strategy function does not affect the backtester's internal state. This prevents a class of bugs where strategies accidentally corrupt shared state.
+\end{remark}
+
+\section{Output: The Signal Dictionary}
+
+The strategy must return a dictionary with these keys:
+
+\begin{table}[H]
+\centering
+\caption{Signal dictionary fields.}
+\label{tab:signal}
+\begin{tabularx}{\textwidth}{lllX}
+\toprule
+\textbf{Key} & \textbf{Type} & \textbf{Required} & \textbf{Description} \\
+\midrule
+\code{action}     & str   & Yes  & \code{"BUY\_HOME"}, \code{"BUY\_AWAY"}, or \code{"SKIP"} \\
+\code{confidence} & float & No   & Win probability estimate $\in [0, 1]$ (used by Kelly sizing and Brier Score) \\
+\code{size}       & float & No   & Dollar amount to bet (used when \code{position\_sizing=None}) \\
+\code{reason}     & str   & No   & Human-readable explanation (for logging/debugging) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Example Strategies}
+
+\subsection{Always Bet Home}
+
+The simplest possible strategy—bets \$100 on the home team for every game:
+
+\begin{lstlisting}[caption={The always\_bet\_home reference strategy.}]
+def always_bet_home(row, context=None):
+    return {
+        "action": "BUY_HOME",
+        "confidence": 0.5,
+        "size": 100.0,
+        "reason": "Always bet home (test strategy)",
+    }
+\end{lstlisting}
+
+This strategy exists for validation: since it is deterministic, we can verify backtest output against a known-good CSV.
+
+\subsection{Kelly Bet Home Demo}
+
+A demonstration of Kelly Criterion plumbing that uses implied probability + 5\% as the confidence:
+
+\begin{lstlisting}[caption={Kelly demo strategy (DO NOT use in production).}]
+def kelly_bet_home_demo(row, context=None):
+    implied_prob = 1.0 / row["home_odds"]
+    confidence = min(implied_prob + 0.05, 0.95)
+    return {
+        "action": "BUY_HOME",
+        "confidence": confidence,
+        "size": 100.0,
+        "reason": f"DEMO kelly (implied={implied_prob:.2f})",
+    }
+\end{lstlisting}
+
+\begin{remark}[Why This Is Tautological]
+Since \code{confidence} $= 1/\text{odds} + 0.05$, we always have $p > 1/\text{odds}$, so Kelly will always bet. This is by construction—it demonstrates the \emph{plumbing}, not a real edge model.
+\end{remark}
+
+\section{Error Handling}
+
+The engine handles strategy misbehaviour gracefully:
+
+\begin{itemize}
+    \item \textbf{Exception}: Strategy raises an exception $\Rightarrow$ warning emitted, row skipped, prior trades preserved.
+    \item \textbf{Non-dict return}: Strategy returns \code{None}, \code{int}, \code{str}, or \code{list} $\Rightarrow$ warning, skip.
+    \item \textbf{Missing \code{action} key}: $\Rightarrow$ warning with list of returned keys, treated as SKIP.
+    \item \textbf{Key typos}: Common misspellings (e.g., \code{"Action"} instead of \code{"action"}) trigger a warning.
+\end{itemize}
+
+
+% ##########################################################################
+\chapter{The Backtest Engine}
+\label{ch:engine}
+% ##########################################################################
+
+\section{Overview}
+
+The core function \func{backtest} in \file{backtest/engine.py} is the heart of the framework. It takes historical game data and a strategy function, simulates betting on each game, and returns a DataFrame of trade results.
+
+\section{Function Signature}
+
+\begin{lstlisting}[caption={backtest() function signature.}]
+def backtest(
+    data: pd.DataFrame,
+    strategy_fn: Callable,
+    initial_bankroll: float = 10000.0,
+    cost_pct: float = 0.0,
+    cost_flat: float = 0.0,
+    position_sizing: str | None = None,
+    kelly_fraction: float = 0.5,
+) -> pd.DataFrame:
+\end{lstlisting}
+
+\section{Input Validation}
+\label{sec:input-validation}
+
+The engine fails fast on invalid parameters:
+
+\begin{table}[H]
+\centering
+\caption{Input validation rules.}
+\label{tab:validation-rules}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Parameter} & \textbf{Rule} \\
+\midrule
+\code{initial\_bankroll} & Must be a finite non-negative number. NaN $\Rightarrow$ \code{ValueError}. \\
+\code{cost\_pct}         & Must be in $[0, 1]$. This is a fraction, not a percentage (0.05 = 5\%). \\
+\code{cost\_flat}        & Must be non-negative. \\
+\code{position\_sizing}  & Case-insensitive. Only \code{"kelly"} is supported; anything else $\Rightarrow$ warning + fallback to flat. \\
+\code{kelly\_fraction}   & Must be in $(0, 1]$. Only validated when \code{position\_sizing="kelly"}. \\
+Required columns         & \code{timestamp}, \code{game}, \code{home\_team}, \code{away\_team}, \code{home\_odds}, \code{away\_odds}, \code{home\_win} must all be present. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{The Backtest Loop}
+\label{sec:backtest-loop}
+
+\begin{algorithm}[H]
+\caption{Core Backtest Loop}
+\label{alg:backtest}
+\begin{algorithmic}[1]
+\Require data, strategy\_fn, initial\_bankroll, cost\_pct, cost\_flat
+\State $\text{bankroll} \gets \text{initial\_bankroll}$
+\State $\text{cumulative\_pnl} \gets 0$
+\State $\text{trades} \gets []$
+\For{each row in data (sorted by timestamp)}
+    \If{$\text{bankroll} \leq 0$}
+        \State \textbf{break}  \Comment{Bankrupt — stop trading}
+    \EndIf
+    \State \textbf{Validate row:} skip if odds are NaN, $\leq 1.0$, or non-numeric
+    \State \textbf{Validate home\_win:} skip if NaN or not in $\{0, 1\}$
+    \State Build context dict with deep-copied history
+    \State $\text{strategy\_row} \gets \text{row without home\_win and closing odds}$
+    \State $\text{signal} \gets \text{strategy\_fn}(\text{strategy\_row}, \text{context})$
+    \If{signal is not a dict, or action is SKIP}
+        \State \textbf{continue}
+    \EndIf
+    \State Determine odds based on action (BUY\_HOME $\to$ home\_odds, BUY\_AWAY $\to$ away\_odds)
+    \If{position\_sizing = ``kelly''}
+        \State Apply Kelly sizing (see \Cref{sec:kelly-sizing})
+    \EndIf
+    \State $\text{bet\_size} \gets \min(\text{bet\_size}, \max(0, \text{bankroll} - \text{cost\_flat}))$
+    \If{$\text{bet\_size} \leq 0$}
+        \State \textbf{continue}
+    \EndIf
+    \If{won}
+        \State $\pnl \gets \text{bet\_size} \times (\text{odds} - 1) \times (1 - \text{cost\_pct}) - \text{cost\_flat}$
+    \Else
+        \State $\pnl \gets -\text{bet\_size} - \text{cost\_flat}$
+    \EndIf
+    \State $\text{cumulative\_pnl} \gets \text{cumulative\_pnl} + \pnl$
+    \State $\text{bankroll} \gets \text{bankroll} + \pnl$
+    \State Append trade to trades list
+\EndFor
+\State \Return DataFrame(trades) with 11 columns
+\end{algorithmic}
+\end{algorithm}
+
+\section{Data Leakage Prevention}
+\label{sec:leakage-prevention}
+
+Data leakage is the most dangerous bug in backtesting. If a strategy can see the outcome of a game before betting, it will achieve unrealistic performance. The engine prevents this at three levels:
+
+\begin{enumerate}
+    \item \textbf{Row stripping}: Before calling the strategy, the engine drops \code{home\_win}, \code{closing\_home\_odds}, and \code{closing\_away\_odds} from the row.
+    \item \textbf{Past games filtering}: The \code{context["past\_games"]} DataFrame includes only rows up to (but not including) the current row, with \code{home\_win} stripped.
+    \item \textbf{Deep copying}: \code{context["history"]} is a list of independent dicts (deep copy), preventing the strategy from modifying shared state.
+\end{enumerate}
+
+\section{Transaction Cost Model}
+\label{sec:costs}
+
+The engine supports two types of costs:
+
+\begin{definition}[Transaction Costs]
+For a trade with bet size $s$, odds $o$, percentage cost $c_p$, and flat cost $c_f$:
+\begin{align}
+    \pnl_{\text{win}}  &= s \cdot (o - 1) \cdot (1 - c_p) - c_f \label{eq:pnl-win} \\
+    \pnl_{\text{loss}} &= -s - c_f \label{eq:pnl-loss}
+\end{align}
+\end{definition}
+
+\begin{example}[Transaction Cost Calculation]
+Bet \$100 at odds 2.50 with $c_p = 0.02$ (2\%) and $c_f = \$1.00$:
+\begin{itemize}
+    \item \textbf{Win}: $\pnl = 100 \times (2.50 - 1) \times (1 - 0.02) - 1.00 = 100 \times 1.50 \times 0.98 - 1.00 = 147.00 - 1.00 = \$146.00$
+    \item \textbf{Loss}: $\pnl = -100 - 1.00 = -\$101.00$
+\end{itemize}
+\end{example}
+
+\textbf{Bankroll capping}: The bet size is capped at $\max(0, \text{bankroll} - c_f)$ to ensure the flat fee can always be paid without the bankroll going negative.
+
+\section{Output Columns}
+\label{sec:output-columns}
+
+\begin{table}[H]
+\centering
+\caption{The 11 output columns of \func{backtest}.}
+\label{tab:output-columns}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Column} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\code{timestamp}       & datetime & Game start time \\
+\code{game}            & str      & Match identifier \\
+\code{action}          & str      & \code{"BUY\_HOME"} or \code{"BUY\_AWAY"} \\
+\code{bet\_size}       & float    & Dollar amount wagered \\
+\code{odds}            & float    & Decimal odds for the chosen side \\
+\code{outcome}         & str      & \code{"WIN"} or \code{"LOSS"} \\
+\code{pnl}             & float    & Profit or loss for this trade \\
+\code{cumulative\_pnl} & float    & Running total of all P\&L \\
+\code{bankroll}        & float    & Bankroll after this trade \\
+\code{confidence}      & float    & Strategy's win probability estimate (NaN if not provided) \\
+\code{closing\_odds}   & float    & Closing line odds for CLV computation (NaN if unavailable) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Metadata}: The returned DataFrame stores cost parameters in \code{.attrs}:
+\begin{itemize}
+    \item \code{result.attrs["cost\_pct"]}
+    \item \code{result.attrs["cost\_flat"]}
+    \item \code{result.attrs["initial\_bankroll"]}
+\end{itemize}
+These are used by the validator and metrics modules to avoid parameter mismatch bugs.
+
+
+% ##########################################################################
+\chapter{Kelly Criterion Position Sizing}
+\label{ch:kelly}
+% ##########################################################################
+
+\section{Theory}
+
+The Kelly Criterion, introduced by John Kelly in 1956, determines the optimal fraction of bankroll to wager to maximise the expected logarithmic growth rate of wealth.
+
+\begin{definition}[Kelly Criterion]
+For a bet with win probability $p$, loss probability $q = 1 - p$, and net odds $b$ (decimal odds minus 1):
+\begin{equation}
+    f^* = \frac{bp - q}{b} = \frac{p(b+1) - 1}{b}
+    \label{eq:kelly}
+\end{equation}
+where $f^*$ is the optimal fraction of bankroll to wager.
+\end{definition}
+
+\begin{remark}
+If $f^* \leq 0$, the bet has no edge and should not be taken.
+\end{remark}
+
+\section{Derivation}
+
+Starting from the expected log growth rate:
+\begin{equation}
+    G(f) = p \cdot \ln(1 + bf) + q \cdot \ln(1 - f)
+\end{equation}
+
+Taking the derivative and setting to zero:
+\begin{align}
+    \frac{dG}{df} &= \frac{pb}{1 + bf} - \frac{q}{1 - f} = 0 \\
+    pb(1 - f) &= q(1 + bf) \\
+    pb - pbf &= q + qbf \\
+    pb - q &= f(pb + qb) = fb(p + q) = fb \\
+    f^* &= \frac{pb - q}{b} = \frac{bp - (1-p)}{b}
+\end{align}
+
+\section{Fractional Kelly}
+
+Full Kelly is mathematically optimal but produces high variance. In practice, a \emph{fractional Kelly} approach is used:
+
+\begin{equation}
+    f_{\text{actual}} = \kappa \cdot f^* \qquad \text{where } \kappa \in (0, 1]
+\end{equation}
+
+\begin{table}[H]
+\centering
+\caption{Common Kelly fractions and their risk profiles.}
+\label{tab:kelly-fractions}
+\begin{tabular}{lll}
+\toprule
+$\kappa$ & \textbf{Name} & \textbf{Risk Profile} \\
+\midrule
+0.25 & Quarter Kelly & Very conservative — minimal drawdowns \\
+0.50 & Half Kelly    & \textbf{Recommended default} — good balance of growth and safety \\
+0.75 & Three-quarter Kelly & Moderate — higher variance \\
+1.00 & Full Kelly    & Maximum growth — high drawdown risk \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{remark}[Why Half Kelly Is the Default]
+Half Kelly sacrifices only 25\% of the growth rate compared to full Kelly, but reduces the variance by 50\%. Since the strategy's estimated win probability $p$ is never perfectly calibrated, half Kelly provides a safety margin against probability estimation errors.
+\end{remark}
+
+\section{Worked Example}
+
+Consider a game with home odds of 1.95. Using the Kelly demo strategy:
+
+\begin{align}
+    \text{implied\_prob} &= 1 / 1.95 = 0.5128 \\
+    \text{confidence} &= \min(0.5128 + 0.05, 0.95) = 0.5628 \\
+    b &= 1.95 - 1 = 0.95 \\
+    f^* &= \frac{0.95 \times 0.5628 - (1 - 0.5628)}{0.95} = \frac{0.5347 - 0.4372}{0.95} = \frac{0.0975}{0.95} = 0.1026 \\
+    f_{\text{half}} &= 0.5 \times 0.1026 = 0.0513 \\
+    \text{bet\_size} &= 0.0513 \times 10000 = \$513.16
+\end{align}
+
+\section{Implementation Details}
+
+The engine integrates Kelly sizing as follows:
+
+\begin{enumerate}
+    \item Check if \code{position\_sizing = "kelly"} (case-insensitive).
+    \item Check if the strategy returned a valid confidence value $\in (0, 1)$.
+    \item If valid: compute Kelly fraction using \func{calculate\_kelly\_fraction}, multiply by current bankroll.
+    \item If invalid (confidence is \code{None}, 0.0, or 1.0): fall back to the strategy's raw \code{size} field with a warning.
+    \item The result is still capped at $\max(0, \text{bankroll} - c_f)$.
+\end{enumerate}
+
+\section{Maximum Fraction Cap}
+
+To prevent catastrophic losses from a single bad probability estimate, the Kelly module enforces:
+\begin{equation}
+    f_{\text{final}} = \min(f_{\text{actual}},\ f_{\text{max}}) \qquad \text{default } f_{\text{max}} = 0.25
+\end{equation}
+
+This means no single bet can ever exceed 25\% of the bankroll, regardless of how high the Kelly fraction would be.
+
+
+% ##########################################################################
+\chapter{Performance Metrics}
+\label{ch:metrics}
+% ##########################################################################
+
+All metrics are computed by \func{calculate\_all\_metrics} in \file{metrics/\_\_init\_\_.py}. The function takes a DataFrame of trades (output of \func{backtest}) and returns a dictionary of computed values.
+
+\section{Core Metrics}
+
+\subsection{Total Trades}
+\begin{equation}
+    N = |\text{trades}|
+\end{equation}
+Simply the number of executed trades (rows in the output DataFrame).
+
+\subsection{Win Rate}
+\begin{equation}
+    W = \frac{\text{number of WIN outcomes}}{N}
+\end{equation}
+
+\subsection{Total P\&L}
+\begin{equation}
+    \text{Total PnL} = \sum_{i=1}^{N} \pnl_i
+\end{equation}
+
+\subsection{Profit Factor}
+\begin{equation}
+    \text{Profit Factor} = \frac{\sum_{i : \pnl_i > 0} \pnl_i}{\left|\sum_{i : \pnl_i < 0} \pnl_i\right|}
+    \label{eq:profit-factor}
+\end{equation}
+
+A profit factor $> 1$ means the strategy is profitable. Returns $\infty$ if there are no losses, and $0$ if there are no wins.
+
+\section{Risk-Adjusted Metrics}
+
+\subsection{Percentage Returns}
+
+Before computing Sharpe and Sortino, we convert P\&L to percentage returns:
+\begin{equation}
+    r_i = \frac{\pnl_i}{B_{i-1}}
+    \label{eq:pct-return}
+\end{equation}
+where $B_{i-1}$ is the bankroll \emph{before} trade $i$ (computed as $B_i - \pnl_i$ from the output).
+
+\subsection{Annualisation Factor}
+\label{sec:annualisation}
+
+The annualisation factor is computed from actual bet frequency, not hardcoded:
+
+\begin{equation}
+    P = \frac{N}{\Delta T / 365.25}
+\end{equation}
+
+where $\Delta T$ is the time span in days between the first and last trade. If timestamps are unavailable, falls back to 365 with a warning.
+
+\subsection{Sharpe Ratio}
+\label{sec:sharpe}
+
+\begin{definition}[Annualised Sharpe Ratio]
+\begin{equation}
+    \text{SR} = \frac{\bar{r} - r_f / P}{\sigma_r} \times \sqrt{P}
+    \label{eq:sharpe}
+\end{equation}
+where $\bar{r}$ is the mean excess return, $\sigma_r$ is the standard deviation of returns (using Bessel's correction, \code{ddof=1}), $r_f$ is the annual risk-free rate, and $P$ is the annualisation factor.
+\end{definition}
+
+Returns 0.0 if there is only one data point or zero variance.
+
+\subsection{Sortino Ratio}
+\label{sec:sortino}
+
+\begin{definition}[Annualised Sortino Ratio]
+\begin{equation}
+    \text{Sortino} = \frac{\bar{r} - r_f / P}{\sigma_d} \times \sqrt{P}
+    \label{eq:sortino}
+\end{equation}
+where $\sigma_d$ is the \emph{downside deviation}:
+\begin{equation}
+    \sigma_d = \sqrt{\frac{1}{N} \sum_{i=1}^{N} \left[\min(0, r_i - r_f/P)\right]^2}
+    \label{eq:downside-dev}
+\end{equation}
+\end{definition}
+
+\begin{remark}[Sharpe vs Sortino]
+The Sharpe ratio penalises all volatility equally—including upside volatility, which is desirable. The Sortino ratio only penalises \emph{downside} volatility, making it more appropriate for asymmetric return distributions (common in sports betting where $\pnl_{\text{win}} \neq |\pnl_{\text{loss}}|$).
+\end{remark}
+
+\begin{remark}[Downside Deviation Formula]
+Note that the downside deviation uses \textbf{all $N$ observations} in the denominator, not just the negative ones. This is the standard definition from Sortino \& Price (1994). Using only negative observations would overstate the downside risk.
+\end{remark}
+
+\subsection{Maximum Drawdown}
+\label{sec:max-drawdown}
+
+\begin{definition}[Maximum Drawdown]
+\begin{equation}
+    \text{MDD} = \max_{t} \left(\frac{\text{peak}_t - E_t}{\text{peak}_t}\right)
+    \label{eq:max-drawdown}
+\end{equation}
+where $E_t = B_0 + \sum_{i=1}^{t} \pnl_i$ is the equity at time $t$, and $\text{peak}_t = \max_{s \leq t} E_s$ is the running maximum equity.
+\end{definition}
+
+The equity curve is anchored to \code{initial\_bankroll} ($B_0$), so early losses are measured relative to the starting equity, not zero.
+
+\subsection{Calmar Ratio}
+
+\begin{equation}
+    \text{Calmar} = \frac{R_{\text{annual}}}{\text{MDD}}
+    \label{eq:calmar}
+\end{equation}
+
+where $R_{\text{annual}}$ is the annualised return (total return divided by time span in years). Returns 0.0 if MDD is zero.
+
+\section{Betting-Specific Metrics}
+
+\subsection{Return on Investment (ROI)}
+\begin{equation}
+    \text{ROI} = \frac{\text{Total PnL}}{\text{Total Wagered}} = \frac{\sum \pnl_i}{\sum s_i}
+\end{equation}
+
+This is \emph{yield on turnover}—how much profit you make per dollar wagered.
+
+\subsection{Return on Capital}
+\begin{equation}
+    \text{ROC} = \frac{\text{Total PnL}}{B_0}
+\end{equation}
+
+This is the ``true'' ROI—how much profit relative to starting bankroll.
+
+\subsection{Yield Per Bet}
+\begin{equation}
+    \text{Yield/Bet} = \frac{1}{N_{\text{valid}}} \sum_{i : s_i > 0} \frac{\pnl_i}{s_i}
+    \label{eq:yield-per-bet}
+\end{equation}
+
+\begin{remark}[Mean of Ratios vs Ratio of Means]
+This uses the \textbf{mean of per-trade ratios}, not the ratio of the means ($\text{Total PnL} / \text{Total Wagered}$). The mean-of-ratios approach gives equal weight to each trade regardless of size, which is more informative when bet sizes vary significantly (e.g., under Kelly sizing).
+\end{remark}
+
+\subsection{Average Odds}
+\begin{equation}
+    \bar{o} = \frac{1}{N} \sum_{i=1}^{N} o_i
+\end{equation}
+
+\subsection{Bet Frequency}
+\begin{equation}
+    \text{Freq} = \frac{N}{\Delta T_{\text{days}}}
+\end{equation}
+Bets per day, computed from the timestamp span.
+
+\subsection{Kelly Growth Rate}
+\label{sec:kelly-growth}
+
+\begin{equation}
+    G = \frac{1}{N} \sum_{i=1}^{N} \ln\!\left(1 + \frac{\pnl_i}{B_{i-1}}\right)
+    \label{eq:kelly-growth}
+\end{equation}
+
+The \emph{realised} geometric growth rate per bet. The Kelly Criterion maximises the \emph{expected} value of this quantity. Positive means the bankroll is growing; negative means it is shrinking.
+
+Returns are clipped at $-0.9999$ to prevent $\ln(0)$ when the bankroll is nearly wiped out.
+
+\subsection{Closing Line Value (CLV)}
+\label{sec:clv}
+
+\begin{definition}[Closing Line Value]
+\begin{equation}
+    \text{CLV} = \frac{1}{N_{\text{valid}}} \sum_{i=1}^{N_{\text{valid}}} \left(\frac{o_i^{\text{bet}}}{o_i^{\text{close}}} - 1\right)
+    \label{eq:clv}
+\end{equation}
+where $o_i^{\text{bet}}$ is the odds at which the bet was placed and $o_i^{\text{close}}$ is the closing line odds.
+\end{definition}
+
+CLV is the \textbf{gold standard metric in sports betting}. A positive CLV means you consistently got better prices than the final market. CLV detects genuine skill in approximately 50 bets, whereas P\&L requires 2000+ bets for statistical significance.
+
+\section{Probability Calibration Metrics}
+
+\subsection{Brier Score}
+\label{sec:brier}
+
+\begin{equation}
+    \text{BS} = \frac{1}{N} \sum_{i=1}^{N} (p_i - y_i)^2
+    \label{eq:brier}
+\end{equation}
+
+where $p_i$ is the strategy's confidence and $y_i \in \{0, 1\}$ is the actual outcome (1 = WIN).
+
+\begin{itemize}
+    \item $\text{BS} = 0$: perfect calibration
+    \item $\text{BS} = 0.25$: equivalent to always predicting $p = 0.5$
+    \item $\text{BS} = 1.0$: worst possible
+\end{itemize}
+
+Confidence values outside $[0, 1]$ are clamped with a warning.
+
+\subsection{Log Loss (Cross-Entropy)}
+\label{sec:logloss}
+
+\begin{equation}
+    \text{LL} = -\frac{1}{N} \sum_{i=1}^{N} \left[y_i \ln(p_i) + (1 - y_i) \ln(1 - p_i)\right]
+    \label{eq:logloss}
+\end{equation}
+
+Log loss penalises confident wrong predictions more heavily than Brier score. Probabilities are clipped to $[10^{-15}, 1 - 10^{-15}]$ to avoid $\ln(0)$.
+
+
+% ##########################################################################
+\chapter{Result Validation}
+\label{ch:validation}
+% ##########################################################################
+
+The validator (\file{backtest/validator.py}) runs 12 checks across three categories to ensure backtest results are correct and free of data leakage.
+
+\section{Validation API}
+
+\begin{lstlisting}[caption={Validator function signature.}]
+def validate_backtest_results(
+    results: pd.DataFrame,
+    input_data: pd.DataFrame,
+    initial_bankroll: float | None = None,
+    cost_pct: float | None = None,
+    cost_flat: float | None = None,
+) -> dict:
+\end{lstlisting}
+
+When \code{initial\_bankroll}, \code{cost\_pct}, or \code{cost\_flat} are \code{None}, the validator auto-reads them from \code{results.attrs}. This eliminates parameter mismatch bugs where the validator uses different parameters than the backtest.
+
+\section{Category 1: Schema Validation (5 Checks)}
+
+\begin{table}[H]
+\centering
+\caption{Schema validation checks.}
+\label{tab:schema-checks}
+\begin{tabularx}{\textwidth}{clX}
+\toprule
+\textbf{\#} & \textbf{Check} & \textbf{What It Verifies} \\
+\midrule
+1 & Column names    & All 11 required columns are present (extra columns like \code{closing\_odds} are OK) \\
+2 & Valid actions   & Every action is \code{BUY\_HOME} or \code{BUY\_AWAY} (no \code{SKIP}—those don't appear in output) \\
+3 & Valid outcomes  & Every outcome is \code{WIN} or \code{LOSS} \\
+4 & Positive bets   & No bet\_size is zero or negative \\
+5 & Valid odds      & All decimal odds are $> 1.0$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Critical}: If check 1 fails (missing columns), the validator returns immediately since subsequent checks depend on those columns.
+
+\section{Category 2: Math Correctness (4 Checks)}
+
+\begin{table}[H]
+\centering
+\caption{Math correctness checks.}
+\label{tab:math-checks}
+\begin{tabularx}{\textwidth}{clX}
+\toprule
+\textbf{\#} & \textbf{Check} & \textbf{What It Verifies} \\
+\midrule
+6 & PnL formula & WIN: $\pnl = s(o-1)(1-c_p) - c_f$; LOSS: $\pnl = -s - c_f$. Tolerance: $\pm\$0.01$. \\
+7 & Cumulative PnL & $\text{cumulative\_pnl}_i = \sum_{j=1}^{i} \pnl_j$. Verified as running sum. \\
+8 & Bankroll tracking & $\text{bankroll}_i = B_0 + \text{cumulative\_pnl}_i$. \\
+9 & No overbetting & $s_i \leq B_{i-1} - c_f$ (bet never exceeds bankroll minus flat cost). \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Category 3: Data Leakage Detection (3 Checks)}
+
+\begin{table}[H]
+\centering
+\caption{Data leakage detection checks.}
+\label{tab:leakage-checks}
+\begin{tabularx}{\textwidth}{clX}
+\toprule
+\textbf{\#} & \textbf{Check} & \textbf{What It Verifies} \\
+\midrule
+10 & Game existence   & Every game in results exists in the original input data \\
+11 & Outcome consistency & WIN/LOSS in results matches \code{home\_win} in input (e.g., BUY\_HOME + home\_win=1 $\to$ WIN) \\
+12 & Chronological order & Trades are in timestamp order (out-of-order could indicate future data access) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Return Value}
+
+\begin{lstlisting}[caption={Validation return structure.}]
+{
+    "passed": True,          # All checks passed
+    "checks_run": 12,        # Total checks executed
+    "checks_passed": 12,     # How many passed
+    "failures": [],          # List of failure messages
+}
+\end{lstlisting}
+
+
+% ##########################################################################
+\chapter{Statistical Significance Testing}
+\label{ch:statistics}
+% ##########################################################################
+
+The statistics module (\file{backtest/statistics.py}) provides tools to determine whether backtest results are statistically meaningful or could be due to chance.
+
+\section{Binomial Test P-Value}
+\label{sec:p-value}
+
+\begin{definition}[Binomial Test]
+Given an observed win rate $\hat{p}$ over $n$ trades, the p-value tests:
+\begin{equation}
+    H_0: p \leq p_0 \qquad \text{vs} \qquad H_1: p > p_0
+    \label{eq:binomial-test}
+\end{equation}
+where $p_0 = 0.5$ (no edge) by default.
+\end{definition}
+
+The test uses a \textbf{one-sided ``greater''} alternative by default, because in betting we only care if the strategy is \emph{better} than the null—a 30\% win rate is not ``significant'' in a useful sense.
+
+The exact binomial test (via \code{scipy.stats.binomtest}) is used rather than a normal approximation.
+
+\section{Bootstrap Confidence Intervals}
+\label{sec:bootstrap}
+
+\begin{algorithm}[H]
+\caption{Bootstrap Confidence Interval}
+\begin{algorithmic}[1]
+\Require PnL series, $B = 10000$ resamples, confidence level $\alpha = 0.95$
+\State $\hat{\theta} \gets \text{metric\_fn}(\text{data})$ \Comment{Point estimate}
+\For{$b = 1$ to $B$}
+    \State $\text{sample}_b \gets$ resample data with replacement
+    \State $\theta_b^* \gets \text{metric\_fn}(\text{sample}_b)$
+\EndFor
+\State $\text{lower} \gets P_{(1-\alpha)/2}(\theta_1^*, \ldots, \theta_B^*)$
+\State $\text{upper} \gets P_{(1+\alpha)/2}(\theta_1^*, \ldots, \theta_B^*)$
+\State \Return $(\text{lower}, \hat{\theta}, \text{upper})$
+\end{algorithmic}
+\end{algorithm}
+
+The bootstrap is non-parametric—it makes no assumptions about the distribution of returns, which is important for sports betting where returns are highly non-normal.
+
+\section{Minimum Sample Size}
+\label{sec:min-sample}
+
+Using the normal approximation to the binomial:
+
+\begin{equation}
+    n = \frac{\left(z_{\alpha/2}\sqrt{p_0(1-p_0)} + z_{\beta}\sqrt{p_1(1-p_1)}\right)^2}{(p_1 - p_0)^2}
+    \label{eq:min-sample}
+\end{equation}
+
+where $p_0 = 0.5$, $p_1 = p_0 + \text{edge}$, $z_{\alpha/2}$ is the critical value for significance $\alpha$, and $z_{\beta}$ is the critical value for power $1 - \beta$.
+
+\begin{example}
+For a 5\% edge ($p_1 = 0.55$), power = 0.80, $\alpha = 0.01$:
+\[
+    n = \frac{(2.576 \times 0.500 + 0.842 \times 0.497)^2}{0.05^2} \approx 1070 \text{ bets}
+\]
+\end{example}
+
+\section{Significance Report}
+
+The function \func{significance\_report} combines all of the above:
+\begin{itemize}
+    \item P-value from binomial test
+    \item Bootstrap 95\% confidence intervals for mean PnL and ROI
+    \item Sample size adequacy assessment
+    \item Warnings when the sample is too small
+\end{itemize}
+
+
+% ##########################################################################
+\chapter{Overfitting Protection}
+\label{ch:overfitting}
+% ##########################################################################
+
+When testing multiple strategies on the same data, some will appear profitable purely by chance. This chapter covers the tools that detect and correct for this.
+
+\section{The Multiple Testing Problem}
+
+If you test $k$ strategies at significance level $\alpha$, the probability of at least one false positive is:
+\begin{equation}
+    P(\text{at least one false positive}) = 1 - (1 - \alpha)^k
+\end{equation}
+
+For $k = 55$ (11 team members $\times$ 5 strategies each) and $\alpha = 0.05$:
+\[
+    P = 1 - 0.95^{55} = 0.942
+\]
+
+There is a 94.2\% chance of finding a ``significant'' result that is actually noise.
+
+\section{Bonferroni Correction}
+\label{sec:bonferroni}
+
+\begin{definition}[Bonferroni Correction]
+Reject $H_0$ for strategy $i$ if:
+\begin{equation}
+    p_i < \frac{\alpha}{k}
+    \label{eq:bonferroni}
+\end{equation}
+where $k$ is the total number of strategies tested.
+\end{definition}
+
+This is the simplest and most conservative correction. For $k = 55$ and $\alpha = 0.05$, the threshold becomes $0.05 / 55 = 0.00091$.
+
+\section{Holm-Bonferroni Step-Down Procedure}
+\label{sec:holm}
+
+Less conservative than Bonferroni. It sorts p-values in ascending order and rejects while:
+\begin{equation}
+    p_{(i)} < \frac{\alpha}{k - i + 1}
+\end{equation}
+
+Once a test fails to reject, all subsequent tests also fail.
+
+\section{Deflated Sharpe Ratio}
+\label{sec:dsr}
+
+\begin{definition}[Deflated Sharpe Ratio (Bailey \& Lopez de Prado, 2014)]
+The DSR tests whether the observed Sharpe ratio exceeds what we'd expect from the best of $k$ random strategies:
+
+\begin{equation}
+    \text{DSR} = 1 - \Phi\!\left(\frac{\text{SR}_{\text{obs}} - \text{SR}_{\text{max}}^*}{\text{SE}(\text{SR})}\right)
+    \label{eq:dsr}
+\end{equation}
+\end{definition}
+
+The expected maximum Sharpe from $k$ random strategies uses the Euler-Mascheroni approximation:
+\begin{equation}
+    \text{SR}_{\text{max}}^* = \sigma_{\text{SR}} \left[(1 - \gamma)\Phi^{-1}\!\left(1 - \frac{1}{k}\right) + \gamma\,\Phi^{-1}\!\left(1 - \frac{1}{ke}\right)\right]
+    \label{eq:expected-max-sharpe}
+\end{equation}
+where $\gamma \approx 0.5772$ is the Euler-Mascheroni constant.
+
+The standard error of the Sharpe ratio uses the full formula that accounts for non-normality:
+\begin{equation}
+    \text{SE}(\text{SR}) = \sqrt{\frac{1 - \hat{\gamma}_3 \cdot \text{SR} + \frac{\hat{\gamma}_4 - 3}{4} \cdot \text{SR}^2}{n - 1}}
+    \label{eq:se-sharpe}
+\end{equation}
+where $\hat{\gamma}_3$ is the skewness and $\hat{\gamma}_4$ is the kurtosis of returns.
+
+\begin{remark}[Why Skewness and Kurtosis Matter]
+Binary betting returns are typically highly skewed ($\hat{\gamma}_3 \in [-3, -1]$) with excess kurtosis ($\hat{\gamma}_4 > 5$). Ignoring these terms (i.e., assuming Gaussian returns) understates the standard error and makes the DSR too lenient, leading to false positives.
+\end{remark}
+
+\section{Probability of Backtest Overfitting (PBO)}
+\label{sec:pbo}
+
+\begin{definition}[Simplified PBO]
+Given in-sample Sharpe ratios $\{\text{SR}_i^{\text{IS}}\}$ and out-of-sample Sharpe ratios $\{\text{SR}_i^{\text{OOS}}\}$ for $k$ strategies:
+
+\begin{enumerate}
+    \item Find the strategy with the highest IS Sharpe: $i^* = \arg\max_i \text{SR}_i^{\text{IS}}$
+    \item Count how many other strategies have higher OOS Sharpe: $m = |\{j \neq i^* : \text{SR}_j^{\text{OOS}} > \text{SR}_{i^*}^{\text{OOS}}\}|$
+    \item $\text{PBO} = \frac{m}{k - 1}$
+\end{enumerate}
+\end{definition}
+
+\begin{remark}
+This is a simplified single-split rank test, NOT the full Combinatorial Symmetric Cross-Validation (CSCV) algorithm from Bailey et al.\ (2017). For rigorous PBO, use \func{combinatorial\_purged\_cv} with multiple split combinations.
+\end{remark}
+
+\section{Overfitting Report}
+
+The function \func{overfitting\_report} combines:
+\begin{itemize}
+    \item Bonferroni correction results
+    \item Holm-Bonferroni correction results
+    \item Deflated Sharpe Ratio p-values for each strategy
+    \item Expected false positive count: $k \times \alpha$
+    \item Warnings when the number of significant strategies is close to the expected false positive count
+\end{itemize}
+
+
+% ##########################################################################
+\chapter{Walk-Forward Analysis}
+\label{ch:walk-forward}
+% ##########################################################################
+
+Walk-forward analysis is the most important technique for producing realistic out-of-sample performance estimates. Fitting a model on data and evaluating on the same data produces meaningless results.
+
+\section{Simple Train/Test Split}
+\label{sec:train-test}
+
+\begin{equation}
+    \text{data} = \underbrace{[\text{row}_1, \ldots, \text{row}_k]}_{\text{train}} \cup \underbrace{[\text{row}_{k+g+1}, \ldots, \text{row}_n]}_{\text{test}}
+\end{equation}
+
+where $k = \lfloor n \times r \rfloor$ (train ratio), and $g$ is the purge gap.
+
+The gap prevents information leakage when strategies use features with look-back windows. If a feature uses the last 5 games, setting $g = 5$ ensures no test-period data contaminates training features.
+
+\begin{lstlisting}[caption={Train/test split usage.}]
+train, test = train_test_split(data, train_ratio=0.7, gap=5)
+\end{lstlisting}
+
+\textbf{Chronological check}: If the data has a \code{timestamp} column and is not sorted in ascending order, a warning is emitted.
+
+\section{Rolling Window Walk-Forward}
+\label{sec:rolling-wf}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    scale=0.8,
+    train/.style={fill=blue!20, draw=blue!50, minimum height=0.6cm},
+    test/.style={fill=red!20, draw=red!50, minimum height=0.6cm},
+]
+    % Timeline
+    \draw[->] (0,0) -- (14,0) node[right] {time};
+
+    % Fold 0 (skipped)
+    \node[test, minimum width=3cm] at (1.5, 2.5) {};
+    \node at (-1, 2.5) {\footnotesize Fold 0 (skipped)};
+    \node at (1.5, 2.5) {\footnotesize test};
+    \node at (6, 2.5) {\footnotesize \textit{zero training data}};
+
+    % Fold 1
+    \node[train, minimum width=3cm] at (1.5, 1.5) {};
+    \node[test, minimum width=3cm] at (5, 1.5) {};
+    \node at (-1, 1.5) {\footnotesize Fold 1};
+    \node at (1.5, 1.5) {\footnotesize train};
+    \node at (5, 1.5) {\footnotesize test};
+
+    % Fold 2
+    \node[train, minimum width=5cm] at (3.5, 0.5) {};
+    \node[test, minimum width=3cm] at (8.5, 0.5) {};
+    \node at (-1, 0.5) {\footnotesize Fold 2};
+    \node at (3.5, 0.5) {\footnotesize train};
+    \node at (8.5, 0.5) {\footnotesize test};
+\end{tikzpicture}
+\caption{Rolling window walk-forward with 3 splits. Fold 0 is skipped because it has zero training data.}
+\label{fig:rolling-wf}
+\end{figure}
+
+The data is divided into $n$ equal-sized test windows. For each fold $i$:
+\begin{align}
+    \text{test\_start}_i &= i \times \lfloor N / n \rfloor \\
+    \text{train\_start}_i &= \max(0, \text{test\_start}_i - g - T) \\
+    \text{train\_end}_i &= \max(\text{train\_start}_i, \text{test\_start}_i - g)
+\end{align}
+
+where $T = \lfloor \text{fold\_size} \times r / (1-r) \rfloor$ is the training window size.
+
+\textbf{Fold 0 skip}: The first fold typically has zero training data (no history to train on). It is automatically skipped with a warning.
+
+\section{Expanding Window Walk-Forward}
+\label{sec:expanding-wf}
+
+Unlike rolling window (where the training set has a fixed size), expanding window grows the training set over time:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    scale=0.8,
+    train/.style={fill=blue!20, draw=blue!50, minimum height=0.6cm},
+    test/.style={fill=red!20, draw=red!50, minimum height=0.6cm},
+]
+    \draw[->] (0,0) -- (14,0) node[right] {time};
+
+    % Fold 0
+    \node[train, minimum width=5cm] at (2.5, 2) {};
+    \node[test, minimum width=2cm] at (6, 2) {};
+    \node at (-1, 2) {\footnotesize Fold 0};
+    \node at (2.5, 2) {\footnotesize train (50)};
+    \node at (6, 2) {\footnotesize test};
+
+    % Fold 1
+    \node[train, minimum width=7cm] at (3.5, 1) {};
+    \node[test, minimum width=2cm] at (8, 1) {};
+    \node at (-1, 1) {\footnotesize Fold 1};
+    \node at (3.5, 1) {\footnotesize train (60)};
+    \node at (8, 1) {\footnotesize test};
+
+    % Fold 2
+    \node[train, minimum width=9cm] at (4.5, 0) {};
+    \node[test, minimum width=2cm] at (10, 0) {};
+    \node at (-1, 0) {\footnotesize Fold 2};
+    \node at (4.5, 0) {\footnotesize train (70)};
+    \node at (10, 0) {\footnotesize test};
+\end{tikzpicture}
+\caption{Expanding window walk-forward. Training set grows with each fold.}
+\label{fig:expanding-wf}
+\end{figure}
+
+Parameters:
+\begin{itemize}
+    \item \code{min\_train\_size}: minimum rows before the first test (default 50)
+    \item \code{step\_size}: rows added per fold (default 10)
+\end{itemize}
+
+\section{Anchored Walk-Forward}
+\label{sec:anchored-wf}
+
+Training always begins at a fixed \code{anchor\_date} and extends up to the start of each test period. Useful when you want a specific historical event always included in training.
+
+\begin{lstlisting}[caption={Anchored walk-forward usage.}]
+results = anchored_walk_forward(
+    data, strategy_fn,
+    anchor_date="2025-01-01",
+    test_periods=[
+        ("2025-04-01", "2025-05-01"),
+        ("2025-05-01", "2025-06-01"),
+    ],
+)
+\end{lstlisting}
+
+\section{Combinatorial Purged Cross-Validation (CPCV)}
+\label{sec:cpcv}
+
+\begin{definition}[CPCV (Lopez de Prado)]
+Data is divided into $n$ contiguous groups. All $\binom{n}{k}$ combinations of $k$ groups are used as test sets. The remaining $n - k$ groups form the training set. Rows within a \code{purge\_gap} of a train/test boundary are removed from training to prevent leakage.
+\end{definition}
+
+For $n = 5$ splits and $k = 2$ test splits: $\binom{5}{2} = 10$ combinations.
+
+CPCV provides the most comprehensive overfitting assessment because it tests every possible train/test partition, not just sequential ones.
+
+\section{Metric Aggregation Across Folds}
+\label{sec:metric-aggregation}
+
+Different metrics require different aggregation methods:
+
+\begin{table}[H]
+\centering
+\caption{How metrics are aggregated across walk-forward folds.}
+\label{tab:aggregation}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Metric} & \textbf{Aggregation Method} \\
+\midrule
+Total PnL       & Sum across folds \\
+Total trades     & Sum across folds \\
+Win rate         & Trade-weighted average: $\sum_i W_i N_i / \sum_i N_i$ \\
+Profit factor    & Trade-weighted average \\
+Sharpe ratio     & \textbf{Concatenate} all OOS trades, compute single Sharpe on combined series \\
+Sortino ratio    & \textbf{Concatenate} all OOS trades, compute single Sortino on combined series \\
+Max drawdown     & Maximum (worst) across all folds \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{remark}[Why Concatenation for Sharpe/Sortino]
+Averaging Sharpe ratios across folds is mathematically invalid because Sharpe is not a linear function—$\text{mean}(\text{SR}_1, \text{SR}_2) \neq \text{SR}(\text{combined})$. The correct approach is to concatenate all out-of-sample trade results into a single series and compute one Sharpe/Sortino ratio.
+\end{remark}
+
+\section{Walk-Forward Report}
+
+The function \func{walk\_forward\_report} produces a human-readable multi-line report:
+\begin{itemize}
+    \item Aggregated OOS metrics (total trades, PnL, win rate, Sharpe, Sortino, MDD, profit factor)
+    \item Per-fold breakdown (train/test sizes, OOS trades, PnL, win rate)
+    \item In-sample vs out-of-sample comparison (PnL and Sharpe for each fold)
+    \item Overfitting warning if IS profitable but OOS negative
+    \item Performance degradation percentage
+\end{itemize}
+
+
+% ##########################################################################
+\chapter{Strategy Comparison and Anomaly Detection}
+\label{ch:comparison}
+% ##########################################################################
+
+\section{Comparing Multiple Strategies}
+
+The function \func{compare\_strategies} runs multiple strategies on the same data and returns a comparison DataFrame:
+
+\begin{lstlisting}[caption={Strategy comparison usage.}]
+result = compare_strategies(
+    data,
+    {"home": always_bet_home, "away": always_bet_away},
+)
+\end{lstlisting}
+
+Returns a DataFrame with one row per strategy and columns for every metric in \func{calculate\_all\_metrics}.
+
+\section{Ranking Strategies}
+
+\func{rank\_strategies} sorts by a chosen metric and adds a \code{rank} column:
+
+\begin{lstlisting}[caption={Ranking strategies.}]
+ranked = rank_strategies(comparison_df, metric="sharpe_ratio")
+\end{lstlisting}
+
+\textbf{Dense ranking}: Tied strategies receive the same rank. If two strategies both have Sharpe = 1.5, they both get rank 1, and the next strategy gets rank 2.
+
+\section{Display Comparison}
+
+\func{display\_comparison} pretty-prints a formatted table with:
+\begin{itemize}
+    \item All numeric columns formatted to 4 decimal places
+    \item ``Best by metric'' annotations (lowest for max\_drawdown, highest for everything else)
+    \item Skips all-NaN columns to avoid crashes
+    \item Skips ``Best by metric'' section if only one strategy is present
+\end{itemize}
+
+\section{Statistical Anomaly Detection}
+\label{sec:anomaly-detection}
+
+\func{detect\_suspicious\_results} provides six statistical checks that can catch cheating strategies which pass all 12 mechanical validator checks:
+
+\begin{table}[H]
+\centering
+\caption{Anomaly detection checks.}
+\label{tab:anomaly-checks}
+\begin{tabularx}{\textwidth}{clX}
+\toprule
+\textbf{\#} & \textbf{Check} & \textbf{Description} \\
+\midrule
+1 & Win rate vs odds & Binomial test: is win rate significantly higher than implied probability? \\
+2 & Perfect prediction & P(all wins by chance) under fair odds. Flagged if 100\% WR on $\geq 10$ trades. \\
+3 & Odds-adjusted return & Actual PnL vs expected PnL from odds. Ratio $> 5\times$ is suspicious. \\
+4 & Outcome entropy & Shannon entropy $< 0.2$ means outcomes are suspiciously predictable. \\
+5 & Runs test & Tests randomness of W/L sequence. Too few runs = suspicious pattern. \\
+6 & Bet-size correlation & Point-biserial correlation between bet size and outcome. $r > 0.3$ with $p < 0.05$ = suspicious. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Check 1: Win Rate vs Implied Probability}
+
+If the odds imply a 40\% win rate but the strategy wins 80\%, the binomial test quantifies how unlikely this is:
+
+\begin{equation}
+    p\text{-value} = P(X \geq \text{wins} \mid n, p_{\text{implied}})
+\end{equation}
+
+Flagged if $p < 0.001$.
+
+\subsection{Check 3: Odds-Adjusted Return}
+
+Expected PnL under fair pricing:
+\begin{equation}
+    \E[\pnl] = \sum_{i=1}^{N} \left[s_i(o_i - 1) \cdot \frac{1}{o_i} + (-s_i) \cdot \left(1 - \frac{1}{o_i}\right)\right] = 0
+\end{equation}
+
+At fair odds ($p_{\text{true}} = 1/o$), the expected PnL is exactly zero. Any large positive PnL at fair odds is suspicious.
+
+When $\E[\pnl] \approx 0$, a ratio-based check would be unstable (division by near-zero). Instead, the check uses a per-trade excess threshold: profit $> 50\%$ of average bet size per trade at fair odds is flagged.
+
+\subsection{Check 4: Shannon Entropy}
+\begin{equation}
+    H = -p_W \log_2(p_W) - p_L \log_2(p_L)
+\end{equation}
+
+Maximum entropy for binary outcomes is 1.0 (at $p_W = 0.5$). Entropy $< 0.2$ means outcomes are suspiciously predictable.
+
+\subsection{Check 5: Wald-Wolfowitz Runs Test}
+
+A ``run'' is a consecutive sequence of the same outcome (e.g., WWW or LL). Under randomness:
+\begin{equation}
+    \E[R] = 1 + \frac{2n_1 n_2}{n_1 + n_2}
+\end{equation}
+\begin{equation}
+    \text{Var}(R) = \frac{2n_1 n_2 (2n_1 n_2 - n_1 - n_2)}{(n_1 + n_2)^2 (n_1 + n_2 - 1)}
+\end{equation}
+
+where $n_1$ = wins, $n_2$ = losses. Too few runs (all wins clustered together) suggests non-random outcomes.
+
+\subsection{Check 6: Point-Biserial Correlation}
+
+The \textbf{point-biserial correlation} between a binary variable (WIN/LOSS) and a continuous variable (bet size):
+
+\begin{equation}
+    r_{pb} = \frac{\bar{X}_1 - \bar{X}_0}{s_X} \sqrt{\frac{n_1 n_0}{n^2}}
+\end{equation}
+
+A strong positive correlation ($r > 0.3$, $p < 0.05$) means the strategy bets bigger on games it wins—which is exactly what a data-leaking strategy would do (it knows which games it will win and bets more on those).
+
+\subsection{Overall Anomaly Score}
+
+\begin{equation}
+    \text{score} = \frac{\text{number of failed checks}}{\text{total checks run}}
+\end{equation}
+
+Flagged as suspicious if score $\geq 0.4$ or if win rate = 100\% on $\geq 10$ trades.
+
+
+% ##########################################################################
+\chapter{Testing}
+\label{ch:testing}
+% ##########################################################################
+
+\section{Test Suite Overview}
+
+The project has 200+ tests across 7 test files:
+
+\begin{table}[H]
+\centering
+\caption{Test files and coverage areas.}
+\label{tab:test-files}
+\begin{tabularx}{\textwidth}{lrX}
+\toprule
+\textbf{File} & \textbf{Tests} & \textbf{Coverage} \\
+\midrule
+\file{test\_backtester\_backend.py}     & $\sim$25 & Core engine: basic, edge cases, cost model, Kelly \\
+\file{test\_backtester\_extended.py}    & $\sim$25 & Extended: display, plotting, strategies, validation \\
+\file{test\_audit\_fixes.py}           & 42+ & Audit: crash vectors, input validation, NaN, leakage, metrics \\
+\file{test\_walk\_forward.py}          & $\sim$12 & Walk-forward: splits, folds, expanding window \\
+\file{test\_comparison.py}             & 13  & Comparison, ranking, display, anomaly detection \\
+\file{test\_strategies.py}             & $\sim$15 & Kelly criterion, strategy implementations \\
+\file{test\_statistics.py}             & $\sim$10 & p-values, bootstrap, DSR, PBO \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Key Test Categories}
+
+\subsection{Engine Crash Vectors}
+
+Tests that the engine handles misbehaving strategies gracefully:
+\begin{itemize}
+    \item Strategy returns \code{None}, \code{"string"}, \code{[list]}, or \code{42} $\Rightarrow$ empty DataFrame returned
+    \item Strategy raises exception $\Rightarrow$ prior trades preserved
+    \item NaN bet size $\Rightarrow$ row skipped
+\end{itemize}
+
+\subsection{Input Validation Tests}
+
+\begin{itemize}
+    \item NaN initial\_bankroll $\Rightarrow$ \code{ValueError}
+    \item cost\_pct $= 1.5$ $\Rightarrow$ \code{ValueError}
+    \item cost\_flat $= -1$ $\Rightarrow$ \code{ValueError}
+    \item Position sizing is case-insensitive: ``Kelly'' = ``kelly'' = ``KELLY''
+    \item Kelly fraction out of range $\Rightarrow$ \code{ValueError}
+\end{itemize}
+
+\subsection{Data Leakage Tests}
+
+\begin{itemize}
+    \item \code{past\_games} does not contain \code{home\_win} column
+    \item Modifying \code{context["history"]} does not affect next iteration
+    \item Confidence values are clamped to $[0, 1]$
+\end{itemize}
+
+\subsection{Metric Known-Value Tests}
+
+Tests with hand-calculated expected values:
+\begin{itemize}
+    \item Sharpe ratio with known returns (varying positive/negative)
+    \item Sortino ratio with known downside
+    \item Max drawdown with known equity curve
+    \item Profit factor with known wins and losses
+\end{itemize}
+
+
+% ##########################################################################
+\chapter{Complete Workflow Example}
+\label{ch:workflow}
+% ##########################################################################
+
+This chapter walks through a complete end-to-end usage of the backtesting framework.
+
+\section{Step 1: Load Data}
+
+\begin{lstlisting}[caption={Loading historical game data.}]
+from cuic_quant.backtest import load_backtest_data
+
+data = load_backtest_data(
+    start_date="2025-01-01",
+    end_date="2025-12-31",
+)
+print(f"Loaded {len(data)} games")
+\end{lstlisting}
+
+\section{Step 2: Define a Strategy}
+
+\begin{lstlisting}[caption={A simple value-betting strategy.}]
+def value_bet_strategy(row, context=None):
+    """Bet home when odds suggest value."""
+    implied_prob = 1.0 / row["home_odds"]
+    # Our model says home team is 10% more likely
+    estimated_prob = implied_prob + 0.10
+
+    if estimated_prob > implied_prob:
+        return {
+            "action": "BUY_HOME",
+            "confidence": estimated_prob,
+            "size": 100.0,
+            "reason": f"Value: est={estimated_prob:.2f} > implied={implied_prob:.2f}",
+        }
+    return {"action": "SKIP", "confidence": 0, "size": 0}
+\end{lstlisting}
+
+\section{Step 3: Run Backtest}
+
+\begin{lstlisting}[caption={Running the backtest.}]
+from cuic_quant.backtest import backtest
+
+results = backtest(
+    data,
+    value_bet_strategy,
+    initial_bankroll=10000.0,
+    cost_pct=0.02,        # 2% vig
+    cost_flat=0.0,
+    position_sizing="kelly",
+    kelly_fraction=0.5,   # Half Kelly
+)
+print(f"Executed {len(results)} trades")
+\end{lstlisting}
+
+\section{Step 4: Validate Results}
+
+\begin{lstlisting}[caption={Running the 12-check validator.}]
+from cuic_quant.backtest import validate_backtest_results
+
+validation = validate_backtest_results(results, data)
+if validation["passed"]:
+    print(f"All {validation['checks_run']} checks passed!")
+else:
+    for failure in validation["failures"]:
+        print(f"FAIL: {failure}")
+\end{lstlisting}
+
+\section{Step 5: Compute Metrics}
+
+\begin{lstlisting}[caption={Computing all performance metrics.}]
+from cuic_quant.metrics import calculate_all_metrics
+
+metrics = calculate_all_metrics(results)
+print(f"Win rate:     {metrics['win_rate']:.1%}")
+print(f"Total PnL:    ${metrics['total_pnl']:.2f}")
+print(f"Sharpe ratio: {metrics['sharpe_ratio']:.4f}")
+print(f"Max drawdown: {metrics['max_drawdown']:.1%}")
+print(f"Kelly growth: {metrics['kelly_growth_rate']:.6f}")
+\end{lstlisting}
+
+\section{Step 6: Statistical Significance}
+
+\begin{lstlisting}[caption={Testing statistical significance.}]
+from cuic_quant.backtest.statistics import significance_report
+
+report = significance_report(results)
+print(f"P-value: {report['p_value']:.6f}")
+print(f"Significant: {report['is_significant']}")
+print(f"Sample size: {report['sample_size_assessment']}")
+\end{lstlisting}
+
+\section{Step 7: Walk-Forward Analysis}
+
+\begin{lstlisting}[caption={Running walk-forward analysis.}]
+from cuic_quant.backtest.walk_forward import (
+    walk_forward_backtest,
+    walk_forward_report,
+)
+
+wf = walk_forward_backtest(
+    data, value_bet_strategy,
+    n_splits=5,
+    initial_bankroll=10000.0,
+)
+print(walk_forward_report(wf))
+\end{lstlisting}
+
+\section{Step 8: Compare Strategies}
+
+\begin{lstlisting}[caption={Comparing multiple strategies.}]
+from cuic_quant.backtest.comparison import (
+    compare_strategies,
+    rank_strategies,
+    display_comparison,
+)
+from cuic_quant.backtest import always_bet_home, always_bet_away
+
+comp = compare_strategies(data, {
+    "value": value_bet_strategy,
+    "home": always_bet_home,
+    "away": always_bet_away,
+})
+ranked = rank_strategies(comp, metric="sharpe_ratio")
+display_comparison(ranked)
+\end{lstlisting}
+
+\section{Step 9: Check for Data Leakage}
+
+\begin{lstlisting}[caption={Statistical anomaly detection.}]
+from cuic_quant.backtest.comparison import detect_suspicious_results
+
+flags = detect_suspicious_results(results)
+if flags["is_suspicious"]:
+    print("WARNING: Results may indicate data leakage!")
+    for check in flags["checks"]:
+        status = "PASS" if check["passed"] else "FAIL"
+        print(f"  [{status}] {check['name']}: {check['detail']}")
+\end{lstlisting}
+
+
+% ##########################################################################
+\chapter{Decimal Odds Primer}
+\label{ch:odds}
+% ##########################################################################
+
+Since the entire framework uses decimal odds, this chapter explains the conversion between odds formats.
+
+\section{Decimal Odds}
+
+Decimal odds represent the total return per unit wagered:
+\begin{equation}
+    \text{payout} = \text{stake} \times \text{decimal\_odds}
+\end{equation}
+
+\begin{example}
+Odds of 2.50 mean: bet \$100, receive \$250 if you win (profit = \$150).
+\end{example}
+
+\section{Implied Probability}
+
+\begin{equation}
+    p_{\text{implied}} = \frac{1}{\text{odds}}
+    \label{eq:implied-prob}
+\end{equation}
+
+\begin{table}[H]
+\centering
+\caption{Common decimal odds and their implied probabilities.}
+\label{tab:odds-implied}
+\begin{tabular}{ccc}
+\toprule
+\textbf{Decimal Odds} & \textbf{Implied Probability} & \textbf{Interpretation} \\
+\midrule
+1.50 & 66.7\% & Strong favourite \\
+2.00 & 50.0\% & Even money \\
+2.50 & 40.0\% & Slight underdog \\
+3.00 & 33.3\% & Moderate underdog \\
+5.00 & 20.0\% & Long shot \\
+10.00 & 10.0\% & Very long shot \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Bookmaker Margin (Vig/Overround)}
+
+Bookmakers set odds so that implied probabilities sum to $> 100\%$:
+\begin{equation}
+    \text{overround} = \frac{1}{o_H} + \frac{1}{o_A} - 1
+\end{equation}
+
+\begin{example}
+Home odds 1.90, away odds 2.00:
+\[
+    \text{overround} = \frac{1}{1.90} + \frac{1}{2.00} = 0.5263 + 0.5000 = 1.0263
+\]
+The bookmaker has a 2.63\% margin.
+\end{example}
+
+\section{Converting From American Odds}
+
+\begin{align}
+    \text{American} > 0: \quad \text{decimal} &= \frac{\text{American}}{100} + 1 \\
+    \text{American} < 0: \quad \text{decimal} &= \frac{100}{|\text{American}|} + 1
+\end{align}
+
+
+% ##########################################################################
+\chapter{Error Handling and Edge Cases}
+\label{ch:edge-cases}
+% ##########################################################################
+
+\section{Engine Edge Cases}
+
+\begin{table}[H]
+\centering
+\caption{How the engine handles edge cases.}
+\label{tab:edge-cases}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Edge Case} & \textbf{Behaviour} \\
+\midrule
+Empty input data & Returns empty DataFrame with correct 11 columns \\
+All rows skipped & Returns empty DataFrame with correct 11 columns \\
+Bankroll reaches zero & Loop breaks, returns trades executed so far \\
+NaN odds & Row skipped silently \\
+Odds $\leq 1.0$ & Row skipped silently (invalid decimal odds) \\
+NaN home\_win & Row skipped with warning \\
+home\_win $\notin \{0, 1\}$ & Row skipped with warning \\
+String-typed odds & Converted via \code{float()}; if that fails, row skipped with warning \\
+Strategy returns \code{None} & Warning emitted, row skipped \\
+Strategy raises exception & Warning emitted, row skipped, prior trades preserved \\
+NaN bet size from Kelly & Row skipped with warning \\
+cost\_flat $>$ bankroll & Bet size becomes 0, row skipped \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Metrics Edge Cases}
+
+\begin{table}[H]
+\centering
+\caption{How metrics handle edge cases.}
+\label{tab:metrics-edge}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Edge Case} & \textbf{Behaviour} \\
+\midrule
+Zero trades & All metrics return 0.0 \\
+One trade & Sharpe returns 0.0 (need $\geq 2$ for std dev) \\
+All wins, no losses & Profit factor returns $\infty$ \\
+All losses, no wins & Profit factor returns 0.0 \\
+Constant returns (zero variance) & Sharpe returns 0.0 \\
+No downside (all positive returns) & Sortino returns 0.0 \\
+No confidence values & Brier Score and Log Loss return NaN \\
+No closing odds & CLV returns NaN \\
+Timestamps unavailable & Periods per year defaults to 365 with warning \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+% ##########################################################################
+\chapter{Module Reference}
+\label{ch:reference}
+% ##########################################################################
+
+This chapter provides a quick-reference listing of every public function in the framework.
+
+\section{backtest.engine}
+
+\begin{longtable}{lp{9cm}}
+\toprule
+\textbf{Function} & \textbf{Description} \\
+\midrule
+\endhead
+\func{backtest} & Core backtest loop. Takes data + strategy, returns 11-column DataFrame. \\
+\func{always\_bet\_home} & Reference strategy: always bets \$100 on home team. \\
+\func{always\_bet\_away} & Reference strategy: always bets \$100 on away team. \\
+\func{kelly\_bet\_home\_demo} & Demo strategy showing Kelly plumbing (not a real edge model). \\
+\bottomrule
+\end{longtable}
+
+\section{backtest.data\_loader}
+
+\begin{longtable}{lp{9cm}}
+\toprule
+\textbf{Function} & \textbf{Description} \\
+\midrule
+\endhead
+\func{load\_backtest\_data} & Load games from Railway DB or CSV. Returns sorted DataFrame. \\
+\bottomrule
+\end{longtable}
+
+\section{backtest.validator}
+
+\begin{longtable}{lp{9cm}}
+\toprule
+\textbf{Function} & \textbf{Description} \\
+\midrule
+\endhead
+\func{validate\_backtest\_results} & 12-check validation (schema, math, leakage). Auto-reads cost params from \code{.attrs}. \\
+\bottomrule
+\end{longtable}
+
+\section{metrics}
+
+\begin{longtable}{lp{9cm}}
+\toprule
+\textbf{Function} & \textbf{Description} \\
+\midrule
+\endhead
+\func{calculate\_all\_metrics} & Compute all metrics from trade DataFrame. \\
+\func{calculate\_sharpe\_ratio} & Annualised Sharpe ratio. \\
+\func{calculate\_sortino\_ratio} & Annualised Sortino ratio (downside deviation). \\
+\func{calculate\_max\_drawdown} & Maximum drawdown as fraction of peak equity. \\
+\func{calculate\_win\_rate} & Win rate from WIN/LOSS outcomes. \\
+\func{calculate\_profit\_factor} & Gross profit / gross loss. \\
+\func{calculate\_kelly\_growth\_rate} & Realised log growth rate per bet. \\
+\func{calculate\_clv} & Average Closing Line Value. \\
+\func{calculate\_brier\_score} & Brier Score for probability calibration. \\
+\func{calculate\_log\_loss} & Log loss (cross-entropy). \\
+\bottomrule
+\end{longtable}
+
+\section{backtest.statistics}
+
+\begin{longtable}{lp{9cm}}
+\toprule
+\textbf{Function} & \textbf{Description} \\
+\midrule
+\endhead
+\func{calculate\_p\_value} & Binomial test p-value (one-sided by default). \\
+\func{bootstrap\_confidence\_interval} & Non-parametric bootstrap CI for any metric. \\
+\func{minimum\_sample\_size} & Min bets needed for significance. \\
+\func{significance\_report} & Full significance report with p-value, CI, sample size. \\
+\func{bonferroni\_correction} & Bonferroni multiple-testing correction. \\
+\func{holm\_bonferroni\_correction} & Holm-Bonferroni step-down procedure. \\
+\func{deflated\_sharpe\_ratio} & DSR (Bailey \& LdP 2014) with skewness/kurtosis. \\
+\func{probability\_of\_backtest\_overfitting} & Simplified PBO from single IS/OOS split. \\
+\func{overfitting\_report} & Full overfitting report for multiple strategies. \\
+\bottomrule
+\end{longtable}
+
+\section{backtest.walk\_forward}
+
+\begin{longtable}{lp{9cm}}
+\toprule
+\textbf{Function} & \textbf{Description} \\
+\midrule
+\endhead
+\func{train\_test\_split} & Simple chronological split with optional purge gap. \\
+\func{walk\_forward\_backtest} & Rolling-window walk-forward with $n$ folds. \\
+\func{expanding\_window\_backtest} & Growing training window walk-forward. \\
+\func{anchored\_walk\_forward} & Walk-forward anchored to a fixed start date. \\
+\func{combinatorial\_purged\_cv} & CPCV from Lopez de Prado. \\
+\func{walk\_forward\_report} & Human-readable walk-forward report. \\
+\bottomrule
+\end{longtable}
+
+\section{backtest.comparison}
+
+\begin{longtable}{lp{9cm}}
+\toprule
+\textbf{Function} & \textbf{Description} \\
+\midrule
+\endhead
+\func{compare\_strategies} & Run multiple strategies, return comparison DataFrame. \\
+\func{rank\_strategies} & Sort and rank by chosen metric (dense ranking). \\
+\func{display\_comparison} & Pretty-print comparison table. \\
+\func{detect\_suspicious\_results} & 6-check statistical anomaly detection. \\
+\func{implied\_edge\_analysis} & Actual vs implied win rate and edge. \\
+\func{validate\_no\_leakage\_statistical} & Statistical complement to mechanical validator. \\
+\bottomrule
+\end{longtable}
+
+\section{strategies.kelly\_criterion}
+
+\begin{longtable}{lp{9cm}}
+\toprule
+\textbf{Function} & \textbf{Description} \\
+\midrule
+\endhead
+\func{calculate\_kelly\_fraction} & Optimal Kelly bet fraction with max cap. \\
+\func{calculate\_kelly\_for\_multiple\_bets} & Kelly for simultaneous uncorrelated bets. \\
+\func{expected\_growth\_rate} & Expected log growth rate for a given bet fraction. \\
+\func{kelly\_from\_american\_odds} & Kelly with American odds input. \\
+\bottomrule
+\end{longtable}
+
+
+% ##########################################################################
+\chapter{Glossary}
+\label{ch:glossary}
+% ##########################################################################
+
+\begin{description}[style=nextline, leftmargin=3cm]
+    \item[Bankroll] The total capital available for betting. Starts at \code{initial\_bankroll}.
+    \item[BUY\_HOME / BUY\_AWAY] Actions indicating which side to bet on.
+    \item[CLV] Closing Line Value — the gold-standard metric for betting skill.
+    \item[CPCV] Combinatorial Purged Cross-Validation — tests all possible train/test partitions.
+    \item[Data Leakage] When a strategy has access to information it wouldn't have in live betting (e.g., the game outcome).
+    \item[Decimal Odds] Total payout per unit wagered (e.g., 2.50 means \$2.50 returned per \$1.00 bet).
+    \item[DSR] Deflated Sharpe Ratio — adjusts for multiple testing.
+    \item[Edge] The difference between estimated and implied win probability.
+    \item[Fold] A single train/test partition in walk-forward analysis.
+    \item[Half Kelly] Betting half the Kelly-optimal fraction for reduced variance.
+    \item[Kelly Criterion] Formula for optimal bet sizing that maximises log growth rate.
+    \item[OOS] Out-of-sample — data not used for training/fitting.
+    \item[Overround / Vig] The bookmaker's margin (implied probabilities sum to $> 100\%$).
+    \item[PBO] Probability of Backtest Overfitting.
+    \item[PnL] Profit and Loss — the dollar gain or loss from a trade.
+    \item[Purge Gap] Rows removed between train and test sets to prevent leakage from look-back features.
+    \item[Sharpe Ratio] Risk-adjusted return: mean excess return divided by standard deviation.
+    \item[Signal] The dictionary returned by a strategy function (action, confidence, size, reason).
+    \item[SKIP] Strategy action indicating no bet should be placed.
+    \item[Sortino Ratio] Like Sharpe but only penalises downside volatility.
+    \item[Walk-Forward] Testing methodology where the model is trained on past data and tested on future data.
+\end{description}
+
+
+% ##########################################################################
+% APPENDIX
+% ##########################################################################
+\appendix
+
+\chapter{Mathematical Derivations}
+\label{app:derivations}
+
+\section{Sharpe Ratio Annualisation}
+
+Starting from per-period returns $r_1, r_2, \ldots, r_N$ with mean $\mu$ and standard deviation $\sigma$:
+
+If there are $P$ periods per year, and assuming returns are i.i.d.:
+\begin{align}
+    \mu_{\text{annual}} &= P \cdot \mu \\
+    \sigma_{\text{annual}} &= \sqrt{P} \cdot \sigma
+\end{align}
+
+Therefore:
+\begin{equation}
+    \text{SR}_{\text{annual}} = \frac{\mu_{\text{annual}}}{\sigma_{\text{annual}}} = \frac{P\mu}{\sqrt{P}\sigma} = \frac{\mu}{\sigma}\sqrt{P}
+\end{equation}
+
+\section{Downside Deviation Derivation}
+
+The downside deviation (Sortino \& Price 1994) is defined as:
+\begin{equation}
+    \sigma_d = \sqrt{\E[\min(r - r_f, 0)^2]}
+\end{equation}
+
+The sample estimator uses all $N$ observations:
+\begin{equation}
+    \hat{\sigma}_d = \sqrt{\frac{1}{N}\sum_{i=1}^{N}[\min(r_i - r_f, 0)]^2}
+\end{equation}
+
+Note: some implementations use only the negative returns in the denominator ($N_d$ instead of $N$). Our implementation uses $N$ (all observations) which is the standard academic definition and avoids overstating downside risk.
+
+\section{Kelly Criterion Optimality}
+
+The Kelly Criterion maximises the expected geometric growth rate:
+\begin{equation}
+    G(f) = \E[\ln(W_{t+1}/W_t)] = p\ln(1+bf) + q\ln(1-f)
+\end{equation}
+
+First-order condition:
+\begin{equation}
+    G'(f^*) = \frac{pb}{1+bf^*} - \frac{q}{1-f^*} = 0
+\end{equation}
+
+Solving:
+\begin{equation}
+    f^* = \frac{bp - q}{b} = p - \frac{q}{b} = p - \frac{1-p}{o-1}
+\end{equation}
+
+Second-order condition (concavity):
+\begin{equation}
+    G''(f) = -\frac{pb^2}{(1+bf)^2} - \frac{q}{(1-f)^2} < 0 \quad \forall f \in (0,1)
+\end{equation}
+
+This confirms $f^*$ is indeed a maximum.
+
+\section{Expected Maximum Sharpe Ratio}
+
+For $k$ independent strategies with Sharpe ratios drawn from $\mathcal{N}(0, \sigma_{\text{SR}}^2)$, the expected maximum follows from extreme value theory:
+
+\begin{equation}
+    \E[\max(SR_1, \ldots, SR_k)] \approx \sigma_{\text{SR}}\left[(1-\gamma)\Phi^{-1}\!\left(1-\frac{1}{k}\right) + \gamma\Phi^{-1}\!\left(1-\frac{1}{ke}\right)\right]
+\end{equation}
+
+where $\gamma \approx 0.5772$ is the Euler-Mascheroni constant.
+
+This grows approximately as $\sigma_{\text{SR}} \sqrt{2\ln k}$ for large $k$.
+
+\chapter{File Structure}
+\label{app:file-structure}
+
+\begin{lstlisting}[language={}, basicstyle=\ttfamily\small]
+CUIC_Sem2_Project/
+|-- src/cuic_quant/
+|   |-- backtest/
+|   |   |-- __init__.py              # Re-exports all public functions
+|   |   |-- backtester_backend.py    # Facade (re-exports from submodules)
+|   |   |-- engine.py                # Core backtest loop
+|   |   |-- data_loader.py           # DB/CSV data loading
+|   |   |-- validator.py             # 12-check validation
+|   |   |-- walk_forward.py          # Walk-forward analysis (6 functions)
+|   |   |-- comparison.py            # Strategy comparison + anomaly detection
+|   |   |-- statistics.py            # Statistical significance + overfitting
+|   |   \-- visualization.py         # Plotting functions
+|   |-- metrics/
+|   |   \-- __init__.py              # All metric calculations
+|   \-- strategies/
+|       \-- kelly_criterion.py       # Kelly Criterion implementation
+|-- tests/
+|   |-- test_backtester_backend.py   # Core engine tests
+|   |-- test_backtester_extended.py  # Extended feature tests
+|   |-- test_audit_fixes.py          # Comprehensive audit fix tests
+|   |-- test_walk_forward.py         # Walk-forward tests
+|   |-- test_comparison.py           # Comparison + anomaly tests
+|   |-- test_strategies.py           # Kelly + strategy tests
+|   \-- test_statistics.py           # Statistical tests
+|-- data/
+|   \-- dummy_backtest_input.csv     # 25-row synthetic NBA data
+|-- tools/
+|   \-- backtester.ipynb             # Interactive notebook
+\-- docs/
+    \-- backtester_reference.tex     # This document
+\end{lstlisting}
+
+
+% ##########################################################################
+% REFERENCES
+% ##########################################################################
+
+\chapter*{References}
+\addcontentsline{toc}{chapter}{References}
+
+\begin{enumerate}[label={[\arabic*]}]
+    \item Bailey, D.H. \& Lopez de Prado, M. (2014). ``The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting and Non-Normality.'' \textit{Journal of Portfolio Management}, 40(5), 94--107.
+
+    \item Bailey, D.H., Borwein, J.M., Lopez de Prado, M. \& Zhu, Q.J. (2017). ``The Probability of Backtest Overfitting.'' \textit{Journal of Computational Finance}, 20(4), 39--69.
+
+    \item Kelly, J.L. (1956). ``A New Interpretation of Information Rate.'' \textit{Bell System Technical Journal}, 35(4), 917--926.
+
+    \item Thorp, E.O. (2006). ``The Kelly Criterion in Blackjack, Sports Betting, and the Stock Market.'' In \textit{Handbook of Asset and Liability Management}, Volume 1.
+
+    \item Sortino, F.A. \& Price, L.N. (1994). ``Performance Measurement in a Downside Risk Framework.'' \textit{Journal of Investing}, 3(3), 59--64.
+
+    \item Sharpe, W.F. (1966). ``Mutual Fund Performance.'' \textit{Journal of Business}, 39(1), 119--138.
+
+    \item Lopez de Prado, M. (2018). \textit{Advances in Financial Machine Learning}. Wiley.
+\end{enumerate}
+
+
+% ==========================================================================
+\end{document}
+% ==========================================================================

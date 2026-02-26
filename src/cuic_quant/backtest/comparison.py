@@ -118,7 +118,11 @@ def rank_strategies(
         raise ValueError(f"Metric '{metric}' not found. Available: {available}")
 
     ranked = comparison_df.sort_values(metric, ascending=ascending).copy()
-    ranked.insert(0, "rank", range(1, len(ranked) + 1))
+    # Use dense ranking to handle ties (equal values get same rank)
+    ranked.insert(
+        0, "rank",
+        ranked[metric].rank(method="dense", ascending=ascending).astype(int).values
+    )
     return ranked
 
 
@@ -149,6 +153,9 @@ def display_comparison(
     if highlight_best and len(display_df) > 1:
         print("\nBest by metric:")
         for col in numeric_cols:
+            # Skip columns that are all-NaN to avoid crashes
+            if display_df[col].isna().all():
+                continue
             if col in ("max_drawdown",):
                 best_idx = display_df[col].idxmin()
                 print(f"  {col}: {best_idx} ({display_df.loc[best_idx, col]:.4f})")
@@ -264,10 +271,22 @@ def detect_suspicious_results(
             expected_loss = -row["bet_size"] * (1 - implied_p)
             expected_pnl += expected_win + expected_loss
 
-        pnl_ratio = actual_pnl / abs(expected_pnl) if abs(expected_pnl) > 0.01 else 0.0
+        # When expected_pnl ≈ 0 (fair odds), use absolute excess instead of ratio
+        # to avoid the denominator guard defaulting to 0.0 and auto-passing
+        if abs(expected_pnl) > 0.01:
+            pnl_ratio = actual_pnl / abs(expected_pnl)
+            is_suspicious = abs(pnl_ratio) > 5.0
+        else:
+            # Fair odds: expected PnL ≈ 0, so any large actual PnL is suspicious
+            # Use a per-trade threshold: > $50 profit per trade is suspicious at fair odds
+            per_trade_excess = abs(actual_pnl) / max(n_trades, 1)
+            avg_bet = float(results["bet_size"].mean()) if "bet_size" in results.columns else 100.0
+            pnl_ratio = per_trade_excess / max(avg_bet, 1.0)
+            is_suspicious = pnl_ratio > 0.5  # >50% return per trade at fair odds
+
         checks.append({
             "name": "odds_adjusted_return",
-            "passed": abs(pnl_ratio) < 5.0,
+            "passed": not is_suspicious,
             "p_value": None,
             "detail": (
                 f"Actual PnL ${actual_pnl:.2f} vs expected ${expected_pnl:.2f} "
@@ -332,6 +351,25 @@ def detect_suspicious_results(
                 f"(z={z_runs:.2f}, p={p_runs:.4f})"
             ),
         })
+
+    # Check 6: Bet-size-outcome correlation (catches the #1 bypass: big bets on known wins)
+    if "bet_size" in results.columns and n_trades >= 10:
+        outcome_binary = (outcomes == "WIN").astype(float).values
+        bet_sizes = results["bet_size"].values
+        # Only run if bet sizes vary (constant bet sizes can't correlate)
+        if np.std(bet_sizes) > 1e-6:
+            corr, p_corr = stats.pointbiserialr(outcome_binary, bet_sizes)
+            # Strong positive correlation = bigger bets on wins = likely leakage
+            is_corr_suspicious = corr > 0.3 and p_corr < 0.05
+            checks.append({
+                "name": "bet_size_outcome_correlation",
+                "passed": not is_corr_suspicious,
+                "p_value": float(p_corr),
+                "detail": (
+                    f"Point-biserial r={corr:.3f}, p={p_corr:.4f}. "
+                    f"Suspicious if r>0.3 with p<0.05 (bigger bets on wins = possible leakage)."
+                ),
+            })
 
     # Compute overall anomaly score (0-1)
     n_failed = sum(1 for c in checks if not c["passed"])

@@ -72,15 +72,22 @@ class TestDetectSuspiciousResults:
     """Tests for detect_suspicious_results function."""
 
     def test_normal_results_not_suspicious(self) -> None:
-        """Legitimate ~50% win rate should not be flagged."""
+        """Legitimate ~50% win rate should not be flagged as suspicious."""
         from cuic_quant.backtest import always_bet_home, backtest
 
         data = _make_test_data()
         results = backtest(data, always_bet_home)
 
         flags = comparison.detect_suspicious_results(results)
-        # A normal ~67% win rate on 3 trades should not be flagged
-        assert isinstance(flags, (list, dict))
+        # Must actually check the is_suspicious field
+        if isinstance(flags, dict):
+            assert flags.get("is_suspicious") is False, (
+                f"Normal results should not be suspicious, got: {flags}"
+            )
+        elif isinstance(flags, list):
+            assert len(flags) == 0, (
+                f"Normal results should have no flags, got: {flags}"
+            )
 
     def test_100_percent_win_rate_flagged(self) -> None:
         """100% win rate should be flagged as suspicious."""
@@ -140,34 +147,79 @@ class TestDetectSuspiciousResults:
 
 
 class TestRankStrategies:
-    """Tests for ranking strategies within comparison."""
+    """Tests for rank_strategies() function."""
 
-    def test_ranks_by_sharpe(self) -> None:
-        """Should rank strategies by Sharpe ratio."""
+    def _get_comparison_df(self) -> pd.DataFrame:
+        """Helper: build a comparison DataFrame for ranking tests."""
         from cuic_quant.backtest import always_bet_home, always_bet_away
 
         data = _make_test_data()
-
-        result = comparison.compare_strategies(
-            data,
-            {"home": always_bet_home, "away": always_bet_away},
-        )
-        # The result should be a DataFrame we can sort
-        assert isinstance(result, pd.DataFrame)
-        assert len(result) == 2
-
-    def test_ranks_ascending(self) -> None:
-        """ascending=True should put worst first."""
-        from cuic_quant.backtest import always_bet_home, always_bet_away
-
-        data = _make_test_data()
-
-        result = comparison.compare_strategies(
+        return comparison.compare_strategies(
             data,
             {"home": always_bet_home, "away": always_bet_away},
         )
 
-        # Verify the result can be sorted by total_pnl in ascending order
-        if "total_pnl" in result.columns:
-            sorted_asc = result.sort_values("total_pnl", ascending=True)
-            assert sorted_asc.iloc[0]["total_pnl"] <= sorted_asc.iloc[-1]["total_pnl"]
+    def test_rank_strategies_adds_rank_column(self) -> None:
+        """rank_strategies() should add a 'rank' column."""
+        comp = self._get_comparison_df()
+        ranked = comparison.rank_strategies(comp)
+        assert "rank" in ranked.columns
+        assert list(ranked["rank"]) == [1, 2]
+
+    def test_rank_strategies_sorts_descending_by_default(self) -> None:
+        """Default sort is descending (highest metric first)."""
+        comp = self._get_comparison_df()
+        ranked = comparison.rank_strategies(comp, metric="total_pnl")
+        pnl_values = ranked["total_pnl"].tolist()
+        assert pnl_values[0] >= pnl_values[-1]
+
+    def test_rank_strategies_ascending(self) -> None:
+        """ascending=True should put lowest value first."""
+        comp = self._get_comparison_df()
+        ranked = comparison.rank_strategies(comp, metric="total_pnl", ascending=True)
+        pnl_values = ranked["total_pnl"].tolist()
+        assert pnl_values[0] <= pnl_values[-1]
+        assert ranked["rank"].iloc[0] == 1
+
+    def test_rank_strategies_invalid_metric_raises(self) -> None:
+        """Ranking by a nonexistent metric should raise ValueError."""
+        comp = self._get_comparison_df()
+        with pytest.raises(ValueError, match="not found"):
+            comparison.rank_strategies(comp, metric="nonexistent_metric")
+
+
+class TestDisplayComparison:
+    """Tests for display_comparison() function."""
+
+    def test_display_comparison_prints_output(self, capsys: pytest.CaptureFixture) -> None:
+        """display_comparison() should print a formatted table."""
+        from cuic_quant.backtest import always_bet_home, always_bet_away
+
+        data = _make_test_data()
+        comp = comparison.compare_strategies(
+            data,
+            {"home": always_bet_home, "away": always_bet_away},
+        )
+        comparison.display_comparison(comp)
+        captured = capsys.readouterr()
+        assert "STRATEGY COMPARISON" in captured.out
+        assert "Best by metric:" in captured.out
+
+    def test_display_comparison_empty_df(self, capsys: pytest.CaptureFixture) -> None:
+        """display_comparison() with empty DataFrame should print message."""
+        empty_df = pd.DataFrame()
+        comparison.display_comparison(empty_df)
+        captured = capsys.readouterr()
+        assert "No strategies to compare" in captured.out
+
+    def test_display_comparison_single_strategy(self, capsys: pytest.CaptureFixture) -> None:
+        """display_comparison() with one strategy should skip 'Best by metric'."""
+        from cuic_quant.backtest import always_bet_home
+
+        data = _make_test_data()
+        comp = comparison.compare_strategies(data, {"home": always_bet_home})
+        comparison.display_comparison(comp)
+        captured = capsys.readouterr()
+        assert "STRATEGY COMPARISON" in captured.out
+        # With only 1 strategy, "Best by metric" is skipped (needs len > 1)
+        assert "Best by metric:" not in captured.out

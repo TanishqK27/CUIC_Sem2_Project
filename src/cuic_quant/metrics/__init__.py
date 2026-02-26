@@ -32,6 +32,11 @@ def _compute_periods_per_year(trades_df: pd.DataFrame) -> float:
 
     timestamps = pd.to_datetime(trades_df["timestamp"], errors="coerce").dropna()
     if len(timestamps) < 2:
+        warnings.warn(
+            "Fewer than 2 timestamps — using periods_per_year=365 (assumes 1 bet/day). "
+            "Sharpe/Sortino may be inflated by up to 2.65x if actual frequency differs.",
+            stacklevel=3,
+        )
         return 365.0
 
     time_span_days = (timestamps.max() - timestamps.min()).total_seconds() / 86400.0
@@ -258,6 +263,8 @@ def calculate_brier_score(trades_df: pd.DataFrame) -> float:
 
     Lower is better: 0.0 = perfect, 0.25 = random (p=0.5), 1.0 = worst.
 
+    Confidence values outside [0, 1] are clamped with a warning.
+
     Args:
         trades_df: DataFrame with confidence and outcome columns.
 
@@ -284,7 +291,17 @@ def calculate_brier_score(trades_df: pd.DataFrame) -> float:
     if not mask.any():
         return float("nan")
 
-    return float(((predicted[mask] - actual[mask]) ** 2).mean())
+    p = predicted[mask]
+    # Warn and clamp confidence outside [0, 1]
+    if (p < 0).any() or (p > 1).any():
+        warnings.warn(
+            "Confidence values outside [0, 1] detected in Brier Score — "
+            "clamping to valid range.",
+            stacklevel=2,
+        )
+        p = p.clip(0.0, 1.0)
+
+    return float(((p - actual[mask]) ** 2).mean())
 
 
 def calculate_log_loss(trades_df: pd.DataFrame) -> float:
@@ -393,11 +410,25 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
         total_wagered = float(bet_sizes.sum()) if not bet_sizes.empty else 0.0
         metrics["total_wagered"] = total_wagered
         if total_wagered > 0:
+            # "roi" = yield-on-turnover (total_pnl / total_wagered)
             metrics["roi"] = total_pnl / total_wagered
         else:
             metrics["roi"] = 0.0
-        if not bet_sizes.empty and float(bet_sizes.mean()) > 0:
-            metrics["yield_per_bet"] = float(pnl.mean()) / float(bet_sizes.mean())
+        # return_on_capital = total_pnl / initial_bankroll (the "real" ROI)
+        ib = trades_df.attrs.get("initial_bankroll") if hasattr(trades_df, "attrs") else None
+        if ib and ib > 0:
+            metrics["return_on_capital"] = total_pnl / ib
+        else:
+            metrics["return_on_capital"] = metrics["roi"]
+
+        # yield_per_bet: mean of per-trade returns (mean of ratios, not ratio of means)
+        if not bet_sizes.empty:
+            valid_mask = bet_sizes > 0
+            if valid_mask.any():
+                per_trade_return = pnl[valid_mask] / bet_sizes[valid_mask]
+                metrics["yield_per_bet"] = float(per_trade_return.mean())
+            else:
+                metrics["yield_per_bet"] = 0.0
         else:
             metrics["yield_per_bet"] = 0.0
 
@@ -405,10 +436,23 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
         odds_series = _coerce_numeric(trades_df["odds"])
         metrics["avg_odds"] = float(odds_series.mean()) if not odds_series.empty else 0.0
 
-    # Calmar ratio: total_pnl / max_drawdown
+    # Calmar ratio: annualized_return / max_drawdown
     if max_dd > 0:
-        # Express as annualized return / max drawdown
-        metrics["calmar_ratio"] = (total_pnl / initial_bankroll) / max_dd
+        total_return = total_pnl / initial_bankroll if initial_bankroll > 0 else 0.0
+        # Annualize using actual time span
+        if "timestamp" in trades_df.columns:
+            ts = pd.to_datetime(trades_df["timestamp"], errors="coerce").dropna()
+            if len(ts) >= 2:
+                span_years = (ts.max() - ts.min()).total_seconds() / (365.25 * 86400.0)
+                if span_years > 0:
+                    annualized_return = total_return / span_years
+                else:
+                    annualized_return = total_return
+            else:
+                annualized_return = total_return
+        else:
+            annualized_return = total_return
+        metrics["calmar_ratio"] = annualized_return / max_dd
     else:
         metrics["calmar_ratio"] = 0.0
 

@@ -89,7 +89,7 @@ def backtest(
            g. Calculate PnL: WIN = bet_size * (odds - 1), LOSS = -bet_size.
            h. Update cumulative_pnl and bankroll.
            i. Append trade to list.
-        3. Return trades as a DataFrame with exactly 9 columns.
+        3. Return trades as a DataFrame with exactly 11 columns.
 
     Args:
         data: DataFrame from load_backtest_data() with columns: timestamp,
@@ -99,22 +99,67 @@ def backtest(
             (row: pd.Series, context: dict | None) and returns a dict with
             keys: action, confidence, size, reason (optional).
         initial_bankroll: Starting bankroll in dollars. Defaults to 10000.
+            Must be a finite non-negative number.
         cost_pct: Percentage deducted from winning payouts (e.g. 0.02 for 2%).
-            Models bookmaker vig/margin. Default 0.0 (no cost).
+            Models bookmaker vig/margin. Must be in [0, 1]. Default 0.0.
         cost_flat: Flat dollar fee deducted per trade regardless of outcome.
-            Default 0.0 (no fee).
+            Must be non-negative. Default 0.0.
         position_sizing: Position sizing method. None = use strategy's size field,
             "kelly" = Kelly Criterion sizing using strategy's confidence as
-            win probability. If confidence is None, 0.0, or 1.0, falls back
-            to the strategy's raw size field with a warning. Default None.
+            win probability. Case-insensitive ("Kelly" and "KELLY" also work).
+            If confidence is None, 0.0, or 1.0, falls back to the strategy's
+            raw size field with a warning. Default None.
         kelly_fraction: Fraction of Kelly to use when position_sizing="kelly".
-            0.5 = half-Kelly (safer), 1.0 = full Kelly. Default 0.5.
+            0.5 = half-Kelly (safer), 1.0 = full Kelly. Must be in (0, 1].
+            Default 0.5.
 
     Returns:
-        DataFrame with 9 columns: timestamp, game, action, bet_size, odds,
-        outcome, pnl, cumulative_pnl, bankroll. Returns empty DataFrame with
-        correct columns if no trades are executed.
+        DataFrame with 11 columns: timestamp, game, action, bet_size, odds,
+        outcome, pnl, cumulative_pnl, bankroll, confidence, closing_odds.
+        Returns empty DataFrame with correct columns if no trades are executed.
+
+    Raises:
+        ValueError: If initial_bankroll, cost_pct, cost_flat, or kelly_fraction
+            are invalid (NaN, out of range, etc.).
     """
+    # --- Input validation (fail fast on bad parameters) ---
+    if not isinstance(initial_bankroll, (int, float)) or math.isnan(initial_bankroll):
+        raise ValueError(f"initial_bankroll must be a finite number, got {initial_bankroll!r}")
+    if initial_bankroll < 0:
+        raise ValueError(f"initial_bankroll must be non-negative, got {initial_bankroll}")
+
+    if not isinstance(cost_pct, (int, float)) or math.isnan(cost_pct):
+        raise ValueError(f"cost_pct must be a finite number, got {cost_pct!r}")
+    if cost_pct < 0 or cost_pct > 1:
+        raise ValueError(
+            f"cost_pct must be in [0, 1], got {cost_pct}. "
+            f"Note: cost_pct is a fraction (0.05 = 5%), not a percentage."
+        )
+
+    if not isinstance(cost_flat, (int, float)) or math.isnan(cost_flat):
+        raise ValueError(f"cost_flat must be a finite number, got {cost_flat!r}")
+    if cost_flat < 0:
+        raise ValueError(f"cost_flat must be non-negative, got {cost_flat}")
+
+    # Normalize position_sizing to lowercase for case-insensitive matching
+    if position_sizing is not None:
+        position_sizing = position_sizing.lower()
+        if position_sizing != "kelly":
+            warnings.warn(
+                f"Unrecognized position_sizing={position_sizing!r} — "
+                f"only 'kelly' is supported. Using flat sizing.",
+                stacklevel=2,
+            )
+            position_sizing = None
+
+    if position_sizing == "kelly":
+        if not isinstance(kelly_fraction, (int, float)) or math.isnan(kelly_fraction):
+            raise ValueError(f"kelly_fraction must be a finite number, got {kelly_fraction!r}")
+        if kelly_fraction <= 0 or kelly_fraction > 1:
+            raise ValueError(
+                f"kelly_fraction must be in (0, 1], got {kelly_fraction}"
+            )
+
     bankroll = initial_bankroll
     cumulative_pnl = 0.0
     trades: list[dict[str, Any]] = []
@@ -122,15 +167,6 @@ def backtest(
     # M2: Pre-check whether closing odds columns exist in input
     _has_closing_home = "closing_home_odds" in data.columns
     _has_closing_away = "closing_away_odds" in data.columns
-
-    context: dict[str, Any] = {
-        "initial_bankroll": initial_bankroll,
-        "bankroll": bankroll,
-        "trade_count": 0,
-        "cumulative_pnl": 0.0,
-        "history": [],           # U3: past trades for lookback
-        "past_games": None,      # U3: past game data (set per iteration)
-    }
 
     # Validate required columns
     required = {"timestamp", "game", "home_team", "away_team", "home_odds", "away_odds", "home_win"}
@@ -148,17 +184,64 @@ def backtest(
             break
 
         # Skip rows with NaN or invalid odds (decimal odds must be > 1.0)
-        if pd.isna(row["home_odds"]) or pd.isna(row["away_odds"]):
-            continue
-        if row["home_odds"] <= 1.0 or row["away_odds"] <= 1.0:
+        try:
+            home_odds_val = float(row["home_odds"])
+            away_odds_val = float(row["away_odds"])
+        except (TypeError, ValueError):
+            warnings.warn(
+                f"Non-numeric odds for game '{row['game']}' — skipping.",
+                stacklevel=2,
+            )
             continue
 
-        # Update context for strategy
-        context["bankroll"] = bankroll
-        context["trade_count"] = len(trades)
-        context["cumulative_pnl"] = cumulative_pnl
-        context["history"] = list(trades)  # U3: snapshot of past trades
-        context["past_games"] = data.loc[:row_idx].iloc[:-1]  # U3: all rows before current
+        if math.isnan(home_odds_val) or math.isnan(away_odds_val):
+            continue
+        if home_odds_val <= 1.0 or away_odds_val <= 1.0:
+            continue
+
+        # Skip rows with NaN or non-binary home_win
+        home_win_val = row["home_win"]
+        if pd.isna(home_win_val):
+            warnings.warn(
+                f"NaN home_win for game '{row['game']}' — skipping row.",
+                stacklevel=2,
+            )
+            continue
+        try:
+            home_win_int = int(home_win_val)
+        except (TypeError, ValueError):
+            warnings.warn(
+                f"Non-numeric home_win={home_win_val!r} for game "
+                f"'{row['game']}' — skipping row.",
+                stacklevel=2,
+            )
+            continue
+        if home_win_int not in (0, 1):
+            warnings.warn(
+                f"home_win={home_win_int} for game '{row['game']}' is not "
+                f"0 or 1 — skipping row.",
+                stacklevel=2,
+            )
+            continue
+
+        # Update context for strategy — deep copies to prevent mutation
+        context: dict[str, Any] = {
+            "initial_bankroll": initial_bankroll,
+            "bankroll": bankroll,
+            "trade_count": len(trades),
+            "cumulative_pnl": cumulative_pnl,
+            "history": [dict(t) for t in trades],  # U3: deep copy of past trades
+            "past_games": None,  # U3: set below
+        }
+
+        # U3: past_games is a copy with home_win DROPPED to prevent leakage
+        past_games_raw = data.loc[:row_idx].iloc[:-1]
+        _past_drop = ["home_win"]
+        if _has_closing_home:
+            _past_drop.append("closing_home_odds")
+        if _has_closing_away:
+            _past_drop.append("closing_away_odds")
+        context["past_games"] = past_games_raw.drop(columns=_past_drop, errors="ignore").copy()
 
         # Remove outcome and closing odds to prevent data leakage
         # Closing odds are post-hoc evaluation data — strategies should only
@@ -177,6 +260,15 @@ def backtest(
             warnings.warn(
                 f"Strategy raised {type(exc).__name__} for game "
                 f"'{row['game']}': {exc} — skipping row.",
+                stacklevel=2,
+            )
+            continue
+
+        # Guard against strategy returning non-dict (None, str, int, list)
+        if not isinstance(signal, dict):
+            warnings.warn(
+                f"Strategy returned {type(signal).__name__} instead of dict "
+                f"for game '{row['game']}' — skipping row.",
                 stacklevel=2,
             )
             continue
@@ -222,11 +314,11 @@ def backtest(
 
         # Determine odds based on action
         if action == "BUY_HOME":
-            odds = row["home_odds"]
-            won = row["home_win"] == 1
+            odds = home_odds_val
+            won = home_win_int == 1
         elif action == "BUY_AWAY":
-            odds = row["away_odds"]
-            won = row["home_win"] == 0
+            odds = away_odds_val
+            won = home_win_int == 0
         else:
             warnings.warn(
                 f"Unrecognized action '{action}' from strategy for game "
@@ -290,11 +382,16 @@ def backtest(
             if pd.notna(val):
                 closing_odds_val = float(val)
 
-        # M4: Store confidence directly in output (not just attrs)
+        # M4: Store confidence directly in output, clamped to [0, 1]
         stored_confidence = float("nan")
         if confidence is not None:
             try:
-                stored_confidence = float(confidence)
+                conf_val = float(confidence)
+                if math.isnan(conf_val):
+                    stored_confidence = float("nan")
+                else:
+                    # Clamp to [0, 1] to prevent downstream Brier/LogLoss corruption
+                    stored_confidence = max(0.0, min(1.0, conf_val))
             except (TypeError, ValueError):
                 stored_confidence = float("nan")
 

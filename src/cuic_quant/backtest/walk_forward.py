@@ -17,6 +17,7 @@ Functions:
 from __future__ import annotations
 
 import itertools
+import warnings
 from typing import Any, Callable
 
 import pandas as pd
@@ -80,14 +81,14 @@ def _aggregate_metrics(
 ) -> dict[str, float | int]:
     """Aggregate metrics across multiple walk-forward folds.
 
-    Computes a weighted average (by total_trades) for rate-based metrics
-    (win_rate, sharpe_ratio, sortino_ratio, profit_factor) and a simple
-    sum for additive metrics (total_trades, total_pnl).  Max drawdown is
-    reported as the worst across folds.
+    For Sharpe/Sortino, concatenates all OOS trade results and computes
+    a single ratio from the combined series (statistically valid).
+    Win rate and profit factor use trade-weighted averages.
+    Max drawdown is the worst across folds.
 
     Args:
         splits: List of per-fold dicts, each containing a metrics sub-dict
-            under the given *key*.
+            under the given *key*, and a ``results`` DataFrame.
         key: Which metrics dict to read from each split entry.
 
     Returns:
@@ -107,17 +108,33 @@ def _aggregate_metrics(
             "profit_factor": 0.0,
         }
 
-    # Trade-weighted averages for ratio metrics
-    rate_keys = ["win_rate", "sharpe_ratio", "sortino_ratio", "profit_factor"]
     aggregated: dict[str, float | int] = {
         "total_trades": total_trades,
         "total_pnl": round(total_pnl, 2),
     }
-    for rk in rate_keys:
+
+    # Trade-weighted average for win_rate and profit_factor
+    for rk in ["win_rate", "profit_factor"]:
         weighted_sum = sum(
             s[key][rk] * s[key]["total_trades"] for s in splits
         )
         aggregated[rk] = round(weighted_sum / total_trades, 4) if total_trades else 0.0
+
+    # Sharpe/Sortino: concatenate all OOS results and compute single value
+    all_oos_results = []
+    for s in splits:
+        results_df = s.get("results")
+        if results_df is not None and len(results_df) > 0:
+            all_oos_results.append(results_df)
+
+    if all_oos_results:
+        combined = pd.concat(all_oos_results, ignore_index=True)
+        combined_metrics = calculate_all_metrics(combined)
+        aggregated["sharpe_ratio"] = round(combined_metrics.get("sharpe_ratio", 0.0), 4)
+        aggregated["sortino_ratio"] = round(combined_metrics.get("sortino_ratio", 0.0), 4)
+    else:
+        aggregated["sharpe_ratio"] = 0.0
+        aggregated["sortino_ratio"] = 0.0
 
     # Max drawdown: report the worst across folds
     aggregated["max_drawdown"] = round(
@@ -161,6 +178,17 @@ def train_test_split(
         raise ValueError(f"train_ratio must be in (0, 1), got {train_ratio}")
     if len(data) == 0:
         raise ValueError("Cannot split empty DataFrame")
+
+    # Verify chronological order if timestamp column exists
+    if "timestamp" in data.columns:
+        ts = pd.to_datetime(data["timestamp"], errors="coerce")
+        if not ts.is_monotonic_increasing:
+            warnings.warn(
+                "Input data is not sorted chronologically. "
+                "train_test_split assumes ascending timestamp order. "
+                "Sort your data first: data.sort_values('timestamp').",
+                stacklevel=2,
+            )
 
     n = len(data)
     split_idx = int(n * train_ratio)
@@ -249,6 +277,17 @@ def walk_forward_backtest(
         train_end = max(train_start, test_start - gap)
         train_data = data.iloc[train_start:train_end]
 
+        # Skip fold 0 if it has zero training data — testing on earliest
+        # data with no training is not a valid walk-forward fold and
+        # corrupts aggregated OOS metrics.
+        if len(train_data) == 0:
+            warnings.warn(
+                f"Walk-forward fold {i} has zero training data — skipping. "
+                f"This typically happens for fold 0.",
+                stacklevel=2,
+            )
+            continue
+
         # Run OOS backtest on test window
         test_results, test_metrics = _run_fold_backtest(
             test_data, strategy_fn, initial_bankroll, cost_pct, cost_flat,
@@ -256,18 +295,10 @@ def walk_forward_backtest(
         )
 
         # Run IS backtest on train window for comparison
-        if len(train_data) > 0:
-            train_results, train_metrics = _run_fold_backtest(
-                train_data, strategy_fn, initial_bankroll, cost_pct, cost_flat,
-                **extra_kwargs,
-            )
-        else:
-            train_results = pd.DataFrame()
-            train_metrics = {
-                "total_trades": 0, "win_rate": 0.0, "total_pnl": 0.0,
-                "sharpe_ratio": 0.0, "sortino_ratio": 0.0,
-                "max_drawdown": 0.0, "profit_factor": 0.0,
-            }
+        train_results, train_metrics = _run_fold_backtest(
+            train_data, strategy_fn, initial_bankroll, cost_pct, cost_flat,
+            **extra_kwargs,
+        )
 
         splits.append({
             "fold": i,

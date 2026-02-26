@@ -1,5 +1,23 @@
 # James's Tasks
 
+## Week 4: 10-Agent Audit Fixes + Documentation (Feb 26)
+
+### Completed
+| Task | Completed | Notes |
+|------|-----------|-------|
+| Fix engine.py crash vectors (14 fixes) | Feb 26 | Input validation, NaN guards, deep copies, leakage prevention |
+| Fix metrics/__init__.py (5 fixes) | Feb 26 | yield_per_bet, calmar_ratio, return_on_capital, Brier clamping |
+| Fix statistics.py (3 fixes) | Feb 26 | One-sided p-value, DSR skew/kurtosis, PBO docs |
+| Fix walk_forward.py (4 fixes) | Feb 26 | Fold-0 skip, OOS Sharpe concat, chrono sort check |
+| Fix comparison.py (4 fixes) | Feb 26 | NaN columns, dense ranking, odds guard, point-biserial |
+| Fix validator.py (3 fixes) | Feb 26 | cost_flat overbetting, attrs auto-read, Optional params |
+| Create test_audit_fixes.py (42+ tests) | Feb 26 | Comprehensive coverage for all audit findings |
+| Fix existing tests (3 files) | Feb 26 | Extended, comparison, walk-forward test updates |
+| Verify all 30 PR items still fixed | Feb 26 | B1-B5, S1-S5, M1-M4, U1-U5, T1-T6, D1-D5 |
+| Write 35-page LaTeX documentation | Feb 26 | Complete backtester reference document |
+
+---
+
 ## Week 3: PR Review Fixes (Feb 25)
 
 ### To Do

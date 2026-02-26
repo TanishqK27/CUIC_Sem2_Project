@@ -20,16 +20,16 @@ from cuic_quant.backtest.engine import (
 def validate_backtest_results(
     results: pd.DataFrame,
     input_data: pd.DataFrame,
-    initial_bankroll: float = 10000.0,
-    cost_pct: float = 0.0,
-    cost_flat: float = 0.0,
+    initial_bankroll: float | None = None,
+    cost_pct: float | None = None,
+    cost_flat: float | None = None,
 ) -> dict[str, Any]:
     """Validate backtest results for correctness and data leakage.
 
     Checks (12 total across 3 categories):
 
         **Schema Validation (5 checks)**
-        1. Column names — output has exactly the 9 required columns.
+        1. Column names — output has exactly the required columns.
         2. Valid actions — every action is BUY_HOME or BUY_AWAY.
         3. Valid outcomes — every outcome is WIN or LOSS.
         4. Positive bet sizes — no zero or negative bets.
@@ -39,7 +39,7 @@ def validate_backtest_results(
         6. PnL formula — WIN = bet_size * (odds - 1), LOSS = -bet_size.
         7. Cumulative PnL — correct running sum of pnl.
         8. Bankroll tracking — bankroll = initial_bankroll + cumulative_pnl.
-        9. No overbetting — no bet exceeds available bankroll.
+        9. No overbetting — no bet exceeds available bankroll minus cost_flat.
 
         **Data Leakage Detection (3 checks)**
         10. Game existence — every game in results exists in input data.
@@ -47,15 +47,29 @@ def validate_backtest_results(
         12. Chronological order — trades in timestamp order.
 
     Args:
-        results: DataFrame output from backtest() with 9 columns.
+        results: DataFrame output from backtest() with required columns.
         input_data: The original DataFrame passed to backtest().
         initial_bankroll: The initial_bankroll value used in the backtest.
+            If None, auto-reads from results.attrs["initial_bankroll"],
+            defaulting to 10000.0.
         cost_pct: Percentage cost per winning trade.
+            If None, auto-reads from results.attrs["cost_pct"],
+            defaulting to 0.0.
         cost_flat: Flat cost per trade.
+            If None, auto-reads from results.attrs["cost_flat"],
+            defaulting to 0.0.
 
     Returns:
         Dict with passed, checks_run, checks_passed, failures.
     """
+    # Auto-read cost params from result.attrs if not explicitly provided
+    attrs = results.attrs if hasattr(results, "attrs") else {}
+    if initial_bankroll is None:
+        initial_bankroll = attrs.get("initial_bankroll", 10000.0)
+    if cost_pct is None:
+        cost_pct = attrs.get("cost_pct", 0.0)
+    if cost_flat is None:
+        cost_flat = attrs.get("cost_flat", 0.0)
     failures: list[str] = []
     checks_run = 0
 
@@ -187,22 +201,27 @@ def validate_backtest_results(
             f"First: {bankroll_errors[0]}"
         )
 
-    # Check 9: No bet exceeds bankroll at time of bet
+    # Check 9: No bet exceeds bankroll minus cost_flat at time of bet
+    # The engine caps bet_size at max(0, bankroll - cost_flat), so the
+    # validator must account for cost_flat in the overbetting check.
     checks_run += 1
     prev_bankroll = initial_bankroll
     overbet_errors = []
     for idx, row in results.iterrows():
-        if row["bet_size"] > prev_bankroll + 0.01:
+        # Maximum the engine would allow: bankroll minus cost_flat
+        max_allowed = prev_bankroll - cost_flat
+        if row["bet_size"] > max_allowed + 0.01:
             overbet_errors.append(
                 f"Row {idx}: bet_size={row['bet_size']}, "
-                f"bankroll_at_time={prev_bankroll}"
+                f"max_allowed={max_allowed} (bankroll={prev_bankroll}, "
+                f"cost_flat={cost_flat})"
             )
         prev_bankroll = row["bankroll"]
 
     if overbet_errors:
         failures.append(
-            f"Math: bet exceeds bankroll in {len(overbet_errors)} rows. "
-            f"First: {overbet_errors[0]}"
+            f"Math: bet exceeds bankroll (minus cost_flat) in "
+            f"{len(overbet_errors)} rows. First: {overbet_errors[0]}"
         )
 
     # ===================================================================
