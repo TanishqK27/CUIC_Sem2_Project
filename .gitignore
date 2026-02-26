@@ -330,3 +330,4 @@ team/tan/work/
 # Node (if any JS tools are used)
 node_modules/
 package-lock.json
+.worktrees/
