@@ -1216,6 +1216,8 @@ class TestInitialBankrollResolution:
 
     All downstream metric sites (max_drawdown, return_on_capital, calmar_ratio)
     must use the single resolved variable -- no secondary attrs reads.
+
+    Expected outcome (TDD): 8 failing tests until Bug Fix 3 is implemented.
     """
 
     # ------------------------------------------------------------------
@@ -1336,18 +1338,24 @@ class TestInitialBankrollResolution:
         assert abs(metrics["return_on_capital"] - metrics["roi"]) > 0.01
 
     def test_calmar_ratio_uses_correct_initial_bankroll(self) -> None:
-        """calmar_ratio numerator uses the correctly resolved initial_bankroll."""
+        """Calmar ratio uses the correctly resolved initial_bankroll, not bankroll.iloc[0]."""
         from cuic_quant.metrics import calculate_all_metrics
 
-        data = _make_input(n=5, home_wins=[0, 1, 0, 1, 0], odds=2.0)
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always")
-            results = backtest(data, always_bet_home, initial_bankroll=10000.0)
+        df = _make_trades_no_attrs(odds=2.5)  # derivation path: attrs absent
+        # bankroll.iloc[0] is the bankroll AFTER the first trade -- NOT initial_bankroll
+        derived_ib = float(df["bankroll"].iloc[0] - df["pnl"].iloc[0])
 
-        metrics = calculate_all_metrics(results)
+        metrics = calculate_all_metrics(df)
+
+        # return_on_capital = total_pnl / initial_bankroll uses the derived value
+        # Calmar numerator (total_return) = total_pnl / initial_bankroll (same denominator)
+        # Verify: return_on_capital is consistent with derived_ib, not bankroll.iloc[0]
+        expected_roc = metrics["total_pnl"] / derived_ib
+        assert metrics["return_on_capital"] == pytest.approx(expected_roc, rel=1e-6)
+        # Calmar = annualized_return / max_drawdown -- verify it's finite when max_drawdown > 0
         if metrics["max_drawdown"] > 0:
             assert math.isfinite(metrics["calmar_ratio"])
-            assert metrics["calmar_ratio"] != 0.0
+            assert metrics["calmar_ratio"] != pytest.approx(0.0, abs=1e-10)
 
     # ------------------------------------------------------------------
     # Resolution path tests
@@ -1364,7 +1372,8 @@ class TestInitialBankrollResolution:
 
         assert results.attrs.get("initial_bankroll") == 10000.0
         metrics = calculate_all_metrics(results)
-        assert isinstance(metrics, dict)
+        expected_roc = metrics["total_pnl"] / 10000.0
+        assert metrics["return_on_capital"] == pytest.approx(expected_roc, rel=1e-6)
 
     def test_derivation_path_when_attrs_absent(self) -> None:
         """When attrs is absent, initial_bankroll is derived as bankroll[0] - pnl[0]."""
@@ -1383,8 +1392,8 @@ class TestInitialBankrollResolution:
         expected_roc = metrics["total_pnl"] / 8000.0
         assert metrics["return_on_capital"] == pytest.approx(expected_roc, abs=0.001)
 
-    def test_derivation_gives_same_max_drawdown_as_attrs(self) -> None:
-        """Derivation path and attrs path give identical max_drawdown."""
+    def test_derivation_gives_same_result_as_attrs(self) -> None:
+        """Derivation path and attrs path give identical max_drawdown and return_on_capital."""
         from cuic_quant.metrics import calculate_all_metrics
 
         data = _make_input(n=5, home_wins=[0, 1, 0, 1, 1], odds=2.0)
@@ -1401,6 +1410,9 @@ class TestInitialBankrollResolution:
 
         assert metrics_attrs["max_drawdown"] == pytest.approx(
             metrics_derived["max_drawdown"], abs=1e-9
+        )
+        assert metrics_attrs["return_on_capital"] == pytest.approx(
+            metrics_derived["return_on_capital"], rel=1e-6
         )
 
     def test_raises_when_attrs_absent_and_no_bankroll_column(self) -> None:
@@ -1442,8 +1454,10 @@ class TestInitialBankrollResolution:
             "outcome": ["WIN"],
         })
 
-        with pytest.raises(ValueError, match="initial_bankroll"):
-            calculate_all_metrics(df)
+        with pytest.raises(ValueError, match=r"attrs\[.initial_bankroll.\]"):
+            calculate_all_metrics(df.copy())
+        with pytest.raises(ValueError, match=r"backtest\(\)"):
+            calculate_all_metrics(df.copy())
 
     # ------------------------------------------------------------------
     # Full pipeline sanity check
@@ -1469,10 +1483,5 @@ class TestInitialBankrollResolution:
 
         metrics = calculate_all_metrics(results)
         for key, value in metrics.items():
-            if isinstance(value, (float, int)) and not isinstance(value, bool):
-                try:
-                    assert math.isfinite(float(value)), (
-                        f"Metric '{key}' is not finite: {value}"
-                    )
-                except (TypeError, ValueError):
-                    pass
+            if isinstance(value, (int, float)):
+                assert math.isfinite(value), f"metrics['{key}'] = {value} is not finite"
