@@ -143,8 +143,14 @@ def calculate_max_drawdown(
         return 0.0
 
     equity = curve + initial_bankroll
-    running_peak = equity.cummax()
-    drawdowns = ((running_peak - equity) / running_peak).clip(lower=0)
+    # Prepend the initial equity point (before any trade) so drawdowns on the
+    # first trade are measured from the correct starting peak.
+    equity_with_start = pd.concat(
+        [pd.Series([float(initial_bankroll)]), equity],
+        ignore_index=True,
+    )
+    running_peak = equity_with_start.cummax()
+    drawdowns = ((running_peak - equity_with_start) / running_peak).clip(lower=0)
     return float(drawdowns.max())
 
 
@@ -365,15 +371,27 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
     cumulative_pnl = trades_df["cumulative_pnl"]
     outcomes = trades_df["outcome"]
 
-    # B4 fix: Read initial_bankroll from attrs first, fall back to derivation
-    initial_bankroll = trades_df.attrs.get("initial_bankroll")
+    # Resolve initial_bankroll — single source of truth for all downstream metrics.
+    # Step 1: authoritative source — set by backtest() in results.attrs
+    initial_bankroll: float | None = trades_df.attrs.get("initial_bankroll")
+
+    # Step 2: derivation fallback — for DataFrames not produced by backtest()
+    #         bankroll[0] is the bankroll AFTER the first trade; subtracting pnl[0]
+    #         gives the bankroll BEFORE the first trade.
+    if initial_bankroll is None and "bankroll" in trades_df.columns:
+        _bk = _coerce_numeric(trades_df["bankroll"])
+        if not _bk.empty and not pnl.empty:
+            initial_bankroll = float(_bk.iloc[0] - pnl.iloc[0])
+
+    # Step 3: strict fail — a wrong initial_bankroll silently corrupts drawdown,
+    #         return_on_capital and calmar_ratio, so we surface it loudly.
     if initial_bankroll is None:
-        initial_bankroll = 10000.0
-        if "bankroll" in trades_df.columns:
-            bankroll = _coerce_numeric(trades_df["bankroll"])
-            if not bankroll.empty and not pnl.empty:
-                # Derive: bankroll_before_first_trade = bankroll[0] - pnl[0]
-                initial_bankroll = float(bankroll.iloc[0] - pnl.iloc[0])
+        raise ValueError(
+            "calculate_all_metrics requires initial_bankroll. "
+            "Either use a DataFrame produced by backtest() (which sets "
+            "attrs['initial_bankroll'] automatically), or set "
+            "trades_df.attrs['initial_bankroll'] = <value> before calling."
+        )
 
     # Compute percentage returns: pnl / bankroll_before_bet
     if "bankroll" in trades_df.columns:
@@ -415,11 +433,10 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
         else:
             metrics["roi"] = 0.0
         # return_on_capital = total_pnl / initial_bankroll (the "real" ROI)
-        ib = trades_df.attrs.get("initial_bankroll") if hasattr(trades_df, "attrs") else None
-        if ib and ib > 0:
-            metrics["return_on_capital"] = total_pnl / ib
+        if initial_bankroll > 0:
+            metrics["return_on_capital"] = total_pnl / initial_bankroll
         else:
-            metrics["return_on_capital"] = metrics["roi"]
+            metrics["return_on_capital"] = 0.0
 
         # yield_per_bet: mean of per-trade returns (mean of ratios, not ratio of means)
         if not bet_sizes.empty:
