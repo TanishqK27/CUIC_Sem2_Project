@@ -45,6 +45,57 @@ _SIGNAL_KEY_TYPOS: dict[str, str] = {
     "Reason": "reason",
 }
 
+
+def _validate_strategy_size(size: Any, game: str) -> float:
+    """Validate and return strategy size as a clean Python float.
+
+    Args:
+        size: The size value from the strategy signal dict.
+        game: Game identifier for use in error messages.
+
+    Returns:
+        Validated size cast to Python float. Always positive and finite.
+
+    Raises:
+        ValueError: If size is None, non-numeric, NaN, inf, or <= 0.
+    """
+    if size is None:
+        raise ValueError(
+            f"Strategy returned size=None for game '{game}'. "
+            f"size must be a positive finite number."
+        )
+    # Reject strings even if numeric-looking ("100") — a strategy returning a
+    # string size is always a bug, not an acceptable implicit coercion.
+    if isinstance(size, str):
+        raise ValueError(
+            f"Strategy returned non-numeric size={size!r} for game '{game}'. "
+            f"size must be a positive finite number."
+        )
+    try:
+        f = float(size)
+    except (TypeError, ValueError):
+        raise ValueError(
+            f"Strategy returned non-numeric size={size!r} for game '{game}'. "
+            f"size must be a positive finite number."
+        ) from None
+    if math.isnan(f):
+        raise ValueError(
+            f"Strategy returned size={f!r} for game '{game}'. "
+            f"size must be a positive finite number."
+        )
+    if math.isinf(f):
+        raise ValueError(
+            f"Strategy returned size={f!r} for game '{game}'. "
+            f"size must be a positive finite number."
+        )
+    if f <= 0:
+        raise ValueError(
+            f"Strategy returned size={f} which is <= 0 for game '{game}'. "
+            f"size must be a positive finite number."
+        )
+    return f
+
+
 VALID_ACTIONS = {"BUY_HOME", "BUY_AWAY", "SKIP"}
 """Actions a strategy function may return."""
 
@@ -297,20 +348,22 @@ def backtest(
         if action == "SKIP":
             continue
 
-        # Determine initial bet size from strategy signal
-        bet_size = signal.get("size", 0.0)
-
-        # B2: Guard against NaN in bet_size
-        if bet_size is None or (isinstance(bet_size, float) and math.isnan(bet_size)):
-            warnings.warn(
-                f"Strategy returned NaN/None size for game "
-                f"'{row['game']}' — skipping.",
-                stacklevel=2,
-            )
-            continue
-
-        if bet_size <= 0 and position_sizing != "kelly":
-            continue
+        # Determine initial bet size from strategy signal.
+        # For flat sizing: validate strictly — NaN/None/non-numeric/inf/<= 0 all
+        # raise ValueError, caught here, warned, and skipped cleanly.
+        # For Kelly: raw size is only used as a fallback when confidence is invalid;
+        # Kelly computes the real size below.
+        raw_size = signal.get("size")
+        if position_sizing != "kelly":
+            try:
+                bet_size = _validate_strategy_size(raw_size, row["game"])
+            except ValueError as exc:
+                warnings.warn(str(exc), stacklevel=2)
+                continue
+        else:
+            # Kelly path — placeholder; Kelly block below sets the real bet_size.
+            # raw_size is only used as Kelly fallback when confidence is invalid.
+            bet_size = 0.0
 
         # Determine odds based on action
         if action == "BUY_HOME":
@@ -337,21 +390,32 @@ def backtest(
                     kelly_fraction=kelly_fraction,
                 )
                 bet_size = round(kelly_size * bankroll, 2)
-                # B2: Guard against NaN from Kelly calculation
-                if bet_size is None or (isinstance(bet_size, float) and math.isnan(bet_size)):
+                # Guard NaN/inf from Kelly arithmetic. Legitimate 0 = no edge,
+                # handled by soft continue below.
+                if not math.isfinite(bet_size):
                     warnings.warn(
-                        f"Kelly produced NaN bet_size for game "
+                        f"Kelly produced non-finite size={bet_size!r} for game "
                         f"'{row['game']}' — skipping.",
                         stacklevel=2,
                     )
                     continue
                 if bet_size <= 0:
-                    continue
+                    continue  # No edge on this game — skip silently
             else:
+                # Confidence invalid — validate and use raw size strictly.
+                try:
+                    bet_size = _validate_strategy_size(raw_size, row["game"])
+                except ValueError as exc:
+                    warnings.warn(
+                        f"Kelly sizing enabled but confidence={confidence!r} is "
+                        f"outside (0, 1), and raw size is also invalid: {exc}",
+                        stacklevel=2,
+                    )
+                    continue
                 warnings.warn(
                     f"Kelly sizing enabled but confidence={confidence!r} is "
-                    f"outside (0, 1) — falling back to strategy's raw size "
-                    f"({bet_size}) for game '{row['game']}'.",
+                    f"outside (0, 1) — falling back to raw size={bet_size} "
+                    f"for game '{row['game']}'.",
                     stacklevel=2,
                 )
 

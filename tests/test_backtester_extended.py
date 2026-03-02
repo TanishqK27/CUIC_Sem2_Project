@@ -634,17 +634,18 @@ class TestNoneAndInfSize:
 
         assert len(results) == 0
 
-    def test_inf_size_capped_at_bankroll(self) -> None:
-        """Strategy returning size=inf should be capped at bankroll."""
-        def inf_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+    def test_inf_size_skipped_with_warning(self) -> None:
+        """Strategy returning size=inf should be skipped with a UserWarning (strict policy)."""
+        def inf_strategy(row: Any, ctx: Any = None) -> dict:
             return {"action": "BUY_HOME", "confidence": 0.5, "size": float("inf")}
-
         data = _make_input_data(n=1, home_wins=[1])
-        results = backtest(data, inf_strategy, initial_bankroll=10000.0)
-
-        assert len(results) == 1
-        # bet_size should be capped at bankroll (10000), not infinity
-        assert results.iloc[0]["bet_size"] == 10000.0
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            results = backtest(data, inf_strategy, initial_bankroll=10000.0)
+        assert len(results) == 0
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+        assert any("size" in str(uw.message).lower() for uw in user_warnings)
 
 
 # ============================================================================

@@ -619,3 +619,268 @@ class TestComparisonFixes:
         rank_values = ranked["rank"].tolist()
         assert rank_values[0] == rank_values[1] == 1
         assert rank_values[2] == 2
+
+
+# ============================================================================
+# VALIDATE_STRATEGY_SIZE — unit tests (Task 1 of nan-size-guard plan)
+# ============================================================================
+
+
+class TestValidateStrategySize:
+    """Unit tests for _validate_strategy_size helper — math audit + fuzzing."""
+
+    # --- Math audit: valid inputs return correct Python float ---
+
+    def test_valid_float_returns_exact_value(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        assert _validate_strategy_size(100.0, "game1") == 100.0
+
+    def test_valid_int_returns_float(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        result = _validate_strategy_size(50, "game1")
+        assert result == 50.0
+        assert isinstance(result, float)
+
+    def test_numpy_float64_returns_python_float(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        result = _validate_strategy_size(np.float64(200.0), "game1")
+        assert result == 200.0
+        assert isinstance(result, float)
+
+    def test_numpy_float32_valid_returns_python_float(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        result = _validate_strategy_size(np.float32(75.0), "game1")
+        assert result == pytest.approx(75.0)
+        assert isinstance(result, float)
+
+    def test_small_valid_size_accepted(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        result = _validate_strategy_size(0.01, "game1")
+        assert result == pytest.approx(0.01)
+        assert isinstance(result, float)
+
+    # --- Fuzzing: all invalid inputs must raise ValueError ---
+
+    @pytest.mark.parametrize("invalid_size", [
+        None,
+        float("nan"),
+        np.float32("nan"),
+        np.float64("nan"),
+        math.nan,
+        np.nan,
+        float("inf"),
+        float("-inf"),
+        0.0,
+        -1.0,
+        -100.0,
+        "100",
+        "nan",
+        pd.NA,
+        pd.NaT,
+        [],
+        {},
+    ])
+    def test_invalid_size_raises_value_error(self, invalid_size: object) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        with pytest.raises(ValueError):
+            _validate_strategy_size(invalid_size, "game1")
+
+    def test_error_message_contains_game_name(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        with pytest.raises(ValueError, match="my_special_game"):
+            _validate_strategy_size(float("nan"), "my_special_game")
+
+    def test_error_message_contains_size_keyword(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        with pytest.raises(ValueError, match="size"):
+            _validate_strategy_size(float("nan"), "game1")
+
+    def test_nan_error_message_contains_nan(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        with pytest.raises(ValueError, match="nan"):
+            _validate_strategy_size(float("nan"), "game1")
+
+    def test_zero_error_message_contains_zero(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        with pytest.raises(ValueError, match=r"size.*0|0.*size"):
+            _validate_strategy_size(0.0, "game1")
+
+    def test_inf_raises(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        with pytest.raises(ValueError, match="inf"):
+            _validate_strategy_size(float("inf"), "game1")
+
+    def test_negative_inf_raises(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        with pytest.raises(ValueError, match="inf"):
+            _validate_strategy_size(float("-inf"), "game1")
+
+    def test_string_raises(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        with pytest.raises(ValueError, match="non-numeric"):
+            _validate_strategy_size("100", "game1")
+
+    def test_pd_na_raises(self) -> None:
+        from cuic_quant.backtest.engine import _validate_strategy_size
+        with pytest.raises(ValueError, match="non-numeric|size"):
+            _validate_strategy_size(pd.NA, "game1")
+
+
+# ============================================================================
+# NAN SIZE STRICT — integration tests (Task 2 of nan-size-guard plan)
+# ============================================================================
+
+
+class TestNaNSizeStrict:
+    """Integration: NaN/invalid size in strategy signal handled strictly."""
+
+    def test_numpy_float32_nan_skipped_with_warning(self) -> None:
+        """np.float32('nan') must skip the trade and emit a warning."""
+        call_count = {"n": 0}
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            call_count["n"] += 1
+            if call_count["n"] == 2:
+                return {"action": "BUY_HOME", "confidence": 0.5,
+                        "size": np.float32("nan")}
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=5, home_wins=[1, 1, 1, 1, 1], odds=2.0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+
+        assert len(results) == 4  # 2nd call returns NaN size — that row is skipped
+        assert not results["bet_size"].isna().any()
+        assert not results["pnl"].isna().any()
+        assert not results["cumulative_pnl"].isna().any()
+        assert not results["bankroll"].isna().any()
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+        assert any("size" in str(uw.message).lower() for uw in user_warnings)
+
+    def test_pd_na_size_skipped_with_warning(self) -> None:
+        """pd.NA as size must skip the trade and emit a warning."""
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": pd.NA}
+
+        data = _make_input(n=3, home_wins=[1, 1, 1], odds=2.0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+        assert len(results) == 0
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+        assert any("size" in str(uw.message).lower() for uw in user_warnings)
+
+    def test_zero_size_skipped_with_warning(self) -> None:
+        """size=0.0 must emit a warning and skip (previously silent skip)."""
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 0.0}
+
+        data = _make_input(n=3, home_wins=[1, 1, 1], odds=2.0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+        assert len(results) == 0
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+        assert any("size" in str(uw.message).lower() for uw in user_warnings)
+
+    def test_negative_size_skipped_with_warning(self) -> None:
+        """Negative size must emit a warning and skip."""
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": -50.0}
+
+        data = _make_input(n=2, home_wins=[1, 1], odds=2.0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+        assert len(results) == 0
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+        assert any("size" in str(uw.message).lower() for uw in user_warnings)
+
+    def test_nan_size_does_not_corrupt_subsequent_trades(self) -> None:
+        """NaN size on row 1 must not corrupt rows 2-10 cumulative_pnl."""
+        call_count = {"n": 0}
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                return {"action": "BUY_HOME", "confidence": 0.5,
+                        "size": float("nan")}
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=10, home_wins=[1] * 10, odds=2.0)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+
+        assert len(results) == 9
+        assert results.iloc[-1]["cumulative_pnl"] == pytest.approx(900.0)
+        assert not results["cumulative_pnl"].isna().any()
+        assert not results["bankroll"].isna().any()
+
+    def test_metrics_all_finite_after_nan_skip(self) -> None:
+        """calculate_all_metrics must return all-finite values after a NaN skip."""
+        call_count = {"n": 0}
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            call_count["n"] += 1
+            if call_count["n"] == 3:
+                return {"action": "BUY_HOME", "confidence": 0.5,
+                        "size": float("nan")}
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(
+            n=10,
+            home_wins=[1, 0, 1, 1, 0, 1, 1, 0, 1, 1],
+            odds=2.0,
+        )
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+
+        assert len(results) == 9  # row 3 skipped, 9 of 10 rows trade
+        from cuic_quant.metrics import calculate_all_metrics
+        metrics = calculate_all_metrics(results)
+        for key, value in metrics.items():
+            if isinstance(value, (float, int)) and not isinstance(value, bool):
+                try:
+                    assert math.isfinite(float(value)), f"Metric '{key}' is not finite: {value}"
+                except (TypeError, ValueError):
+                    pass  # non-numeric metric values are fine
+
+    def test_inf_size_skipped_with_warning(self) -> None:
+        """float('inf') as size must emit a warning and skip."""
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": float("inf")}
+
+        data = _make_input(n=3, home_wins=[1, 1, 1], odds=2.0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+        assert len(results) == 0
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+        assert any("size" in str(uw.message).lower() for uw in user_warnings)
+
+    def test_warning_message_human_readable(self) -> None:
+        """Warning must name the game, mention 'size', be a UserWarning."""
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": float("nan")}
+
+        data = _make_input(n=1, home_wins=[1], odds=2.0)
+        data = data.copy()
+        data["game"] = ["Liverpool vs Arsenal"]
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backtest(data, strategy, initial_bankroll=10000.0)
+
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+        msg = str(user_warnings[0].message)
+        assert "Liverpool vs Arsenal" in msg
+        assert "size" in msg.lower()
