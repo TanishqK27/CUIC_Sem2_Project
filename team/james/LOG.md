@@ -15,6 +15,25 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+## 2026-03-02 — Bug Fix 3: initial_bankroll Resolution in calculate_all_metrics
+
+**Problem:** `calculate_all_metrics` had two silent corruption bugs plus a related bug in `calculate_max_drawdown`:
+
+1. **Bug 1 — Silent wrong default:** The resolution block fell back silently to `10000.0` when attrs was absent AND no bankroll column was present. Any caller with a different real bankroll got silently corrupted `max_drawdown`, `return_on_capital`, and `calmar_ratio`.
+2. **Bug 2 — Inconsistent secondary attrs read:** `return_on_capital` re-read `trades_df.attrs.get("initial_bankroll")` independently instead of using the already-resolved variable. On the derivation path (attrs absent, bankroll column present), this secondary read returned `None` and silently fell back to `metrics["roi"]` — yield-on-turnover, which is a completely different metric.
+3. **Bug 3 — Missing initial equity point in calculate_max_drawdown:** The drawdown calculation built `equity = cumulative_pnl + initial_bankroll` but `cumulative_pnl` starts at the first trade's PnL (not 0), so a drawdown on the very first trade was never captured. A 50% first-trade loss reported 0% max drawdown.
+
+**Fix:** Single centralized resolution block with strict 3-step logic (attrs → `bankroll[0] - pnl[0]` derivation → raise `ValueError`). `return_on_capital` now uses the resolved variable. `calculate_max_drawdown` prepends `initial_bankroll` as the initial equity point before computing `cummax()`. Added zero/negative bankroll guards at the resolution block, derivation step, and `calculate_max_drawdown` public boundary.
+
+**Files changed:**
+- `src/cuic_quant/metrics/__init__.py` — resolution block rewrite, `return_on_capital` fix, `calculate_max_drawdown` fix, zero-bankroll guards
+- `tests/test_audit_fixes.py` — `TestInitialBankrollResolution` (14 tests)
+
+**Tests:** 304/304 passing (14 new tests added).
+**Commits:** 16a997a (tests TDD), 5824d63 (quality fixes), 5e4a191 (implementation), 0faf74b (zero-bankroll guards), 5cf613d (direct max_drawdown test)
+
+---
+
 ## 2026-03-02 — Bug Fix 2: Per-Row BaseException Guard
 
 **Problem:** If any code inside the main backtest loop raised an unhandled exception, the
