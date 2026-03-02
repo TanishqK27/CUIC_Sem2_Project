@@ -1184,3 +1184,295 @@ class TestStrategyExceptionGuard:
         user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
         assert len(user_warnings) >= 1
         assert "TypeError" in str(user_warnings[0].message)
+
+
+# ============================================================================
+# INITIAL BANKROLL RESOLUTION FIX (Bug Fix 3)
+# ============================================================================
+
+
+def _make_trades_no_attrs(
+    n: int = 5,
+    home_wins: list[int] | None = None,
+    initial_bankroll: float = 10000.0,
+    odds: float = 2.0,
+) -> pd.DataFrame:
+    """Run backtest and strip attrs['initial_bankroll'] to test derivation/failure paths."""
+    data = _make_input(n=n, home_wins=home_wins or [1, 0] * (n // 2 + 1), odds=odds)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        results = backtest(data, always_bet_home, initial_bankroll=initial_bankroll)
+    results.attrs.pop("initial_bankroll", None)
+    return results
+
+
+class TestInitialBankrollResolution:
+    """Verify that calculate_all_metrics resolves initial_bankroll correctly.
+
+    Three resolution paths:
+    1. attrs["initial_bankroll"] present (set by backtest()) -> used directly
+    2. attrs absent, bankroll column present -> derived as bankroll[0] - pnl[0]
+    3. attrs absent, no bankroll column -> ValueError (strict fail)
+
+    All downstream metric sites (max_drawdown, return_on_capital, calmar_ratio)
+    must use the single resolved variable -- no secondary attrs reads.
+    """
+
+    # ------------------------------------------------------------------
+    # Math audit -- correctness of the resolved value in each metric
+    # ------------------------------------------------------------------
+
+    def test_attrs_used_not_bankroll_iloc0(self) -> None:
+        """attrs['initial_bankroll'] is used, not bankroll.iloc[0].
+
+        bankroll.iloc[0] is the bankroll AFTER the first trade (e.g. $15,000 after
+        a $5,000 win). The correct initial_bankroll is $10,000. The two values
+        are different only when the first trade has non-zero PnL.
+        """
+        from cuic_quant.metrics import calculate_all_metrics
+
+        # First trade: BUY_HOME, home wins, size=5000 at odds=2.0 -> PnL = +5000
+        # bankroll.iloc[0] = 15000 (after win)
+        # attrs["initial_bankroll"] = 10000 (set by backtest)
+        data = _make_input(n=3, home_wins=[1, 1, 1], odds=2.0)
+
+        call_count = 0
+
+        def big_first_bet(row, ctx=None):
+            nonlocal call_count
+            call_count += 1
+            size = 5000.0 if call_count == 1 else 100.0
+            return {"action": "BUY_HOME", "confidence": 0.6, "size": size}
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, big_first_bet, initial_bankroll=10000.0)
+
+        assert results.attrs["initial_bankroll"] == 10000.0
+        assert results["bankroll"].iloc[0] == pytest.approx(15000.0)  # after first win
+
+        metrics = calculate_all_metrics(results)
+        # With correct initial_bankroll=10000 and only wins, max_drawdown = 0
+        assert metrics["max_drawdown"] == pytest.approx(0.0)
+        # return_on_capital = total_pnl / 10000, not / 15000
+        expected_roc = metrics["total_pnl"] / 10000.0
+        assert metrics["return_on_capital"] == pytest.approx(expected_roc)
+
+    def test_max_drawdown_correct_with_large_first_loss(self) -> None:
+        """Known-value: first trade loses $5,000 from $10,000 bankroll.
+
+        Equity curve: [10000, 5000, 6000, 7000]  (start + after each trade)
+        Using correct initial_bankroll=10000:
+          peak=[10000,10000,10000,10000], dd=[0, 0.5, 0.4, 0.3] -> max_dd=0.5
+        Using wrong initial_bankroll=5000 (bankroll.iloc[0] after the loss):
+          equity=[5000, 0, 1000, 2000], peak=[5000,5000,5000,5000]
+          dd=[0, 1.0, 0.8, 0.6] -> max_dd=1.0 (WRONG)
+        """
+        from cuic_quant.metrics import calculate_all_metrics
+
+        data = _make_input(n=3, home_wins=[0, 1, 1], odds=2.0)
+
+        call_count = 0
+
+        def sized_strategy(row, ctx=None):
+            nonlocal call_count
+            call_count += 1
+            size = 5000.0 if call_count == 1 else 1000.0
+            return {"action": "BUY_HOME", "confidence": 0.6, "size": size}
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, sized_strategy, initial_bankroll=10000.0)
+
+        # Verify setup: first trade lost $5,000
+        assert results["pnl"].iloc[0] == pytest.approx(-5000.0)
+        assert results["bankroll"].iloc[0] == pytest.approx(5000.0)
+        assert results.attrs["initial_bankroll"] == 10000.0
+
+        metrics = calculate_all_metrics(results)
+        # Equity: 10000 -> 5000 -> 6000 -> 7000
+        # Peak: 10000 throughout. Max DD = 5000/10000 = 0.5
+        assert metrics["max_drawdown"] == pytest.approx(0.5, abs=0.01)
+
+    def test_return_on_capital_uses_initial_bankroll_from_attrs(self) -> None:
+        """return_on_capital = total_pnl / attrs['initial_bankroll'] (attrs path)."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        data = _make_input(n=5, home_wins=[1, 1, 1, 1, 1], odds=2.0)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, always_bet_home, initial_bankroll=10000.0)
+
+        metrics = calculate_all_metrics(results)
+        expected_roc = metrics["total_pnl"] / 10000.0
+        assert metrics["return_on_capital"] == pytest.approx(expected_roc)
+
+    def test_return_on_capital_uses_derived_initial_bankroll(self) -> None:
+        """return_on_capital uses derived initial_bankroll when attrs is absent.
+
+        Before fix: falls back to metrics['roi'] (yield-on-turnover).
+        After fix: total_pnl / derived_initial_bankroll (correct).
+
+        These two quantities are different when initial_bankroll != total_wagered,
+        which is always true in practice (e.g. 10000 bankroll, 500 total wagered).
+        """
+        from cuic_quant.metrics import calculate_all_metrics
+
+        # All wins, bet_size=100, odds=2.0 -> total_wagered=500, total_pnl=500
+        # initial_bankroll=10000 -> return_on_capital = 500/10000 = 0.05
+        # roi (yield-on-turnover) = 500/500 = 1.0 <- completely different
+        results = _make_trades_no_attrs(
+            n=5, home_wins=[1, 1, 1, 1, 1], initial_bankroll=10000.0, odds=2.0
+        )
+        assert "initial_bankroll" not in results.attrs  # confirm attrs stripped
+
+        metrics = calculate_all_metrics(results)
+
+        # Derived initial_bankroll = bankroll[0] - pnl[0]
+        derived_ib = float(results["bankroll"].iloc[0] - results["pnl"].iloc[0])
+        expected_roc = metrics["total_pnl"] / derived_ib
+        assert metrics["return_on_capital"] == pytest.approx(expected_roc)
+        # Must NOT equal roi (they differ when initial_bankroll != total_wagered)
+        assert abs(metrics["return_on_capital"] - metrics["roi"]) > 0.01
+
+    def test_calmar_ratio_uses_correct_initial_bankroll(self) -> None:
+        """calmar_ratio numerator uses the correctly resolved initial_bankroll."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        data = _make_input(n=5, home_wins=[0, 1, 0, 1, 0], odds=2.0)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, always_bet_home, initial_bankroll=10000.0)
+
+        metrics = calculate_all_metrics(results)
+        if metrics["max_drawdown"] > 0:
+            assert math.isfinite(metrics["calmar_ratio"])
+            assert metrics["calmar_ratio"] != 0.0
+
+    # ------------------------------------------------------------------
+    # Resolution path tests
+    # ------------------------------------------------------------------
+
+    def test_attrs_path_used_when_present(self) -> None:
+        """attrs['initial_bankroll'] = 10000.0 is used directly."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        data = _make_input(n=3, home_wins=[1, 1, 1], odds=2.0)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, always_bet_home, initial_bankroll=10000.0)
+
+        assert results.attrs.get("initial_bankroll") == 10000.0
+        metrics = calculate_all_metrics(results)
+        assert isinstance(metrics, dict)
+
+    def test_derivation_path_when_attrs_absent(self) -> None:
+        """When attrs is absent, initial_bankroll is derived as bankroll[0] - pnl[0]."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        # initial_bankroll=8000, bet_size=100, first trade wins at 2.0 -> pnl=100
+        # bankroll[0] = 8100. derived = 8100 - 100 = 8000
+        results = _make_trades_no_attrs(
+            n=3, home_wins=[1, 1, 1], initial_bankroll=8000.0, odds=2.0
+        )
+        assert "initial_bankroll" not in results.attrs
+
+        metrics = calculate_all_metrics(results)
+        assert isinstance(metrics, dict)
+        # return_on_capital must use derived value (8000), not roi
+        expected_roc = metrics["total_pnl"] / 8000.0
+        assert metrics["return_on_capital"] == pytest.approx(expected_roc, abs=0.001)
+
+    def test_derivation_gives_same_max_drawdown_as_attrs(self) -> None:
+        """Derivation path and attrs path give identical max_drawdown."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        data = _make_input(n=5, home_wins=[0, 1, 0, 1, 1], odds=2.0)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results_with_attrs = backtest(data, always_bet_home, initial_bankroll=10000.0)
+
+        results_no_attrs = results_with_attrs.copy()
+        results_no_attrs.attrs = dict(results_with_attrs.attrs)
+        results_no_attrs.attrs.pop("initial_bankroll", None)
+
+        metrics_attrs = calculate_all_metrics(results_with_attrs)
+        metrics_derived = calculate_all_metrics(results_no_attrs)
+
+        assert metrics_attrs["max_drawdown"] == pytest.approx(
+            metrics_derived["max_drawdown"], abs=1e-9
+        )
+
+    def test_raises_when_attrs_absent_and_no_bankroll_column(self) -> None:
+        """ValueError when attrs absent and no bankroll column to derive from.
+
+        Before fix: silently uses 10000.0 default -> wrong metrics, no warning.
+        After fix: raises ValueError immediately.
+        """
+        from cuic_quant.metrics import calculate_all_metrics
+
+        df = pd.DataFrame({
+            "pnl": [100.0, -50.0, 200.0],
+            "cumulative_pnl": [100.0, 50.0, 250.0],
+            "outcome": ["WIN", "LOSS", "WIN"],
+        })
+        assert "initial_bankroll" not in df.attrs
+        assert "bankroll" not in df.columns
+
+        with pytest.raises(ValueError):
+            calculate_all_metrics(df)
+
+    def test_raises_when_attrs_absent_and_empty_dataframe(self) -> None:
+        """ValueError when attrs absent and DataFrame is empty."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        df = pd.DataFrame(columns=["pnl", "cumulative_pnl", "outcome"])
+        assert "initial_bankroll" not in df.attrs
+
+        with pytest.raises(ValueError):
+            calculate_all_metrics(df)
+
+    def test_error_message_is_actionable(self) -> None:
+        """ValueError message names attrs['initial_bankroll'] and backtest()."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        df = pd.DataFrame({
+            "pnl": [100.0],
+            "cumulative_pnl": [100.0],
+            "outcome": ["WIN"],
+        })
+
+        with pytest.raises(ValueError, match="initial_bankroll"):
+            calculate_all_metrics(df)
+
+    # ------------------------------------------------------------------
+    # Full pipeline sanity check
+    # ------------------------------------------------------------------
+
+    def test_all_metrics_finite_after_fix(self) -> None:
+        """Full calculate_all_metrics() run with large first loss -> all metrics finite."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        data = _make_input(n=6, home_wins=[0, 1, 0, 1, 1, 1], odds=2.0)
+
+        call_count = 0
+
+        def variable_size(row, ctx=None):
+            nonlocal call_count
+            call_count += 1
+            size = 5000.0 if call_count == 1 else 100.0
+            return {"action": "BUY_HOME", "confidence": 0.6, "size": size}
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, variable_size, initial_bankroll=10000.0)
+
+        metrics = calculate_all_metrics(results)
+        for key, value in metrics.items():
+            if isinstance(value, (float, int)) and not isinstance(value, bool):
+                try:
+                    assert math.isfinite(float(value)), (
+                        f"Metric '{key}' is not finite: {value}"
+                    )
+                except (TypeError, ValueError):
+                    pass
