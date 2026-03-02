@@ -898,9 +898,10 @@ class TestStrategyExceptionGuard:
     isolated. Previously computed trades are always returned.
 
     B3 (the inner guard) handles Exception from strategy_fn specifically.
-    The outer guard handles everything else: BaseException subclasses that
-    are NOT Exception (e.g. KeyboardInterrupt, SystemExit, MemoryError),
-    and any crash inside our own loop code (odds parsing, PnL calculation, etc.).
+    The outer guard handles non-fatal BaseException subclasses (e.g. MemoryError,
+    GeneratorExit) by warning and skipping the row. KeyboardInterrupt and SystemExit
+    are re-raised after emitting a "partial results" warning — they must never be
+    swallowed. B3 handles Exception subclasses from strategy_fn with a specific message.
     """
 
     # ------------------------------------------------------------------
@@ -919,13 +920,11 @@ class TestStrategyExceptionGuard:
             return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
 
         data = _make_input(n=4, home_wins=[1, 1, 1, 1])
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             results = backtest(data, strategy, initial_bankroll=10000.0)
 
         assert len(results) == 3  # row 2 skipped, 3 of 4 rows trade
-        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
-        assert len(user_warnings) >= 1
 
     def test_exception_in_strategy_no_corruption(self) -> None:
         """RuntimeError on row 2 → cumulative_pnl and bankroll unaffected by skip."""
@@ -963,7 +962,6 @@ class TestStrategyExceptionGuard:
             return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
 
         data = _make_input(n=2, home_wins=[1, 1])
-        data = data.copy()
         data["game"] = ["ManCity vs Arsenal", "Chelsea vs Spurs"]
 
         with warnings.catch_warnings(record=True) as w:
@@ -1013,6 +1011,8 @@ class TestStrategyExceptionGuard:
             results = backtest(data, strategy, initial_bankroll=10000.0)
 
         assert len(results) == 5  # 6 rows − 1 crashed = 5 trades
+        # 5 winning trades of 100 each at default odds=2.0 → cumulative_pnl = 500
+        assert results["cumulative_pnl"].iloc[-1] == pytest.approx(500.0)
 
     # ------------------------------------------------------------------
     # BaseException tests — outer guard (NOT B3)
@@ -1096,8 +1096,10 @@ class TestStrategyExceptionGuard:
                 backtest(data, strategy, initial_bankroll=10000.0)
 
         user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
-        # Must warn before re-raising.
+        # Must warn before re-raising, and warning must name partial results.
         assert len(user_warnings) >= 1
+        msg = str(user_warnings[-1].message).lower()
+        assert "partial" in msg or "completed" in msg
 
     # ------------------------------------------------------------------
     # Statistical integrity
@@ -1122,6 +1124,8 @@ class TestStrategyExceptionGuard:
         assert len(results) == 9  # row 5 skipped
         for col in ("pnl", "cumulative_pnl", "bankroll"):
             assert results[col].notna().all(), f"NaN found in '{col}'"
+        # 9 winning trades of 100 each at odds=2.0 → cumulative_pnl = 900
+        assert results["cumulative_pnl"].iloc[-1] == pytest.approx(900.0)
 
     def test_all_metrics_finite_after_exception_skip(self) -> None:
         """calculate_all_metrics() on backtest with mid-run crash → all metrics finite."""
