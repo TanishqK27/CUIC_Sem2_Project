@@ -142,6 +142,11 @@ def calculate_max_drawdown(
     if curve.empty:
         return 0.0
 
+    if initial_bankroll <= 0:
+        raise ValueError(
+            f"initial_bankroll must be positive, got {initial_bankroll!r}."
+        )
+
     equity = curve + initial_bankroll
     # Prepend the initial equity point (before any trade) so drawdowns on the
     # first trade are measured from the correct starting peak.
@@ -382,6 +387,11 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
         _bk = _coerce_numeric(trades_df["bankroll"])
         if not _bk.empty and not pnl.empty:
             initial_bankroll = float(_bk.iloc[0] - pnl.iloc[0])
+            if initial_bankroll <= 0:
+                raise ValueError(
+                    f"Derived initial_bankroll ({initial_bankroll!r}) is not positive. "
+                    "The bankroll column value at row 0 minus pnl at row 0 must be > 0."
+                )
 
     # Step 3: strict fail — a wrong initial_bankroll silently corrupts drawdown,
     #         return_on_capital and calmar_ratio, so we surface it loudly.
@@ -391,6 +401,12 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
             "Either use a DataFrame produced by backtest() (which sets "
             "attrs['initial_bankroll'] automatically), or set "
             "trades_df.attrs['initial_bankroll'] = <value> before calling."
+        )
+    if initial_bankroll <= 0:
+        raise ValueError(
+            f"initial_bankroll must be positive, got {initial_bankroll!r}. "
+            "A zero or negative starting bankroll makes drawdown and "
+            "return_on_capital undefined."
         )
 
     # Compute percentage returns: pnl / bankroll_before_bet

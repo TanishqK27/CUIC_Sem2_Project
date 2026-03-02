@@ -1206,6 +1206,20 @@ def _make_trades_no_attrs(
     return results
 
 
+def _run_backtest(
+    n: int = 5,
+    home_wins: list[int] | None = None,
+    initial_bankroll: float = 10000.0,
+    odds: float = 2.0,
+) -> pd.DataFrame:
+    """Run backtest and return results with attrs['initial_bankroll'] intact."""
+    data = _make_input(n=n, home_wins=home_wins or [1, 0] * (n // 2 + 1), odds=odds)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        results = backtest(data, always_bet_home, initial_bankroll=initial_bankroll)
+    return results
+
+
 class TestInitialBankrollResolution:
     """Verify that calculate_all_metrics resolves initial_bankroll correctly.
 
@@ -1485,3 +1499,12 @@ class TestInitialBankrollResolution:
         for key, value in metrics.items():
             if isinstance(value, (int, float)):
                 assert math.isfinite(value), f"metrics['{key}'] = {value} is not finite"
+
+    def test_raises_when_initial_bankroll_is_zero(self):
+        """Zero initial_bankroll in attrs raises ValueError before corrupting metrics."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        results = _run_backtest()
+        results.attrs["initial_bankroll"] = 0.0
+        with pytest.raises(ValueError, match="positive"):
+            calculate_all_metrics(results)
