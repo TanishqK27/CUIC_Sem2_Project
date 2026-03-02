@@ -234,244 +234,260 @@ def backtest(
         if bankroll <= 0:
             break
 
-        # Skip rows with NaN or invalid odds (decimal odds must be > 1.0)
         try:
-            home_odds_val = float(row["home_odds"])
-            away_odds_val = float(row["away_odds"])
-        except (TypeError, ValueError):
-            warnings.warn(
-                f"Non-numeric odds for game '{row['game']}' — skipping.",
-                stacklevel=2,
-            )
-            continue
-
-        if math.isnan(home_odds_val) or math.isnan(away_odds_val):
-            continue
-        if home_odds_val <= 1.0 or away_odds_val <= 1.0:
-            continue
-
-        # Skip rows with NaN or non-binary home_win
-        home_win_val = row["home_win"]
-        if pd.isna(home_win_val):
-            warnings.warn(
-                f"NaN home_win for game '{row['game']}' — skipping row.",
-                stacklevel=2,
-            )
-            continue
-        try:
-            home_win_int = int(home_win_val)
-        except (TypeError, ValueError):
-            warnings.warn(
-                f"Non-numeric home_win={home_win_val!r} for game "
-                f"'{row['game']}' — skipping row.",
-                stacklevel=2,
-            )
-            continue
-        if home_win_int not in (0, 1):
-            warnings.warn(
-                f"home_win={home_win_int} for game '{row['game']}' is not "
-                f"0 or 1 — skipping row.",
-                stacklevel=2,
-            )
-            continue
-
-        # Update context for strategy — deep copies to prevent mutation
-        context: dict[str, Any] = {
-            "initial_bankroll": initial_bankroll,
-            "bankroll": bankroll,
-            "trade_count": len(trades),
-            "cumulative_pnl": cumulative_pnl,
-            "history": [dict(t) for t in trades],  # U3: deep copy of past trades
-            "past_games": None,  # U3: set below
-        }
-
-        # U3: past_games is a copy with home_win DROPPED to prevent leakage
-        past_games_raw = data.loc[:row_idx].iloc[:-1]
-        _past_drop = ["home_win"]
-        if _has_closing_home:
-            _past_drop.append("closing_home_odds")
-        if _has_closing_away:
-            _past_drop.append("closing_away_odds")
-        context["past_games"] = past_games_raw.drop(columns=_past_drop, errors="ignore").copy()
-
-        # Remove outcome and closing odds to prevent data leakage
-        # Closing odds are post-hoc evaluation data — strategies should only
-        # see opening odds available at decision time.
-        _drop_labels = ["home_win"]
-        if _has_closing_home:
-            _drop_labels.append("closing_home_odds")
-        if _has_closing_away:
-            _drop_labels.append("closing_away_odds")
-        strategy_row = row.drop(labels=_drop_labels)
-
-        # B3: Catch strategy exceptions to preserve prior trades
-        try:
-            signal = strategy_fn(strategy_row, context)
-        except Exception as exc:
-            warnings.warn(
-                f"Strategy raised {type(exc).__name__} for game "
-                f"'{row['game']}': {exc} — skipping row.",
-                stacklevel=2,
-            )
-            continue
-
-        # Guard against strategy returning non-dict (None, str, int, list)
-        if not isinstance(signal, dict):
-            warnings.warn(
-                f"Strategy returned {type(signal).__name__} instead of dict "
-                f"for game '{row['game']}' — skipping row.",
-                stacklevel=2,
-            )
-            continue
-
-        # U2: Warn on common signal key misspellings
-        for typo, correct in _SIGNAL_KEY_TYPOS.items():
-            if typo in signal and correct not in signal:
+            # Skip rows with NaN or invalid odds (decimal odds must be > 1.0)
+            try:
+                home_odds_val = float(row["home_odds"])
+                away_odds_val = float(row["away_odds"])
+            except (TypeError, ValueError):
                 warnings.warn(
-                    f"Strategy returned '{typo}' instead of '{correct}' "
-                    f"(case/name-sensitive) for game '{row['game']}' — "
-                    f"key ignored. Use '{correct}'.",
+                    f"Non-numeric odds for game '{row['game']}' — skipping.",
                     stacklevel=2,
                 )
-
-        if "action" not in signal:
-            warnings.warn(
-                f"Strategy returned no 'action' key for game "
-                f"'{row['game']}' — treating as SKIP. "
-                f"Got keys: {list(signal.keys())}",
-                stacklevel=2,
-            )
-            continue
-
-        action = signal.get("action", "SKIP")
-
-        if action == "SKIP":
-            continue
-
-        # Determine initial bet size from strategy signal.
-        # For flat sizing: validate strictly — NaN/None/non-numeric/inf/<= 0 all
-        # raise ValueError, caught here, warned, and skipped cleanly.
-        # For Kelly: raw size is only used as a fallback when confidence is invalid;
-        # Kelly computes the real size below.
-        raw_size = signal.get("size")
-        if position_sizing != "kelly":
-            try:
-                bet_size = _validate_strategy_size(raw_size, row["game"])
-            except ValueError as exc:
-                warnings.warn(str(exc), stacklevel=2)
                 continue
-        else:
-            # Kelly path — placeholder; Kelly block below sets the real bet_size.
-            # raw_size is only used as Kelly fallback when confidence is invalid.
-            bet_size = 0.0
 
-        # Determine odds based on action
-        if action == "BUY_HOME":
-            odds = home_odds_val
-            won = home_win_int == 1
-        elif action == "BUY_AWAY":
-            odds = away_odds_val
-            won = home_win_int == 0
-        else:
-            warnings.warn(
-                f"Unrecognized action '{action}' from strategy for game "
-                f"'{row['game']}' — skipping. Valid actions: {VALID_ACTIONS}",
-                stacklevel=2,
-            )
-            continue
+            if math.isnan(home_odds_val) or math.isnan(away_odds_val):
+                continue
+            if home_odds_val <= 1.0 or away_odds_val <= 1.0:
+                continue
 
-        # Apply Kelly position sizing if enabled
-        confidence = signal.get("confidence")
-        if position_sizing == "kelly":
-            if confidence is not None and 0 < confidence < 1:
-                kelly_size = _calc_kelly(
-                    win_probability=confidence,
-                    decimal_odds=odds,
-                    kelly_fraction=kelly_fraction,
+            # Skip rows with NaN or non-binary home_win
+            home_win_val = row["home_win"]
+            if pd.isna(home_win_val):
+                warnings.warn(
+                    f"NaN home_win for game '{row['game']}' — skipping row.",
+                    stacklevel=2,
                 )
-                bet_size = round(kelly_size * bankroll, 2)
-                # Guard NaN/inf from Kelly arithmetic. Legitimate 0 = no edge,
-                # handled by soft continue below.
-                if not math.isfinite(bet_size):
+                continue
+            try:
+                home_win_int = int(home_win_val)
+            except (TypeError, ValueError):
+                warnings.warn(
+                    f"Non-numeric home_win={home_win_val!r} for game "
+                    f"'{row['game']}' — skipping row.",
+                    stacklevel=2,
+                )
+                continue
+            if home_win_int not in (0, 1):
+                warnings.warn(
+                    f"home_win={home_win_int} for game '{row['game']}' is not "
+                    f"0 or 1 — skipping row.",
+                    stacklevel=2,
+                )
+                continue
+
+            # Update context for strategy — deep copies to prevent mutation
+            context: dict[str, Any] = {
+                "initial_bankroll": initial_bankroll,
+                "bankroll": bankroll,
+                "trade_count": len(trades),
+                "cumulative_pnl": cumulative_pnl,
+                "history": [dict(t) for t in trades],  # U3: deep copy of past trades
+                "past_games": None,  # U3: set below
+            }
+
+            # U3: past_games is a copy with home_win DROPPED to prevent leakage
+            past_games_raw = data.loc[:row_idx].iloc[:-1]
+            _past_drop = ["home_win"]
+            if _has_closing_home:
+                _past_drop.append("closing_home_odds")
+            if _has_closing_away:
+                _past_drop.append("closing_away_odds")
+            context["past_games"] = past_games_raw.drop(columns=_past_drop, errors="ignore").copy()
+
+            # Remove outcome and closing odds to prevent data leakage
+            # Closing odds are post-hoc evaluation data — strategies should only
+            # see opening odds available at decision time.
+            _drop_labels = ["home_win"]
+            if _has_closing_home:
+                _drop_labels.append("closing_home_odds")
+            if _has_closing_away:
+                _drop_labels.append("closing_away_odds")
+            strategy_row = row.drop(labels=_drop_labels)
+
+            # B3: Catch strategy exceptions to preserve prior trades
+            try:
+                signal = strategy_fn(strategy_row, context)
+            except Exception as exc:
+                warnings.warn(
+                    f"Strategy raised {type(exc).__name__} for game "
+                    f"'{row['game']}': {exc} — skipping row.",
+                    stacklevel=2,
+                )
+                continue
+
+            # Guard against strategy returning non-dict (None, str, int, list)
+            if not isinstance(signal, dict):
+                warnings.warn(
+                    f"Strategy returned {type(signal).__name__} instead of dict "
+                    f"for game '{row['game']}' — skipping row.",
+                    stacklevel=2,
+                )
+                continue
+
+            # U2: Warn on common signal key misspellings
+            for typo, correct in _SIGNAL_KEY_TYPOS.items():
+                if typo in signal and correct not in signal:
                     warnings.warn(
-                        f"Kelly produced non-finite size={bet_size!r} for game "
-                        f"'{row['game']}' — skipping.",
+                        f"Strategy returned '{typo}' instead of '{correct}' "
+                        f"(case/name-sensitive) for game '{row['game']}' — "
+                        f"key ignored. Use '{correct}'.",
                         stacklevel=2,
                     )
-                    continue
-                if bet_size <= 0:
-                    continue  # No edge on this game — skip silently
-            else:
-                # Confidence invalid — validate and use raw size strictly.
+
+            if "action" not in signal:
+                warnings.warn(
+                    f"Strategy returned no 'action' key for game "
+                    f"'{row['game']}' — treating as SKIP. "
+                    f"Got keys: {list(signal.keys())}",
+                    stacklevel=2,
+                )
+                continue
+
+            action = signal.get("action", "SKIP")
+
+            if action == "SKIP":
+                continue
+
+            # Determine initial bet size from strategy signal.
+            # For flat sizing: validate strictly — NaN/None/non-numeric/inf/<= 0 all
+            # raise ValueError, caught here, warned, and skipped cleanly.
+            # For Kelly: raw size is only used as a fallback when confidence is invalid;
+            # Kelly computes the real size below.
+            raw_size = signal.get("size")
+            if position_sizing != "kelly":
                 try:
                     bet_size = _validate_strategy_size(raw_size, row["game"])
                 except ValueError as exc:
-                    warnings.warn(
-                        f"Kelly sizing enabled but confidence={confidence!r} is "
-                        f"outside (0, 1), and raw size is also invalid: {exc}",
-                        stacklevel=2,
-                    )
+                    warnings.warn(str(exc), stacklevel=2)
                     continue
+            else:
+                # Kelly path — placeholder; Kelly block below sets the real bet_size.
+                # raw_size is only used as Kelly fallback when confidence is invalid.
+                bet_size = 0.0
+
+            # Determine odds based on action
+            if action == "BUY_HOME":
+                odds = home_odds_val
+                won = home_win_int == 1
+            elif action == "BUY_AWAY":
+                odds = away_odds_val
+                won = home_win_int == 0
+            else:
                 warnings.warn(
-                    f"Kelly sizing enabled but confidence={confidence!r} is "
-                    f"outside (0, 1) — falling back to raw size={bet_size} "
-                    f"for game '{row['game']}'.",
+                    f"Unrecognized action '{action}' from strategy for game "
+                    f"'{row['game']}' — skipping. Valid actions: {VALID_ACTIONS}",
                     stacklevel=2,
                 )
+                continue
 
-        # Cap bet at bankroll minus flat fee to prevent negative bankroll
-        bet_size = min(bet_size, max(0.0, bankroll - cost_flat))
-        if bet_size <= 0:
-            continue
-
-        # Calculate P&L (round immediately so stored and accumulated values match)
-        if won:
-            pnl = round(bet_size * (odds - 1) * (1 - cost_pct) - cost_flat, 2)
-            outcome = "WIN"
-        else:
-            pnl = round(-bet_size - cost_flat, 2)
-            outcome = "LOSS"
-
-        cumulative_pnl += pnl
-        bankroll += pnl
-
-        # M2: Resolve closing odds for the side we bet on
-        closing_odds_val = float("nan")
-        if action == "BUY_HOME" and _has_closing_home:
-            val = row.get("closing_home_odds")
-            if pd.notna(val):
-                closing_odds_val = float(val)
-        elif action == "BUY_AWAY" and _has_closing_away:
-            val = row.get("closing_away_odds")
-            if pd.notna(val):
-                closing_odds_val = float(val)
-
-        # M4: Store confidence directly in output, clamped to [0, 1]
-        stored_confidence = float("nan")
-        if confidence is not None:
-            try:
-                conf_val = float(confidence)
-                if math.isnan(conf_val):
-                    stored_confidence = float("nan")
+            # Apply Kelly position sizing if enabled
+            confidence = signal.get("confidence")
+            if position_sizing == "kelly":
+                if confidence is not None and 0 < confidence < 1:
+                    kelly_size = _calc_kelly(
+                        win_probability=confidence,
+                        decimal_odds=odds,
+                        kelly_fraction=kelly_fraction,
+                    )
+                    bet_size = round(kelly_size * bankroll, 2)
+                    # Guard NaN/inf from Kelly arithmetic. Legitimate 0 = no edge,
+                    # handled by soft continue below.
+                    if not math.isfinite(bet_size):
+                        warnings.warn(
+                            f"Kelly produced non-finite size={bet_size!r} for game "
+                            f"'{row['game']}' — skipping.",
+                            stacklevel=2,
+                        )
+                        continue
+                    if bet_size <= 0:
+                        continue  # No edge on this game — skip silently
                 else:
-                    # Clamp to [0, 1] to prevent downstream Brier/LogLoss corruption
-                    stored_confidence = max(0.0, min(1.0, conf_val))
-            except (TypeError, ValueError):
-                stored_confidence = float("nan")
+                    # Confidence invalid — validate and use raw size strictly.
+                    try:
+                        bet_size = _validate_strategy_size(raw_size, row["game"])
+                    except ValueError as exc:
+                        warnings.warn(
+                            f"Kelly sizing enabled but confidence={confidence!r} is "
+                            f"outside (0, 1), and raw size is also invalid: {exc}",
+                            stacklevel=2,
+                        )
+                        continue
+                    warnings.warn(
+                        f"Kelly sizing enabled but confidence={confidence!r} is "
+                        f"outside (0, 1) — falling back to raw size={bet_size} "
+                        f"for game '{row['game']}'.",
+                        stacklevel=2,
+                    )
 
-        trades.append({
-            "timestamp": row["timestamp"],
-            "game": row["game"],
-            "action": action,
-            "bet_size": round(bet_size, 2),
-            "odds": odds,
-            "outcome": outcome,
-            "pnl": pnl,
-            "cumulative_pnl": round(cumulative_pnl, 2),
-            "bankroll": round(bankroll, 2),
-            "confidence": stored_confidence,
-            "closing_odds": closing_odds_val,
-        })
+            # Cap bet at bankroll minus flat fee to prevent negative bankroll
+            bet_size = min(bet_size, max(0.0, bankroll - cost_flat))
+            if bet_size <= 0:
+                continue
+
+            # Calculate P&L (round immediately so stored and accumulated values match)
+            if won:
+                pnl = round(bet_size * (odds - 1) * (1 - cost_pct) - cost_flat, 2)
+                outcome = "WIN"
+            else:
+                pnl = round(-bet_size - cost_flat, 2)
+                outcome = "LOSS"
+
+            cumulative_pnl += pnl
+            bankroll += pnl
+
+            # M2: Resolve closing odds for the side we bet on
+            closing_odds_val = float("nan")
+            if action == "BUY_HOME" and _has_closing_home:
+                val = row.get("closing_home_odds")
+                if pd.notna(val):
+                    closing_odds_val = float(val)
+            elif action == "BUY_AWAY" and _has_closing_away:
+                val = row.get("closing_away_odds")
+                if pd.notna(val):
+                    closing_odds_val = float(val)
+
+            # M4: Store confidence directly in output, clamped to [0, 1]
+            stored_confidence = float("nan")
+            if confidence is not None:
+                try:
+                    conf_val = float(confidence)
+                    if math.isnan(conf_val):
+                        stored_confidence = float("nan")
+                    else:
+                        # Clamp to [0, 1] to prevent downstream Brier/LogLoss corruption
+                        stored_confidence = max(0.0, min(1.0, conf_val))
+                except (TypeError, ValueError):
+                    stored_confidence = float("nan")
+
+            trades.append({
+                "timestamp": row["timestamp"],
+                "game": row["game"],
+                "action": action,
+                "bet_size": round(bet_size, 2),
+                "odds": odds,
+                "outcome": outcome,
+                "pnl": pnl,
+                "cumulative_pnl": round(cumulative_pnl, 2),
+                "bankroll": round(bankroll, 2),
+                "confidence": stored_confidence,
+                "closing_odds": closing_odds_val,
+            })
+
+        except (KeyboardInterrupt, SystemExit):
+            warnings.warn(
+                f"Backtest interrupted after {len(trades)} completed trades — "
+                f"partial results returned.",
+                stacklevel=2,
+            )
+            raise
+        except BaseException as exc:
+            warnings.warn(
+                f"Unexpected {type(exc).__name__} processing game "
+                f"'{row.get('game', f'row {row_idx}')}': {exc} — skipping row.",
+                stacklevel=2,
+            )
+            continue
 
     # Return DataFrame with correct columns even if empty
     if not trades:
