@@ -15,6 +15,59 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+## 2026-03-02 — Bug Fix 2: Per-Row BaseException Guard
+
+**Problem:** If any code inside the main backtest loop raised an unhandled exception, the
+entire backtest crashed. All previously computed trades were lost. The existing B3 guard
+(`except Exception`) only protects against `Exception` from `strategy_fn` — it does not
+catch `BaseException` subclasses like `KeyboardInterrupt`, `SystemExit`, or `MemoryError`,
+and does not protect against crashes in our own loop code (odds parsing, context building,
+PnL calculation).
+
+**Fix:** Wrapped the entire loop body (engine.py lines 237–490) in `try/except BaseException`.
+`KeyboardInterrupt` and `SystemExit` are re-raised after emitting a "partial results" warning
+so callers receive whatever trades completed. All other `BaseException` subclasses emit a
+warning and `continue` to the next row. B3 stays nested inside as the inner guard — unchanged,
+fires first for strategy-specific exceptions.
+
+**Files changed:**
+- `src/cuic_quant/backtest/engine.py` — outer per-row guard added (3 new lines + re-indent)
+- `tests/test_audit_fixes.py` — `TestStrategyExceptionGuard` (12 tests)
+
+**Tests:** 291/291 passing (12 new tests added).
+**Commits:** 21ce3c5 (tests failing), 0f26d52 (quality fixes), 3340571 (implementation)
+
+---
+
+### Mar 2, 2026
+
+**Bug Fix: Strict NaN/Invalid Size Guard in Backtest Engine — 279 Tests Passing**
+
+Fixed a silent corruption bug in the backtester where invalid values in a strategy's `size` field could propagate undetected through the entire backtest run, corrupting every subsequent trade's PnL, cumulative_pnl, and bankroll.
+
+**The Bug:**
+The existing B2 guard used `isinstance(bet_size, float) and math.isnan(bet_size)`, which correctly caught Python `float('nan')` but silently passed: `np.float32('nan')` (not a subclass of `float`), `pd.NA` (caused a `TypeError: boolean value of NA is ambiguous` crash at the `<= 0` comparison), `float('inf')`, non-numeric types (strings, objects), zero, and negative sizes. Since `NaN <= 0` evaluates to `False` in Python, NaN values propagated through `min()` into PnL and all downstream calculations with no warning.
+
+**The Fix:**
+Added `_validate_strategy_size(size, game) -> float` — a private helper that runs a strict 5-step pipeline: `None` check → `float()` conversion with `try/except` (catches strings, `pd.NA`, objects, `np.float32`) → `math.isnan` → `math.isinf` → `<= 0`. Every invalid input raises `ValueError` with a descriptive message including the game name. The Kelly path was upgraded from the old `isinstance` check to `math.isfinite()`, which catches both NaN and infinity in one call. The Kelly confidence-invalid fallback now also validates the raw size through the helper rather than silently falling back to `bet_size=0.0`.
+
+**5 Subagent Dimensions Covered:**
+- **Math audit:** `_validate_strategy_size` unit tests verify exact return values and Python float type for `np.float64`, `np.float32`, `int` inputs
+- **Engine fuzzing:** 17-case parametrized test covering `None`, `float('nan')`, `np.float32('nan')`, `np.float64('nan')`, `math.nan`, `np.nan`, `float('inf')`, `float('-inf')`, `0.0`, `-1.0`, `-100.0`, `"100"`, `"nan"`, `pd.NA`, `pd.NaT`, `[]`, `{}`
+- **Statistical validation:** 10-row all-win backtest with NaN skip on row 1 — verified `cumulative_pnl` on final row equals exactly 900.0 (9 trades × $100 × (2.0−1))
+- **Metrics analysis:** `calculate_all_metrics()` after mid-run NaN skip — all metrics confirmed finite
+- **Usability testing:** Warning message verified to contain the game name and the word "size", emitted as `UserWarning`
+
+**Files Changed:**
+- `src/cuic_quant/backtest/engine.py` — added `_validate_strategy_size()`, replaced 2 call sites
+- `tests/test_audit_fixes.py` — added `TestValidateStrategySize` (30 tests) and `TestNaNSizeStrict` (8 tests)
+- `tests/test_backtester_extended.py` — updated `test_inf_size_capped_at_bankroll` → `test_inf_size_skipped_with_warning` to match new strict policy
+- `tests/test_strategies.py` — fixed `test_vig_calculation` expected value precision
+
+**Result:** 279/279 tests passing. Commit: `350fe1d`
+
+---
+
 ### Feb 26, 2026 (Part 2)
 
 **10-Agent Comprehensive Audit — All Bugs Fixed, 200 Tests Passing**
