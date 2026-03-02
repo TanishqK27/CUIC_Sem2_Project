@@ -884,3 +884,299 @@ class TestNaNSizeStrict:
         msg = str(user_warnings[0].message)
         assert "Liverpool vs Arsenal" in msg
         assert "size" in msg.lower()
+
+
+# ============================================================================
+# PER-ROW BASEEXCEPTION GUARD (Bug Fix 2)
+# ============================================================================
+
+
+class TestStrategyExceptionGuard:
+    """Verify the outer per-row BaseException guard introduced in Bug Fix 2.
+
+    The outer guard wraps the entire loop body so any crash on any row is
+    isolated. Previously computed trades are always returned.
+
+    B3 (the inner guard) handles Exception from strategy_fn specifically.
+    The outer guard handles everything else: BaseException subclasses that
+    are NOT Exception (e.g. KeyboardInterrupt, SystemExit, MemoryError),
+    and any crash inside our own loop code (odds parsing, PnL calculation, etc.).
+    """
+
+    # ------------------------------------------------------------------
+    # Behaviour tests — exception in strategy skips row, preserves trades
+    # ------------------------------------------------------------------
+
+    def test_exception_in_strategy_skips_row(self) -> None:
+        """RuntimeError on row 2 → warning emitted, row skipped, others complete."""
+        call_count = 0
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 2:
+                raise RuntimeError("strategy crash on row 2")
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=4, home_wins=[1, 1, 1, 1])
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+
+        assert len(results) == 3  # row 2 skipped, 3 of 4 rows trade
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+
+    def test_exception_in_strategy_no_corruption(self) -> None:
+        """RuntimeError on row 2 → cumulative_pnl and bankroll unaffected by skip."""
+        call_count = 0
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 2:
+                raise RuntimeError("crash")
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        # All rows win at 2.0 odds → each trade earns 100.0
+        data = _make_input(n=4, home_wins=[1, 1, 1, 1], odds=2.0)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+
+        # 3 winning trades of 100 each → cumulative_pnl = 300
+        assert results["cumulative_pnl"].iloc[-1] == pytest.approx(300.0)
+        assert results["bankroll"].iloc[-1] == pytest.approx(10300.0)
+        # No NaN in any numeric column
+        for col in ("pnl", "cumulative_pnl", "bankroll"):
+            assert results[col].notna().all(), f"NaN found in column '{col}'"
+
+    def test_exception_message_contains_game_and_type(self) -> None:
+        """Warning contains game name and the exception class name."""
+        call_count = 0
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise ValueError("test error")
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=2, home_wins=[1, 1])
+        data = data.copy()
+        data["game"] = ["ManCity vs Arsenal", "Chelsea vs Spurs"]
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backtest(data, strategy, initial_bankroll=10000.0)
+
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+        msg = str(user_warnings[0].message)
+        assert "ManCity vs Arsenal" in msg
+        assert "ValueError" in msg
+
+    def test_multiple_exceptions_skip_multiple_rows(self) -> None:
+        """Rows 2, 4 raise RuntimeError → rows 1, 3, 5 complete (3 trades)."""
+        call_count = 0
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            nonlocal call_count
+            call_count += 1
+            if call_count in (2, 4):
+                raise RuntimeError(f"crash on call {call_count}")
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=5, home_wins=[1, 1, 1, 1, 1])
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+
+        assert len(results) == 3
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 2
+
+    def test_exception_after_valid_trades_preserves_history(self) -> None:
+        """3 good trades, then crash, then 2 more good trades → 5 total trades."""
+        call_count = 0
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 4:
+                raise RuntimeError("mid-run crash")
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=6, home_wins=[1, 1, 1, 1, 1, 1])
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+
+        assert len(results) == 5  # 6 rows − 1 crashed = 5 trades
+
+    # ------------------------------------------------------------------
+    # BaseException tests — outer guard (NOT B3)
+    # ------------------------------------------------------------------
+
+    def test_base_exception_in_row_processing_skips_row(self) -> None:
+        """Strategy raising BaseException (not Exception) is caught by outer guard.
+
+        BaseException is NOT caught by B3's `except Exception`. Before the fix,
+        this crashes the entire backtest. After the fix, the row is skipped with
+        a warning and the remaining rows complete normally.
+        """
+        call_count = 0
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 2:
+                # BaseException is not caught by B3's `except Exception`.
+                # It escapes B3 and must be caught by the outer guard.
+                raise BaseException("direct base exception — not an Exception subclass")
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=4, home_wins=[1, 1, 1, 1])
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            # Before fix: raises BaseException, crashing the entire backtest.
+            # After fix: row 2 skipped, 3 trades returned.
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+
+        assert len(results) == 3  # row 2 skipped
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+        assert any("BaseException" in str(uw.message) for uw in user_warnings)
+
+    def test_keyboard_interrupt_reraises_with_partial_results(self) -> None:
+        """KeyboardInterrupt is re-raised after emitting a 'partial results' warning.
+
+        Before fix: KeyboardInterrupt propagates silently, no warning.
+        After fix: Warning emitted with 'partial' / 'completed', then re-raised.
+        The warning is the signal to callers that partial results are available.
+        """
+        call_count = 0
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 3:
+                raise KeyboardInterrupt()
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=5, home_wins=[1, 1, 1, 1, 1])
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            # Must re-raise: KeyboardInterrupt must not be swallowed.
+            with pytest.raises(KeyboardInterrupt):
+                backtest(data, strategy, initial_bankroll=10000.0)
+
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        # Must emit a warning about partial results BEFORE re-raising.
+        # Before fix: no warning → assertion fails.
+        assert len(user_warnings) >= 1
+        msg = str(user_warnings[-1].message).lower()
+        assert "partial" in msg or "completed" in msg
+
+    def test_system_exit_reraises(self) -> None:
+        """SystemExit is re-raised (not swallowed) after emitting a warning."""
+        call_count = 0
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 2:
+                raise SystemExit(1)
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=4, home_wins=[1, 1, 1, 1])
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            with pytest.raises(SystemExit):
+                backtest(data, strategy, initial_bankroll=10000.0)
+
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        # Must warn before re-raising.
+        assert len(user_warnings) >= 1
+
+    # ------------------------------------------------------------------
+    # Statistical integrity
+    # ------------------------------------------------------------------
+
+    def test_exception_skip_no_nan_in_results(self) -> None:
+        """10-row backtest with exception on row 5 → no NaN in output columns."""
+        call_count = 0
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 5:
+                raise RuntimeError("mid-run crash")
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=10, home_wins=[1] * 10, odds=2.0)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+
+        assert len(results) == 9  # row 5 skipped
+        for col in ("pnl", "cumulative_pnl", "bankroll"):
+            assert results[col].notna().all(), f"NaN found in '{col}'"
+
+    def test_all_metrics_finite_after_exception_skip(self) -> None:
+        """calculate_all_metrics() on backtest with mid-run crash → all metrics finite."""
+        call_count = 0
+
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 5:
+                raise RuntimeError("crash")
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        data = _make_input(n=10, home_wins=[1, 0] * 5, odds=2.0)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            results = backtest(data, strategy, initial_bankroll=10000.0)
+
+        assert len(results) == 9
+        from cuic_quant.metrics import calculate_all_metrics
+        metrics = calculate_all_metrics(results)
+        for key, value in metrics.items():
+            if isinstance(value, (float, int)) and not isinstance(value, bool):
+                try:
+                    assert math.isfinite(float(value)), (
+                        f"Metric '{key}' is not finite: {value}"
+                    )
+                except (TypeError, ValueError):
+                    pass  # non-numeric metric values are fine
+
+    # ------------------------------------------------------------------
+    # Warning usability
+    # ------------------------------------------------------------------
+
+    def test_exception_warning_is_user_warning(self) -> None:
+        """Warning is a UserWarning — catchable with standard warnings.catch_warnings."""
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            raise RuntimeError("test")
+
+        data = _make_input(n=1, home_wins=[1])
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backtest(data, strategy, initial_bankroll=10000.0)
+
+        assert any(issubclass(x.category, UserWarning) for x in w)
+
+    def test_exception_warning_contains_exception_type(self) -> None:
+        """Warning string contains the exception class name."""
+        def strategy(row: pd.Series, ctx: dict | None = None) -> dict:
+            raise TypeError("wrong type")
+
+        data = _make_input(n=1, home_wins=[1])
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backtest(data, strategy, initial_bankroll=10000.0)
+
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) >= 1
+        assert "TypeError" in str(user_warnings[0].message)
