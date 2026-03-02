@@ -1508,3 +1508,11 @@ class TestInitialBankrollResolution:
         results.attrs["initial_bankroll"] = 0.0
         with pytest.raises(ValueError, match="positive"):
             calculate_all_metrics(results)
+
+    def test_calculate_max_drawdown_raises_on_zero_bankroll(self):
+        """calculate_max_drawdown raises directly when called with initial_bankroll=0."""
+        from cuic_quant.metrics import calculate_max_drawdown
+        import pandas as pd
+
+        with pytest.raises(ValueError, match="positive"):
+            calculate_max_drawdown(pd.Series([100.0, 200.0]), initial_bankroll=0.0)
