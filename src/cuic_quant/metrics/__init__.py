@@ -41,17 +41,22 @@ def _compute_periods_per_year(trades_df: pd.DataFrame) -> float:
 
     time_span_days = (timestamps.max() - timestamps.min()).total_seconds() / 86400.0
     if time_span_days <= 0:
+        warnings.warn(
+            "All bets share the same timestamp — using periods_per_year=365 "
+            "(assumes 1 bet/day).",
+            stacklevel=3,
+        )
         return 365.0
 
     n_bets = len(timestamps)
-    bets_per_year = n_bets / (time_span_days / 365.25)
+    bets_per_year = (n_bets - 1) / (time_span_days / 365.25)
     return bets_per_year
 
 
 def calculate_sharpe_ratio(
     returns: pd.Series,
     risk_free_rate: float = 0.0,
-    periods_per_year: float = 252.0,
+    periods_per_year: float = 365.0,
 ) -> float:
     """Calculate annualized Sharpe ratio from period returns.
 
