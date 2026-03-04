@@ -225,6 +225,14 @@ def backtest(
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
 
+    # B1: Guard against unsorted data — past_games relies on index ordering
+    ts = pd.to_datetime(data["timestamp"], errors="coerce")
+    if not ts.is_monotonic_increasing:
+        raise ValueError(
+            "Input data must be sorted by timestamp (ascending). "
+            "Use load_backtest_data() or sort before calling backtest()."
+        )
+
     # Pre-import Kelly if needed (avoid importing inside the loop)
     _calc_kelly = None
     if position_sizing == "kelly":

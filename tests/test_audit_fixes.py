@@ -2550,3 +2550,26 @@ class TestMetricsKnownValues:
         assert abs(clv - expected) < 1e-10, (
             f"CLV = {clv}, expected {expected}"
         )
+
+
+# ---------------------------------------------------------------------------
+# B1: past_games timing leak — unsorted data guard
+# ---------------------------------------------------------------------------
+
+
+class TestPastGamesTimingLeak:
+    """B1: backtest() must reject unsorted input data."""
+
+    def test_unsorted_data_raises(self) -> None:
+        """Passing data with non-chronological timestamps must raise ValueError."""
+        data = _make_input(n=5, home_wins=[1, 0, 1, 0, 1])
+        # Reverse the timestamps so they are NOT monotonically increasing
+        data["timestamp"] = data["timestamp"].iloc[::-1].values
+        with pytest.raises(ValueError, match="sorted by timestamp"):
+            backtest(data, always_bet_home)
+
+    def test_sorted_data_works(self) -> None:
+        """Sorted data should pass the guard without error."""
+        data = _make_input(n=5, home_wins=[1, 0, 1, 0, 1])
+        results = backtest(data, always_bet_home)
+        assert len(results) == 5
