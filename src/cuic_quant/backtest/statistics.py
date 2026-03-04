@@ -373,7 +373,7 @@ def deflated_sharpe_ratio(
 
     # Standard error of the Sharpe ratio — full formula from Bailey & LdP (2014)
     # SE(SR) = sqrt( (1 - skew*SR + (kurtosis-1)/4 * SR^2) / (n-1) )
-    # Where kurtosis is standard kurtosis (3 for Gaussian)
+    # where kurtosis is raw kurtosis (3 for Gaussian), matching the paper's gamma_4.
     sr2 = observed_sharpe ** 2
     radicand = (1 - skewness * observed_sharpe + ((kurtosis - 1) / 4) * sr2) / max(n_observations - 1, 1)
     if radicand <= 0:

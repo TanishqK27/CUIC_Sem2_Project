@@ -92,7 +92,7 @@ def calculate_sharpe_ratio(
     rf_per_period = risk_free_rate / periods_per_year
     excess_returns = clean_returns - rf_per_period
     std_return = float(excess_returns.std(ddof=1))
-    if math.isnan(std_return) or math.isclose(std_return, 0.0):
+    if math.isnan(std_return) or std_return < 1e-12:
         return 0.0
 
     mean_return = float(excess_returns.mean())
@@ -132,7 +132,7 @@ def calculate_sortino_ratio(
     downside_returns = excess_returns.clip(upper=0.0)
     downside_deviation = float(math.sqrt((downside_returns**2).mean()))
 
-    if math.isclose(downside_deviation, 0.0):
+    if downside_deviation < 1e-12:
         return 0.0
 
     mean_excess = float(excess_returns.mean())
@@ -382,7 +382,7 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
     Returns:
         Dict with total_trades, win_rate, total_pnl, sharpe_ratio,
         sortino_ratio, max_drawdown, profit_factor, plus additional metrics
-        (roi, yield_per_bet, avg_odds, total_wagered, calmar_ratio,
+        (yield_on_turnover, yield_per_bet, avg_odds, total_wagered, calmar_ratio,
         bet_frequency) when the relevant columns are available.
     """
     required_columns = ["pnl", "cumulative_pnl", "outcome"]
@@ -462,10 +462,10 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
         total_wagered = float(bet_sizes.sum()) if not bet_sizes.empty else 0.0
         metrics["total_wagered"] = total_wagered
         if total_wagered > 0:
-            # "roi" = yield-on-turnover (total_pnl / total_wagered)
-            metrics["roi"] = total_pnl / total_wagered
+            # yield_on_turnover = total_pnl / total_wagered
+            metrics["yield_on_turnover"] = total_pnl / total_wagered
         else:
-            metrics["roi"] = 0.0
+            metrics["yield_on_turnover"] = 0.0
         # return_on_capital = total_pnl / initial_bankroll (the "real" ROI)
         if initial_bankroll > 0:
             metrics["return_on_capital"] = total_pnl / initial_bankroll

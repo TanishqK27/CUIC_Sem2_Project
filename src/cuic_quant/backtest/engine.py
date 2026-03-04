@@ -399,7 +399,12 @@ def backtest(
                         kelly_fraction=kelly_fraction,
                         max_fraction=1.0,  # let kelly_fraction be the sole throttle
                     )
-                    bet_size = round(kelly_size * bankroll, 2)
+                    # Use effective bankroll (bankroll minus flat fee) so Kelly
+                    # sizing is optimal given the per-trade fee.  Without this,
+                    # Kelly computes size on the full bankroll and cost_flat is
+                    # only subtracted later, making the bet larger than optimal.
+                    effective_bankroll = max(0.0, bankroll - cost_flat)
+                    bet_size = round(kelly_size * effective_bankroll, 2)
                     # Guard NaN/inf from Kelly arithmetic. Legitimate 0 = no edge,
                     # handled by soft continue below.
                     if not math.isfinite(bet_size):
@@ -435,6 +440,11 @@ def backtest(
                 continue
 
             # Calculate P&L (round immediately so stored and accumulated values match)
+            # Cost model: "commission on net winnings" — this is the standard
+            # sports-betting model where cost_pct (e.g. bookmaker vig) is charged
+            # only on the NET PROFIT of winning bets, not on losses.  Losing bets
+            # forfeit the full stake; no percentage commission applies.
+            # cost_flat is a per-trade fee charged regardless of outcome.
             if won:
                 pnl = round(bet_size * (odds - 1) * (1 - cost_pct) - cost_flat, 2)
                 outcome = "WIN"
@@ -442,10 +452,10 @@ def backtest(
                 pnl = round(-bet_size - cost_flat, 2)
                 outcome = "LOSS"
 
+            # Accumulate at full float precision — only round for output
             cumulative_pnl += pnl
-            bankroll += pnl
-            # B3: Clamp to zero — rounding can produce -0.01
-            bankroll = max(bankroll, 0.0)
+            # Derive bankroll from initial + cumulative to avoid drift
+            bankroll = max(initial_bankroll + cumulative_pnl, 0.0)
 
             # M2: Resolve closing odds for the side we bet on
             closing_odds_val = float("nan")

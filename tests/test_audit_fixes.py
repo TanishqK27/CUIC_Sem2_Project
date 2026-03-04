@@ -1331,7 +1331,7 @@ class TestInitialBankrollResolution:
     def test_return_on_capital_uses_derived_initial_bankroll(self) -> None:
         """return_on_capital uses derived initial_bankroll when attrs is absent.
 
-        Before fix: falls back to metrics['roi'] (yield-on-turnover).
+        Before fix: falls back to metrics['yield_on_turnover'] (yield-on-turnover).
         After fix: total_pnl / derived_initial_bankroll (correct).
 
         These two quantities are different when initial_bankroll != total_wagered,
@@ -1341,7 +1341,7 @@ class TestInitialBankrollResolution:
 
         # All wins, bet_size=100, odds=2.0 -> total_wagered=500, total_pnl=500
         # initial_bankroll=10000 -> return_on_capital = 500/10000 = 0.05
-        # roi (yield-on-turnover) = 500/500 = 1.0 <- completely different
+        # yield_on_turnover = 500/500 = 1.0 <- completely different
         results = _make_trades_no_attrs(
             n=5, home_wins=[1, 1, 1, 1, 1], initial_bankroll=10000.0, odds=2.0
         )
@@ -1353,8 +1353,8 @@ class TestInitialBankrollResolution:
         derived_ib = float(results["bankroll"].iloc[0] - results["pnl"].iloc[0])
         expected_roc = metrics["total_pnl"] / derived_ib
         assert metrics["return_on_capital"] == pytest.approx(expected_roc)
-        # Must NOT equal roi (they differ when initial_bankroll != total_wagered)
-        assert abs(metrics["return_on_capital"] - metrics["roi"]) > 0.01
+        # Must NOT equal yield_on_turnover (they differ when initial_bankroll != total_wagered)
+        assert abs(metrics["return_on_capital"] - metrics["yield_on_turnover"]) > 0.01
 
     def test_calmar_ratio_uses_correct_initial_bankroll(self) -> None:
         """Calmar ratio uses the correctly resolved initial_bankroll, not bankroll.iloc[0]."""
@@ -1407,7 +1407,7 @@ class TestInitialBankrollResolution:
 
         metrics = calculate_all_metrics(results)
         assert isinstance(metrics, dict)
-        # return_on_capital must use derived value (8000), not roi
+        # return_on_capital must use derived value (8000), not yield_on_turnover
         expected_roc = metrics["total_pnl"] / 8000.0
         assert metrics["return_on_capital"] == pytest.approx(expected_roc, abs=0.001)
 
@@ -2441,10 +2441,10 @@ class TestMetricsKnownValues:
         )
         return calculate_all_metrics(df)
 
-    def test_roi_known_value(self) -> None:
-        """ROI = sum(pnl) / sum(bet_size) = 50/500 = 0.10."""
+    def test_yield_on_turnover_known_value(self) -> None:
+        """yield_on_turnover = sum(pnl) / sum(bet_size) = 50/500 = 0.10."""
         m = self._get_metrics()
-        assert abs(m["roi"] - 0.10) < 1e-10, f"ROI = {m['roi']}, expected 0.10"
+        assert abs(m["yield_on_turnover"] - 0.10) < 1e-10, f"yield_on_turnover = {m['yield_on_turnover']}, expected 0.10"
 
     def test_yield_per_bet(self) -> None:
         """yield = mean(pnl/bet_size) = mean([0.20,-0.10,0.30,-0.05,0.15]) = 0.10."""
@@ -2907,3 +2907,343 @@ class TestHalfLifeConstantPrices:
 
         result = calculate_half_life([1.0] * 20)
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# engine: cost_pct NOT applied to losing trades (commission-on-winnings model)
+# ---------------------------------------------------------------------------
+
+class TestCostPctNotAppliedToLosses:
+    """cost_pct models commission on net winnings — it must NOT reduce losses.
+
+    In sports betting, bookmaker commission (vig) is charged on winning
+    payouts only.  A losing bet forfeits the full stake with no percentage
+    adjustment.  This test locks in that behaviour.
+    """
+
+    def test_loss_pnl_ignores_cost_pct(self) -> None:
+        """A losing bet's PnL should be -bet_size - cost_flat, regardless of cost_pct."""
+        import pandas as pd
+        from cuic_quant.backtest.engine import backtest
+
+        data = pd.DataFrame([{
+            "timestamp": "2024-01-01",
+            "game": "A vs B",
+            "home_team": "A",
+            "away_team": "B",
+            "home_odds": 2.0,
+            "away_odds": 2.0,
+            "home_win": 0,  # home loses -> BUY_HOME is a LOSS
+        }])
+
+        def always_home(row, ctx):
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0, "reason": "test"}
+
+        # Run with a meaningful cost_pct but zero cost_flat
+        result = backtest(data, always_home, initial_bankroll=10000.0,
+                          cost_pct=0.10, cost_flat=0.0)
+
+        assert len(result) == 1
+        trade = result.iloc[0]
+        assert trade["outcome"] == "LOSS"
+        # Loss PnL must be exactly -bet_size (no cost_pct applied)
+        assert trade["pnl"] == -100.0
+
+    def test_win_pnl_does_apply_cost_pct(self) -> None:
+        """Sanity check: cost_pct IS deducted from winning payouts."""
+        import pandas as pd
+        from cuic_quant.backtest.engine import backtest
+
+        data = pd.DataFrame([{
+            "timestamp": "2024-01-01",
+            "game": "A vs B",
+            "home_team": "A",
+            "away_team": "B",
+            "home_odds": 3.0,
+            "away_odds": 2.0,
+            "home_win": 1,  # home wins
+        }])
+
+        def always_home(row, ctx):
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0, "reason": "test"}
+
+        result = backtest(data, always_home, initial_bankroll=10000.0,
+                          cost_pct=0.10, cost_flat=0.0)
+
+        assert len(result) == 1
+        trade = result.iloc[0]
+        assert trade["outcome"] == "WIN"
+        # WIN pnl = bet_size * (odds - 1) * (1 - cost_pct) = 100 * 2 * 0.9 = 180.0
+        assert trade["pnl"] == 180.0
+
+
+# ---------------------------------------------------------------------------
+# engine: Kelly sizing uses effective bankroll (bankroll - cost_flat)
+# ---------------------------------------------------------------------------
+
+class TestKellyUsesEffectiveBankroll:
+    """Kelly must size bets against (bankroll - cost_flat), not full bankroll.
+
+    Without this, the flat fee is only subtracted after Kelly has already
+    over-allocated, producing a bet that is larger than optimal.
+    """
+
+    def test_kelly_bet_size_accounts_for_cost_flat(self) -> None:
+        """bet_size should equal kelly_fraction_value * (bankroll - cost_flat)."""
+        import pandas as pd
+        from cuic_quant.backtest.engine import backtest
+        from cuic_quant.strategies.kelly_criterion import (
+            calculate_kelly_fraction as calc_kelly,
+        )
+
+        odds = 2.5
+        confidence = 0.55
+        bankroll = 10000.0
+        cost_flat = 50.0
+        kelly_frac = 0.5
+
+        data = pd.DataFrame([{
+            "timestamp": "2024-01-01",
+            "game": "A vs B",
+            "home_team": "A",
+            "away_team": "B",
+            "home_odds": odds,
+            "away_odds": 2.0,
+            "home_win": 1,
+        }])
+
+        def strat(row, ctx):
+            return {"action": "BUY_HOME", "confidence": confidence,
+                    "size": 100.0, "reason": "test"}
+
+        result = backtest(data, strat, initial_bankroll=bankroll,
+                          cost_flat=cost_flat, position_sizing="kelly",
+                          kelly_fraction=kelly_frac)
+
+        assert len(result) == 1
+        trade = result.iloc[0]
+
+        kelly_size = calc_kelly(
+            win_probability=confidence,
+            decimal_odds=odds,
+            kelly_fraction=kelly_frac,
+            max_fraction=1.0,
+        )
+        effective_bankroll = bankroll - cost_flat
+        expected_bet = round(kelly_size * effective_bankroll, 2)
+
+        assert trade["bet_size"] == expected_bet, (
+            f"Kelly should size against effective_bankroll={effective_bankroll}, "
+            f"expected bet_size={expected_bet}, got {trade['bet_size']}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Engine: cumulative_pnl precision — no rounding drift over many trades
+# ---------------------------------------------------------------------------
+
+
+class TestCumulativePnlPrecision:
+    """cumulative_pnl must not accumulate rounding error over many trades.
+
+    The engine stores cumulative_pnl at full float precision internally and
+    only rounds when writing the output trade dict.  This test verifies that
+    the final cumulative_pnl equals the exact sum of individual pnl values
+    (i.e. no per-iteration rounding drift).
+    """
+
+    def test_no_rounding_drift_over_many_trades(self) -> None:
+        """Over 2000 small trades, cumulative_pnl must equal sum(pnl) exactly."""
+        n = 2000
+        # Alternate win/loss so we get many small fractional PnL values.
+        # Odds of 1.33 produce pnl = 10 * 0.33 = 3.30 (win) or -10 (loss).
+        # The 0.33... repeating factor is specifically chosen to create values
+        # that would drift if rounded every iteration.
+        home_wins = [1, 0] * (n // 2)
+        data = _make_input(n=n, home_wins=home_wins, odds=1.33)
+
+        def small_bet_strategy(row, ctx=None):
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 10.0, "reason": "test"}
+
+        result = backtest(data, small_bet_strategy)
+        assert len(result) == n
+
+        # The output cumulative_pnl (rounded to 2dp) must exactly equal the
+        # cumulative sum of the individual rounded pnl values.
+        expected_cumulative = result["pnl"].cumsum().round(2)
+        actual_cumulative = result["cumulative_pnl"]
+
+        # Check every single row, not just the last
+        pd.testing.assert_series_equal(
+            actual_cumulative.reset_index(drop=True),
+            expected_cumulative.reset_index(drop=True),
+            check_names=False,
+            atol=0.0,  # exact match — no tolerance
+        )
+
+    def test_bankroll_equals_initial_plus_cumulative_pnl(self) -> None:
+        """bankroll must equal initial_bankroll + cumulative_pnl (no drift)."""
+        n = 1500
+        home_wins = [1, 0, 1, 1, 0] * (n // 5)
+        data = _make_input(n=n, home_wins=home_wins[:n], odds=1.77)
+
+        def strategy(row, ctx=None):
+            return {"action": "BUY_HOME", "confidence": 0.5, "size": 7.0, "reason": "test"}
+
+        initial = 10000.0
+        result = backtest(data, strategy, initial_bankroll=initial)
+        assert len(result) == n
+
+        # bankroll column should equal initial_bankroll + cumulative_pnl
+        expected_bankroll = (initial + result["cumulative_pnl"]).round(2)
+        pd.testing.assert_series_equal(
+            result["bankroll"].reset_index(drop=True),
+            expected_bankroll.reset_index(drop=True),
+            check_names=False,
+            atol=0.0,
+        )
+
+
+# ---------------------------------------------------------------------------
+# CPCV purging: train group sandwiched between two test groups keeps valid rows
+# ---------------------------------------------------------------------------
+
+class TestCPCVPurgingSplitSlices:
+    """Verify that the CPCV purging logic correctly retains valid portions
+    of a train group that is adjacent to test groups on both sides.
+
+    Regression test for a bug where a single (purge_start, purge_end)
+    interval was used — when both sides were trimmed the interval could
+    become empty even though valid rows existed.
+    """
+
+    @staticmethod
+    def _simple_strategy(row, context=None):
+        """Minimal strategy for CPCV tests."""
+        return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
+
+    def test_sandwiched_train_group_not_silently_dropped(self) -> None:
+        """Train group between two test groups retains rows with moderate purge_gap."""
+        from cuic_quant.backtest.walk_forward.strategies import combinatorial_purged_cv
+
+        # 100 rows, 5 splits -> groups of 20 rows each.
+        # With test={1, 3}, train group 2 (rows 40-60) sits between the
+        # two test groups. purge_gap=5 should remove 5 rows on each side,
+        # leaving rows 45-55 (10 rows) in training for group 2.
+        data = _make_wf_data(100)
+        results = combinatorial_purged_cv(
+            data,
+            self._simple_strategy,
+            n_splits=5,
+            n_test_splits=2,
+            purge_gap=5,
+        )
+
+        # Find the split where test groups are {1, 3}
+        target_split = None
+        for s in results["splits"]:
+            if set(s["test_groups"]) == {1, 3}:
+                target_split = s
+                break
+
+        assert target_split is not None, "Could not find split with test_groups={1,3}"
+        train_data = target_split["train_data"]
+
+        # Train groups are 0 (0-20), 2 (40-60), 4 (80-100).
+        # Group 0: purge_gap trims end -> rows 0-15 (15 rows)
+        # Group 2: purge_gap trims both sides -> rows 45-55 (10 rows)
+        # Group 4: purge_gap trims start -> rows 85-100 (15 rows)
+        # Total expected: 15 + 10 + 15 = 40
+        assert len(train_data) == 40, (
+            f"Expected 40 training rows, got {len(train_data)}. "
+            "Sandwiched train group may have been silently dropped."
+        )
+
+    def test_no_purge_gap_keeps_all_non_test_rows(self) -> None:
+        """With purge_gap=0 every non-test row must appear in training."""
+        from cuic_quant.backtest.walk_forward.strategies import combinatorial_purged_cv
+
+        n_rows = 50
+        data = _make_wf_data(n_rows)
+        results = combinatorial_purged_cv(
+            data,
+            self._simple_strategy,
+            n_splits=5,
+            n_test_splits=2,
+            purge_gap=0,
+        )
+
+        group_size = n_rows // 5  # 10
+        for s in results["splits"]:
+            test_groups = set(s["test_groups"])
+            expected_train_rows = sum(
+                (group_size if g < 4 else n_rows - 4 * group_size)
+                for g in range(5) if g not in test_groups
+            )
+            actual = len(s["train_data"])
+            assert actual == expected_train_rows, (
+                f"Fold {s['fold']}: expected {expected_train_rows} train rows, "
+                f"got {actual} (test_groups={s['test_groups']})"
+            )
+
+    def test_train_data_contains_rows_from_both_sides_of_test(self) -> None:
+        """Training data for a sandwiched group includes rows from BOTH sides
+        of the purge zone (before test start and after test end)."""
+        from cuic_quant.backtest.walk_forward.strategies import combinatorial_purged_cv
+
+        # 100 rows, 5 splits (groups of 20), test={1,3}, purge_gap=5
+        data = _make_wf_data(100)
+        # Tag each row with its original index so we can verify which rows
+        # ended up in training.
+        data = data.copy()
+        data["_orig_idx"] = range(len(data))
+
+        results = combinatorial_purged_cv(
+            data,
+            self._simple_strategy,
+            n_splits=5,
+            n_test_splits=2,
+            purge_gap=5,
+        )
+
+        target_split = None
+        for s in results["splits"]:
+            if set(s["test_groups"]) == {1, 3}:
+                target_split = s
+                break
+
+        assert target_split is not None
+        train_indices = set(target_split["train_data"]["_orig_idx"].tolist())
+
+        # Group 0 rows before purge: indices 0-14 (rows 0 up to 20-5=15)
+        for i in range(15):
+            assert i in train_indices, f"Row {i} (group 0, before purge) missing"
+
+        # Group 2 sandwiched: indices 45-54 (after test 1 purge, before test 3 purge)
+        for i in range(45, 55):
+            assert i in train_indices, (
+                f"Row {i} (group 2, sandwiched valid region) missing -- "
+                "purging may have dropped the entire group"
+            )
+
+        # Group 4 rows after purge: indices 85-99
+        for i in range(85, 100):
+            assert i in train_indices, f"Row {i} (group 4, after purge) missing"
+
+        # Purged rows must NOT appear
+        for i in range(15, 20):
+            assert i not in train_indices, (
+                f"Row {i} should be purged (near test 1 start)"
+            )
+        for i in range(40, 45):
+            assert i not in train_indices, (
+                f"Row {i} should be purged (near test 1 end)"
+            )
+        for i in range(55, 60):
+            assert i not in train_indices, (
+                f"Row {i} should be purged (near test 3 start)"
+            )
+        for i in range(80, 85):
+            assert i not in train_indices, (
+                f"Row {i} should be purged (near test 3 end)"
+            )

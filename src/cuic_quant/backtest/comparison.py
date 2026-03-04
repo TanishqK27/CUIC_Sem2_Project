@@ -72,7 +72,7 @@ def compare_strategies(
                     "total_trades": 0,
                     "win_rate": 0.0,
                     "total_pnl": 0.0,
-                    "roi": 0.0,
+                    "yield_on_turnover": 0.0,
                     "sharpe_ratio": 0.0,
                     "sortino_ratio": 0.0,
                     "max_drawdown": 0.0,

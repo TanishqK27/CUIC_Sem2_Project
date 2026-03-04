@@ -436,20 +436,30 @@ def combinatorial_purged_cv(
                 continue
             g_start, g_end = groups[g]
 
-            # Purge rows near test-group boundaries (distance-based)
-            purge_start = g_start
-            purge_end = g_end
+            # Collect valid (non-purged) slices of this train group.
+            # Start with the whole group and progressively split it
+            # around each test group boundary.
+            valid_slices: list[tuple[int, int]] = [(g_start, g_end)]
             for tg in test_group_indices:
                 tg_start, tg_end = groups[tg]
-                # Trim end of train group if within purge_gap of test start
-                if g_end > tg_start - purge_gap and g_start < tg_start:
-                    purge_end = min(purge_end, max(g_start, tg_start - purge_gap))
-                # Trim start of train group if within purge_gap of test end
-                if g_start < tg_end + purge_gap and g_end > tg_end:
-                    purge_start = max(purge_start, min(g_end, tg_end + purge_gap))
+                new_slices: list[tuple[int, int]] = []
+                for s_start, s_end in valid_slices:
+                    # No overlap — keep slice as-is
+                    if s_end <= tg_start - purge_gap or s_start >= tg_end + purge_gap:
+                        new_slices.append((s_start, s_end))
+                        continue
+                    # Portion before the test group (respecting purge gap)
+                    before_end = min(s_end, tg_start - purge_gap)
+                    if before_end > s_start:
+                        new_slices.append((s_start, before_end))
+                    # Portion after the test group (respecting purge gap)
+                    after_start = max(s_start, tg_end + purge_gap)
+                    if after_start < s_end:
+                        new_slices.append((after_start, s_end))
+                valid_slices = new_slices
 
-            if purge_start < purge_end:
-                train_slices.append(data.iloc[purge_start:purge_end])
+            for s_start, s_end in valid_slices:
+                train_slices.append(data.iloc[s_start:s_end])
 
         train_data = pd.concat(train_slices, ignore_index=True) if train_slices else pd.DataFrame()
 
