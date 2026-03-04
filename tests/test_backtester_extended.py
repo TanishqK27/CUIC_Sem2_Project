@@ -245,7 +245,7 @@ class TestValidatorUntriggeredChecks:
 
         # Corrupt bet_size to exceed available bankroll at time of bet
         corrupted = results.copy()
-        # The first bet has bankroll=10000. Set bet_size to 20000 to trigger check 8.
+        # The first bet has bankroll=10000. Set bet_size to 20000 to trigger check 9.
         corrupted.loc[corrupted.index[0], "bet_size"] = 20000.0
         report = validate_backtest_results(corrupted, data)
 
@@ -274,6 +274,21 @@ class TestValidatorUntriggeredChecks:
             "chronological" in f.lower() or "leakage" in f.lower()
             for f in report["failures"]
         ), f"Expected chronological order failure, got: {report['failures']}"
+
+    def test_check5_invalid_odds_detected(self) -> None:
+        """Manually corrupt odds to <= 1.0 to trigger Check 5 (valid odds)."""
+        data = _make_input_data(n=3, home_wins=[1, 1, 1])
+        results = backtest(data, always_bet_home, initial_bankroll=10000.0)
+
+        corrupted = results.copy()
+        corrupted.loc[corrupted.index[0], "odds"] = 0.9  # invalid: <= 1.0
+
+        report = validate_backtest_results(corrupted, data)
+
+        assert report["passed"] is False
+        assert any(
+            "odds" in f.lower() for f in report["failures"]
+        ), f"Expected odds failure, got: {report['failures']}"
 
 
 # ============================================================================
