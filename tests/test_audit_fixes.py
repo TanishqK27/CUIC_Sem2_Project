@@ -1648,3 +1648,256 @@ class TestAnnualizationIntegration:
         sortino_365 = calculate_sortino_ratio(returns, periods_per_year=365.0)
         assert sortino_default == pytest.approx(sortino_365, rel=1e-10), \
             "Sortino default should be 365.0"
+
+
+class TestTrainableStrategyProtocol:
+    """Tests for TrainableStrategy protocol detection and walk-forward integration."""
+
+    def _make_wf_data(self, n: int = 100) -> pd.DataFrame:
+        """Create n-row DataFrame suitable for walk-forward tests."""
+        rng = np.random.default_rng(42)
+        return pd.DataFrame({
+            "timestamp": pd.date_range("2025-01-01", periods=n, freq="D"),
+            "game": [f"TeamA vs TeamB_{i}" for i in range(n)],
+            "home_team": ["TeamA"] * n,
+            "away_team": [f"TeamB_{i}" for i in range(n)],
+            "home_odds": rng.uniform(1.5, 3.0, size=n).round(2),
+            "away_odds": rng.uniform(1.5, 3.0, size=n).round(2),
+            "home_win": rng.integers(0, 2, size=n),
+        })
+
+    def test_protocol_detected(self):
+        """Class with fit + predict is recognized as TrainableStrategy."""
+        from cuic_quant.backtest.walk_forward.protocol import TrainableStrategy
+
+        class MyModel:
+            def fit(self, train_data: pd.DataFrame) -> None:
+                pass
+            def predict(self, row: pd.Series, context=None) -> dict:
+                return {"action": "SKIP"}
+
+        assert isinstance(MyModel(), TrainableStrategy)
+
+    def test_plain_function_not_detected(self):
+        """Regular function is NOT a TrainableStrategy."""
+        from cuic_quant.backtest.walk_forward.protocol import TrainableStrategy
+
+        def plain_strategy(row, context=None):
+            return {"action": "SKIP"}
+
+        assert not isinstance(plain_strategy, TrainableStrategy)
+
+    def test_fit_called_before_each_fold(self):
+        """walk_forward_backtest calls fit() before each fold's backtest."""
+        from cuic_quant.backtest.walk_forward import walk_forward_backtest
+
+        fit_calls: list[int] = []
+
+        class TrackingModel:
+            def fit(self, train_data: pd.DataFrame) -> None:
+                fit_calls.append(len(train_data))
+
+            def predict(self, row: pd.Series, context=None) -> dict:
+                return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
+
+        data = self._make_wf_data(100)
+        model = TrackingModel()
+        results = walk_forward_backtest(data, model, n_splits=3)
+        # fit() must be called once per non-skipped fold
+        n_folds = len(results["splits"])
+        assert len(fit_calls) == n_folds, (
+            f"fit() called {len(fit_calls)} times but {n_folds} folds ran"
+        )
+        # Each fit call must have received a positive number of training rows
+        assert all(n > 0 for n in fit_calls), (
+            f"fit() received empty training data: {fit_calls}"
+        )
+
+    def test_trained_model_affects_predictions(self):
+        """A model that learns from training data produces different predictions."""
+        from cuic_quant.backtest.walk_forward import walk_forward_backtest
+
+        class OddsThresholdModel:
+            """Bets home only when odds < mean training odds."""
+            def __init__(self):
+                self.threshold = 999.0  # untrained: bets on everything
+
+            def fit(self, train_data: pd.DataFrame) -> None:
+                self.threshold = float(train_data["home_odds"].mean())
+
+            def predict(self, row: pd.Series, context=None) -> dict:
+                if row["home_odds"] < self.threshold:
+                    return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.6}
+                return {"action": "SKIP"}
+
+        data = self._make_wf_data(100)
+        model = OddsThresholdModel()
+        results = walk_forward_backtest(data, model, n_splits=3)
+
+        # With training, threshold is ~2.25 (mean of uniform 1.5-3.0),
+        # so roughly half the bets should be skipped.
+        # Without training (threshold=999), ALL bets would be placed.
+        total_trades = results["aggregated_metrics"]["total_trades"]
+        total_possible = sum(len(s["test_data"]) for s in results["splits"])
+        # Trained model should skip SOME bets (not bet on everything)
+        assert total_trades < total_possible, (
+            f"Model bet on all {total_possible} games — training had no effect"
+        )
+        assert total_trades > 0, "Model placed zero bets — threshold too restrictive"
+
+    def test_no_future_data_in_fit(self):
+        """fit() receives ONLY data chronologically before the test window."""
+        from cuic_quant.backtest.walk_forward import walk_forward_backtest
+
+        fit_data_timestamps: list[pd.Timestamp] = []
+        test_start_timestamps: list[pd.Timestamp] = []
+
+        class TimestampTracker:
+            def fit(self, train_data: pd.DataFrame) -> None:
+                if len(train_data) > 0:
+                    max_ts = pd.to_datetime(train_data["timestamp"]).max()
+                    fit_data_timestamps.append(max_ts)
+
+            def predict(self, row: pd.Series, context=None) -> dict:
+                return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
+
+        data = self._make_wf_data(100)
+        model = TimestampTracker()
+        results = walk_forward_backtest(data, model, n_splits=3)
+
+        # Collect test window start timestamps
+        for split in results["splits"]:
+            test_data = split["test_data"]
+            if len(test_data) > 0:
+                test_start_timestamps.append(
+                    pd.to_datetime(test_data["timestamp"]).min()
+                )
+
+        # For each fold, max training timestamp must be < min test timestamp
+        assert len(fit_data_timestamps) == len(test_start_timestamps)
+        for i, (train_max, test_min) in enumerate(
+            zip(fit_data_timestamps, test_start_timestamps)
+        ):
+            assert train_max < test_min, (
+                f"Fold {i}: training data max timestamp {train_max} >= "
+                f"test start {test_min} — FUTURE DATA LEAKED INTO TRAINING"
+            )
+
+    def test_plain_function_still_works(self):
+        """Existing always_bet_home works unchanged through walk-forward."""
+        from cuic_quant.backtest.walk_forward import walk_forward_backtest
+
+        data = self._make_wf_data(100)
+        # Should not raise — plain function backward compat
+        results = walk_forward_backtest(data, always_bet_home, n_splits=3)
+        assert results["aggregated_metrics"]["total_trades"] > 0
+
+
+class TestWalkForwardDataLeakage:
+    """Integration tests verifying walk-forward data isolation end-to-end."""
+
+    def _make_wf_data(self, n: int = 100) -> pd.DataFrame:
+        """Create n-row DataFrame suitable for walk-forward tests."""
+        rng = np.random.default_rng(42)
+        return pd.DataFrame({
+            "timestamp": pd.date_range("2025-01-01", periods=n, freq="D"),
+            "game": [f"TeamA vs TeamB_{i}" for i in range(n)],
+            "home_team": ["TeamA"] * n,
+            "away_team": [f"TeamB_{i}" for i in range(n)],
+            "home_odds": rng.uniform(1.5, 3.0, size=n).round(2),
+            "away_odds": rng.uniform(1.5, 3.0, size=n).round(2),
+            "home_win": rng.integers(0, 2, size=n),
+        })
+
+    def test_train_test_no_overlap(self):
+        """For every fold, assert zero row overlap between train and test."""
+        from cuic_quant.backtest.walk_forward import walk_forward_backtest
+
+        data = self._make_wf_data(100)
+        results = walk_forward_backtest(data, always_bet_home, n_splits=3)
+
+        for split in results["splits"]:
+            train_games = set(split["train_data"]["game"].tolist())
+            test_games = set(split["test_data"]["game"].tolist())
+            overlap = train_games & test_games
+            assert len(overlap) == 0, (
+                f"Fold {split['fold']}: {len(overlap)} games in both train and test: "
+                f"{list(overlap)[:5]}"
+            )
+
+    def test_fit_receives_home_win(self):
+        """Training data passed to fit() includes home_win (correct for training)."""
+        from cuic_quant.backtest.walk_forward import walk_forward_backtest
+
+        received_columns: list[list[str]] = []
+
+        class ColumnTracker:
+            def fit(self, train_data: pd.DataFrame) -> None:
+                received_columns.append(list(train_data.columns))
+
+            def predict(self, row: pd.Series, context=None) -> dict:
+                return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
+
+        data = self._make_wf_data(100)
+        model = ColumnTracker()
+        walk_forward_backtest(data, model, n_splits=3)
+
+        assert len(received_columns) > 0, "fit() was never called"
+        for cols in received_columns:
+            assert "home_win" in cols, (
+                f"Training data missing home_win — columns: {cols}"
+            )
+
+    def test_predict_row_no_home_win(self):
+        """Rows passed to predict() during backtest do NOT contain home_win."""
+        from cuic_quant.backtest.walk_forward import walk_forward_backtest
+
+        predict_columns: list[list[str]] = []
+
+        class RowInspector:
+            def fit(self, train_data: pd.DataFrame) -> None:
+                pass
+
+            def predict(self, row: pd.Series, context=None) -> dict:
+                predict_columns.append(list(row.index))
+                return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
+
+        data = self._make_wf_data(100)
+        model = RowInspector()
+        walk_forward_backtest(data, model, n_splits=3)
+
+        assert len(predict_columns) > 0, "predict() was never called"
+        for cols in predict_columns:
+            assert "home_win" not in cols, (
+                f"predict() received home_win — DATA LEAKAGE! columns: {cols}"
+            )
+
+    def test_expanding_window_trainable(self):
+        """expanding_window_backtest also calls fit() per fold."""
+        from cuic_quant.backtest.walk_forward import expanding_window_backtest
+
+        fit_sizes: list[int] = []
+
+        class ExpandTracker:
+            def fit(self, train_data: pd.DataFrame) -> None:
+                fit_sizes.append(len(train_data))
+
+            def predict(self, row: pd.Series, context=None) -> dict:
+                return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
+
+        data = self._make_wf_data(100)
+        model = ExpandTracker()
+        results = expanding_window_backtest(
+            data, model, min_train_size=30, step_size=10,
+        )
+
+        n_folds = len(results["splits"])
+        assert len(fit_sizes) == n_folds, (
+            f"fit() called {len(fit_sizes)} times, expected {n_folds}"
+        )
+        # Expanding window: each fit must receive more data than the previous
+        for i in range(1, len(fit_sizes)):
+            assert fit_sizes[i] > fit_sizes[i - 1], (
+                f"Fold {i} training size {fit_sizes[i]} not larger than "
+                f"fold {i-1} size {fit_sizes[i-1]}"
+            )
