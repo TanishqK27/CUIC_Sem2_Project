@@ -390,6 +390,43 @@ def deflated_sharpe_ratio(
     return float(p_value)
 
 
+def build_returns_matrix(
+    strategy_results: list[pd.DataFrame],
+    freq: str = "D",
+) -> np.ndarray:
+    """Build a (n_periods x n_strategies) returns matrix for CSCV PBO.
+
+    Resamples trade-level PnL from multiple strategy backtests onto a
+    common time grid, filling periods with no trades with 0.0.
+
+    Args:
+        strategy_results: List of DataFrames from backtest(), each with
+            'timestamp' and 'pnl' columns.
+        freq: Resample frequency. Default "D" (daily). Use "W" for weekly.
+
+    Returns:
+        2D numpy array (n_periods x n_strategies) suitable for
+        probability_of_backtest_overfitting().
+
+    Raises:
+        ValueError: If fewer than 2 strategy results are provided, or
+            if any DataFrame is missing required columns.
+    """
+    if len(strategy_results) < 2:
+        raise ValueError("Need at least 2 strategy results to build returns matrix")
+
+    resampled = []
+    for i, df in enumerate(strategy_results):
+        if "timestamp" not in df.columns or "pnl" not in df.columns:
+            raise ValueError(f"Strategy result {i} missing 'timestamp' or 'pnl' column")
+        series = df.set_index(pd.to_datetime(df["timestamp"]))["pnl"]
+        resampled.append(series.resample(freq).sum())
+
+    # Align all strategies to a common time index, fill missing with 0
+    combined = pd.concat(resampled, axis=1).fillna(0.0)
+    return combined.values
+
+
 def probability_of_backtest_overfitting(
     returns_matrix: np.ndarray,
     n_groups: int = 16,

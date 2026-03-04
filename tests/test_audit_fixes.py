@@ -2669,3 +2669,55 @@ class TestSignificanceReportOddsNull:
         assert report["p_value"] < 0.01, (
             f"p_value={report['p_value']:.4f} — genuine edge not detected"
         )
+
+
+# ---------------------------------------------------------------------------
+# S5: build_returns_matrix helper for CSCV PBO
+# ---------------------------------------------------------------------------
+
+
+class TestBuildReturnsMatrix:
+    """S5: build_returns_matrix must produce valid input for CSCV PBO."""
+
+    def test_basic_alignment(self) -> None:
+        """Two strategies with different trade days produce aligned matrix."""
+        from cuic_quant.backtest.statistics import build_returns_matrix
+
+        df1 = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"]),
+            "pnl": [10.0, -5.0, 15.0],
+        })
+        df2 = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-01", "2026-01-03"]),
+            "pnl": [-3.0, 8.0],
+        })
+        matrix = build_returns_matrix([df1, df2])
+        assert matrix.shape == (3, 2), f"Expected (3, 2), got {matrix.shape}"
+        # df2 has no trade on Jan 2 → filled with 0
+        assert matrix[1, 1] == 0.0
+
+    def test_feeds_into_pbo(self) -> None:
+        """Matrix from build_returns_matrix works with probability_of_backtest_overfitting."""
+        from cuic_quant.backtest.statistics import build_returns_matrix
+
+        rng = np.random.default_rng(42)
+        dates = pd.date_range("2026-01-01", periods=60, freq="D")
+        results = []
+        for _ in range(5):
+            df = pd.DataFrame({
+                "timestamp": dates,
+                "pnl": rng.normal(0, 10, size=60),
+            })
+            results.append(df)
+
+        matrix = build_returns_matrix(results)
+        assert matrix.shape == (60, 5)
+        pbo = probability_of_backtest_overfitting(matrix, n_groups=4)
+        assert 0.0 <= pbo["pbo"] <= 1.0
+
+    def test_fewer_than_2_raises(self) -> None:
+        """Must have at least 2 strategies."""
+        from cuic_quant.backtest.statistics import build_returns_matrix
+
+        with pytest.raises(ValueError, match="at least 2"):
+            build_returns_matrix([pd.DataFrame({"timestamp": [], "pnl": []})])
