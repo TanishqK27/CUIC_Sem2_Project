@@ -15,6 +15,27 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+## 2026-03-04 — Bug Fix B5: Validator Check Numbering Cleanup
+
+**Problem:** The original B5 bug had two `# Check 5` comments in `validator.py` — one
+for odds (schema) and one for PnL (math). The source code was fixed in the Feb 26 audit
+(validator.py now has 1–12 unique, docstring matches). One stale artifact remained:
+`test_backtester_extended.py:248` still said `"trigger check 8"` for the overbetting
+test (overbetting is Check 9). Additionally, Check 5 (valid odds > 1.0) had no dedicated
+trigger test in `TestValidatorUntriggeredChecks`.
+
+**Fix:** Updated the stale comment to `"check 9"`. Added `test_check5_invalid_odds_detected`
+to `TestValidatorUntriggeredChecks` — corrupts odds to 0.9 and asserts validation fails
+with an odds-related message.
+
+**Files changed:**
+- `tests/test_backtester_extended.py` — comment fix + 1 new test
+
+**Tests:** 306/306 passing (1 new test added).
+**Commit:** e209e08
+
+---
+
 ## 2026-03-02 — Bug Fix 3: initial_bankroll Resolution in calculate_all_metrics
 
 **Problem:** `calculate_all_metrics` had two silent corruption bugs plus a related bug in `calculate_max_drawdown`:
