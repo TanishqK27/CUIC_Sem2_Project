@@ -41,11 +41,11 @@ def walk_forward_backtest(
 
     For each split:
         1. Define train window and test window.
-        2. (The caller's *strategy_fn* can inspect train data externally;
-           this function does NOT fit anything -- it only manages splits.)
+        2. If *strategy_fn* is a ``TrainableStrategy``, call
+           ``strategy_fn.fit(train_data)`` to retrain before this fold.
         3. Run ``backtest()`` on the test window only.
-        4. Optionally run ``backtest()`` on the train window for
-           in-sample vs out-of-sample comparison.
+        4. Run ``backtest()`` on the train window for in-sample vs
+           out-of-sample comparison.
         5. Collect results.
 
     Args:
