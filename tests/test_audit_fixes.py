@@ -2573,3 +2573,26 @@ class TestPastGamesTimingLeak:
         data = _make_input(n=5, home_wins=[1, 0, 1, 0, 1])
         results = backtest(data, always_bet_home)
         assert len(results) == 5
+
+
+# ---------------------------------------------------------------------------
+# B3: Bankroll rounding clamp
+# ---------------------------------------------------------------------------
+
+
+class TestBankrollRoundingClamp:
+    """B3: bankroll must never go negative due to rounding."""
+
+    def test_bankroll_never_negative(self) -> None:
+        """After many losses with cost_flat, bankroll should be clamped to 0."""
+        # 10 consecutive losses with a small bankroll and cost_flat
+        # to maximize chance of rounding pushing bankroll below zero
+        data = _make_input(n=10, home_wins=[0] * 10, odds=2.00)
+        results = backtest(
+            data, always_bet_home,
+            initial_bankroll=100.0, cost_flat=1.0,
+        )
+        for _, row in results.iterrows():
+            assert row["bankroll"] >= 0.0, (
+                f"Bankroll went negative: {row['bankroll']}"
+            )

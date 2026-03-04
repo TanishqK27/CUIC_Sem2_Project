@@ -443,6 +443,8 @@ def backtest(
 
             cumulative_pnl += pnl
             bankroll += pnl
+            # B3: Clamp to zero — rounding can produce -0.01
+            bankroll = max(bankroll, 0.0)
 
             # M2: Resolve closing odds for the side we bet on
             closing_odds_val = float("nan")
