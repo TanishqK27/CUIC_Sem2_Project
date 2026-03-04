@@ -397,6 +397,7 @@ def backtest(
                         win_probability=confidence,
                         decimal_odds=odds,
                         kelly_fraction=kelly_fraction,
+                        max_fraction=1.0,  # let kelly_fraction be the sole throttle
                     )
                     bet_size = round(kelly_size * bankroll, 2)
                     # Guard NaN/inf from Kelly arithmetic. Legitimate 0 = no edge,

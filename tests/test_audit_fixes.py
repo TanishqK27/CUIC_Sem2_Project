@@ -2771,3 +2771,29 @@ class TestInfParameterValidation:
         data = _make_input(n=3, home_wins=[1, 0, 1])
         with pytest.raises(ValueError, match="finite"):
             backtest(data, always_bet_home, cost_pct=float("inf"))
+
+
+# ---------------------------------------------------------------------------
+# Kelly sizing: kelly_fraction is the sole throttle (no hidden max_fraction)
+# ---------------------------------------------------------------------------
+
+
+class TestKellyNoHiddenCap:
+    """Engine must not silently cap Kelly at 25% via hidden max_fraction."""
+
+    def test_full_kelly_exceeds_25_pct(self) -> None:
+        """With kelly_fraction=1.0 and high confidence, bet should exceed 25% of bankroll."""
+        def high_confidence(row, ctx=None):
+            return {"action": "BUY_HOME", "confidence": 0.90, "size": 100.0}
+
+        data = _make_input(n=1, home_wins=[1], odds=2.00)
+        results = backtest(
+            data, high_confidence,
+            initial_bankroll=10000.0, position_sizing="kelly", kelly_fraction=1.0,
+        )
+        assert len(results) == 1
+        # Kelly = (b*p - q) / b = (1*0.9 - 0.1) / 1 = 0.8 → 80% of bankroll
+        # With hidden 25% cap this would be 2500. Without it, should be ~8000.
+        assert results.iloc[0]["bet_size"] > 5000.0, (
+            f"bet_size={results.iloc[0]['bet_size']} — Kelly appears silently capped"
+        )
