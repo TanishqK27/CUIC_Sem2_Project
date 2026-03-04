@@ -435,6 +435,14 @@ def probability_of_backtest_overfitting(
     ]
 
     half = n_groups // 2
+    from math import comb
+    n_combos = comb(n_groups, half)
+    if n_combos > 50_000:
+        warnings.warn(
+            f"CSCV with n_groups={n_groups} generates {n_combos:,} combinations. "
+            f"This may take a while. Consider reducing n_groups.",
+            stacklevel=2,
+        )
     logits: list[float] = []
 
     for is_indices in combinations(range(n_groups), half):
@@ -466,8 +474,8 @@ def probability_of_backtest_overfitting(
 
         # Logit of relative rank: log(rank / (N + 1 - rank))
         # Positive logit → IS-best underperforms OOS (below median)
-        denom = max(n_strategies + 1 - oos_rank, 1)
-        logit = math.log(oos_rank / denom) if denom > 0 else 0.0
+        denom = n_strategies + 1 - oos_rank
+        logit = math.log(oos_rank / max(denom, 1))
         logits.append(logit)
 
     # PBO = fraction of combinations where logit > 0
