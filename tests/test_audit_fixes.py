@@ -2381,3 +2381,150 @@ class TestOverfittingProtection:
         assert dsr_with != dsr_without, (
             f"DSR should differ with skew/kurt: with={dsr_with}, without={dsr_without}"
         )
+
+
+# ---------------------------------------------------------------------------
+# M1 Metrics Audit — Known-value tests for calculate_all_metrics
+# ---------------------------------------------------------------------------
+
+
+def _make_metrics_df(
+    pnl: list[float],
+    bet_sizes: list[float],
+    odds: list[float],
+    initial_bankroll: float = 10000.0,
+    days_span: int = 4,
+) -> pd.DataFrame:
+    """Build a minimal backtest-like DataFrame for metrics testing."""
+    n = len(pnl)
+    outcomes = ["WIN" if p > 0 else "LOSS" for p in pnl]
+
+    # Build bankroll series (cumulative)
+    bankroll = []
+    current = initial_bankroll
+    cumulative = []
+    cum = 0.0
+    for p in pnl:
+        current += p
+        cum += p
+        bankroll.append(current)
+        cumulative.append(cum)
+
+    # Spread timestamps evenly over days_span days
+    base = pd.Timestamp("2025-01-01")
+    if n > 1:
+        timestamps = [base + pd.Timedelta(days=days_span * i / (n - 1)) for i in range(n)]
+    else:
+        timestamps = [base]
+
+    df = pd.DataFrame({
+        "timestamp": timestamps,
+        "game": [f"game_{i}" for i in range(n)],
+        "action": ["BUY_HOME"] * n,
+        "bet_size": bet_sizes,
+        "odds": odds,
+        "outcome": outcomes,
+        "pnl": pnl,
+        "cumulative_pnl": cumulative,
+        "bankroll": bankroll,
+        "confidence": [float("nan")] * n,
+        "closing_odds": [float("nan")] * n,
+    })
+    df.attrs["initial_bankroll"] = initial_bankroll
+    return df
+
+
+class TestMetricsKnownValues:
+    """Known-value tests for M1 metrics in calculate_all_metrics."""
+
+    _PNL = [20.0, -10.0, 30.0, -5.0, 15.0]
+    _BET_SIZES = [100.0, 100.0, 100.0, 100.0, 100.0]
+    _ODDS = [1.80, 2.10, 1.95, 2.50, 1.70]
+    _BANKROLL = 10000.0
+    _DAYS = 4
+
+    def _get_metrics(self) -> dict:
+        from cuic_quant.metrics import calculate_all_metrics
+        df = _make_metrics_df(
+            self._PNL, self._BET_SIZES, self._ODDS,
+            initial_bankroll=self._BANKROLL, days_span=self._DAYS,
+        )
+        return calculate_all_metrics(df)
+
+    def test_roi_known_value(self) -> None:
+        """ROI = sum(pnl) / sum(bet_size) = 50/500 = 0.10."""
+        m = self._get_metrics()
+        assert abs(m["roi"] - 0.10) < 1e-10, f"ROI = {m['roi']}, expected 0.10"
+
+    def test_yield_per_bet(self) -> None:
+        """yield = mean(pnl/bet_size) = mean([0.20,-0.10,0.30,-0.05,0.15]) = 0.10."""
+        m = self._get_metrics()
+        expected = (0.20 + (-0.10) + 0.30 + (-0.05) + 0.15) / 5
+        assert abs(m["yield_per_bet"] - expected) < 1e-10, (
+            f"yield_per_bet = {m['yield_per_bet']}, expected {expected}"
+        )
+
+    def test_return_on_capital(self) -> None:
+        """RoC = total_pnl / initial_bankroll = 50/10000 = 0.005."""
+        m = self._get_metrics()
+        assert abs(m["return_on_capital"] - 0.005) < 1e-10, (
+            f"return_on_capital = {m['return_on_capital']}, expected 0.005"
+        )
+
+    def test_avg_odds(self) -> None:
+        """avg_odds = mean([1.80, 2.10, 1.95, 2.50, 1.70]) = 2.01."""
+        m = self._get_metrics()
+        expected = (1.80 + 2.10 + 1.95 + 2.50 + 1.70) / 5
+        assert abs(m["avg_odds"] - expected) < 1e-10, (
+            f"avg_odds = {m['avg_odds']}, expected {expected}"
+        )
+
+    def test_bet_frequency(self) -> None:
+        """5 bets over 4 days: (5-1)/4 = 1.0 bets/day."""
+        m = self._get_metrics()
+        # After fencepost fix: (N-1) / span_days
+        expected = (5 - 1) / 4.0
+        assert abs(m["bet_frequency"] - expected) < 1e-6, (
+            f"bet_frequency = {m['bet_frequency']}, expected {expected}"
+        )
+
+    def test_calmar_ratio(self) -> None:
+        """Calmar = annualized_return / max_drawdown."""
+        m = self._get_metrics()
+        # total_return = 50 / 10000 = 0.005
+        # span_years = 4 / 365.25
+        # annualized_return = 0.005 / (4/365.25) = 0.005 * 365.25/4
+        # max_dd: equity curve is [10000, 10020, 10010, 10040, 10035, 10050]
+        # peak: 10020 at index 1, trough: 10010 at index 2 → dd = 10/10020
+        # peak: 10040 at index 3, trough: 10035 at index 4 → dd = 5/10040
+        # max_dd = 10/10020 ≈ 0.000998
+        total_return = 50.0 / 10000.0
+        span_years = 4.0 / 365.25
+        annualized_return = total_return / span_years
+        max_dd = m["max_drawdown"]
+        if max_dd > 0:
+            expected_calmar = annualized_return / max_dd
+            assert abs(m["calmar_ratio"] - expected_calmar) < 0.01, (
+                f"calmar_ratio = {m['calmar_ratio']}, expected {expected_calmar}"
+            )
+
+    def test_kelly_growth_rate(self) -> None:
+        """Kelly growth = mean(ln(1 + r_i)) where r_i = pnl/bankroll_before."""
+        m = self._get_metrics()
+        import math as _math
+        # bankroll_before = bankroll - pnl for each trade
+        bankroll = [10000 + sum(self._PNL[:i+1]) for i in range(5)]
+        bankroll_before = [b - p for b, p in zip(bankroll, self._PNL)]
+        log_returns = [_math.log(1 + p / bb) for p, bb in zip(self._PNL, bankroll_before)]
+        expected = sum(log_returns) / len(log_returns)
+        assert abs(m["kelly_growth_rate"] - expected) < 1e-10, (
+            f"kelly_growth_rate = {m['kelly_growth_rate']}, expected {expected}"
+        )
+
+    def test_periods_per_year(self) -> None:
+        """5 bets over 4 days: (5-1) / (4/365.25) = 365.25 bets/year."""
+        m = self._get_metrics()
+        expected = (5 - 1) / (4.0 / 365.25)
+        assert abs(m["periods_per_year"] - expected) < 0.1, (
+            f"periods_per_year = {m['periods_per_year']}, expected {expected}"
+        )
