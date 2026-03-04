@@ -902,21 +902,20 @@ class TestNaNSizeStrict:
 
 
 # ============================================================================
-# PER-ROW BASEEXCEPTION GUARD (Bug Fix 2)
+# PER-ROW EXCEPTION GUARD (Bug Fix 2, updated by B5)
 # ============================================================================
 
 
 class TestStrategyExceptionGuard:
-    """Verify the outer per-row BaseException guard introduced in Bug Fix 2.
+    """Verify the outer per-row Exception guard in the engine loop.
 
     The outer guard wraps the entire loop body so any crash on any row is
     isolated. Previously computed trades are always returned.
 
     B3 (the inner guard) handles Exception from strategy_fn specifically.
-    The outer guard handles non-fatal BaseException subclasses (e.g. MemoryError,
-    GeneratorExit) by warning and skipping the row. KeyboardInterrupt and SystemExit
-    are re-raised after emitting a "partial results" warning — they must never be
-    swallowed. B3 handles Exception subclasses from strategy_fn with a specific message.
+    The outer guard catches Exception (B5: was BaseException — MemoryError etc.
+    now propagate). KeyboardInterrupt and SystemExit are re-raised after emitting
+    a "partial results" warning — they must never be swallowed.
     """
 
     # ------------------------------------------------------------------
@@ -1033,12 +1032,11 @@ class TestStrategyExceptionGuard:
     # BaseException tests — outer guard (NOT B3)
     # ------------------------------------------------------------------
 
-    def test_base_exception_in_row_processing_skips_row(self) -> None:
-        """Strategy raising BaseException (not Exception) is caught by outer guard.
+    def test_base_exception_in_row_processing_propagates(self) -> None:
+        """Strategy raising BaseException (not Exception) should propagate (B5).
 
-        BaseException is NOT caught by B3's `except Exception`. Before the fix,
-        this crashes the entire backtest. After the fix, the row is skipped with
-        a warning and the remaining rows complete normally.
+        After B5 fix, the outer guard catches Exception, not BaseException.
+        Non-Exception subclasses (MemoryError, etc.) must not be swallowed.
         """
         call_count = 0
 
@@ -1046,22 +1044,13 @@ class TestStrategyExceptionGuard:
             nonlocal call_count
             call_count += 1
             if call_count == 2:
-                # BaseException is not caught by B3's `except Exception`.
-                # It escapes B3 and must be caught by the outer guard.
                 raise BaseException("direct base exception — not an Exception subclass")
             return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
 
         data = _make_input(n=4, home_wins=[1, 1, 1, 1])
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            # Before fix: raises BaseException, crashing the entire backtest.
-            # After fix: row 2 skipped, 3 trades returned.
-            results = backtest(data, strategy, initial_bankroll=10000.0)
-
-        assert len(results) == 3  # row 2 skipped
-        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
-        assert len(user_warnings) >= 1
-        assert any("BaseException" in str(uw.message) for uw in user_warnings)
+        # B5: BaseException should now propagate, not be caught
+        with pytest.raises(BaseException, match="direct base exception"):
+            backtest(data, strategy, initial_bankroll=10000.0)
 
     def test_keyboard_interrupt_reraises_with_partial_results(self) -> None:
         """KeyboardInterrupt is re-raised after emitting a 'partial results' warning.

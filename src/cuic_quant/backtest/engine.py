@@ -491,7 +491,7 @@ def backtest(
                 stacklevel=2,
             )
             raise
-        except BaseException as exc:
+        except Exception as exc:  # B5: was BaseException — let MemoryError etc. propagate
             warnings.warn(
                 f"Unexpected {type(exc).__name__} processing game "
                 f"'{row.get('game', f'row {row_idx}')}': {exc} — skipping row.",
