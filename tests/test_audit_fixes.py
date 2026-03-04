@@ -1985,3 +1985,194 @@ class TestWalkForwardDataLeakage:
         assert list(data.columns) == original_columns, (
             f"Original data corrupted: {list(data.columns)} != {original_columns}"
         )
+
+
+# ---------------------------------------------------------------------------
+# S3 Math Audit — Statistics formula corrections
+# ---------------------------------------------------------------------------
+
+class TestStatisticsMathAudit:
+    """Tests for S3: statistics.py math bug fixes.
+
+    Reference: Bailey & Lopez de Prado (2014), "The Deflated Sharpe Ratio"
+    SE(SR) = sqrt((1 - skew*SR + (kurtosis-1)/4 * SR^2) / (n-1))
+    """
+
+    # ------------------------------------------------------------------
+    # Fix 1: DSR kurtosis term — (kurtosis-1)/4, not (kurtosis-3)/4
+    # ------------------------------------------------------------------
+
+    def test_dsr_gaussian_se(self):
+        """Gaussian returns (kurt=3, skew=0): correct SE uses (kurt-1)/4 = 0.5.
+
+        Use SR=2.0, n=20, n_trials=10 so that the SE difference between
+        the correct formula and the buggy one produces a p-value gap of ~0.11.
+        Correct SE = sqrt(3/19) ≈ 0.3974; wrong SE = sqrt(1/19) ≈ 0.2294.
+        """
+        from cuic_quant.backtest.statistics import deflated_sharpe_ratio
+        from scipy import stats as sp_stats
+        import math
+
+        sr = 2.0
+        n = 20
+        n_trials = 10
+        sr2 = sr ** 2
+
+        # Replicate the expected_max_sharpe calculation from the function
+        euler = 0.5772156649
+        expected_max = 1.0 * (
+            (1 - euler) * sp_stats.norm.ppf(1 - 1 / n_trials)
+            + euler * sp_stats.norm.ppf(1 - 1 / (n_trials * math.e))
+        )
+
+        # Correct SE: (kurt-1)/4 = (3-1)/4 = 0.5
+        correct_se = math.sqrt((1 + 0.5 * sr2) / (n - 1))
+        z_correct = (sr - expected_max) / correct_se
+        p_correct = 1 - sp_stats.norm.cdf(z_correct)
+
+        p_actual = deflated_sharpe_ratio(
+            observed_sharpe=sr,
+            n_trials=n_trials,
+            n_observations=n,
+            skewness=0.0,
+            kurtosis=3.0,
+        )
+        assert abs(p_actual - p_correct) < 0.01, (
+            f"DSR p-value {p_actual} != expected {p_correct:.6f} — "
+            f"kurtosis term likely still uses (kurt-3)/4 instead of (kurt-1)/4"
+        )
+
+    def test_dsr_skewed_returns(self):
+        """Skewed returns (kurt=5, skew=-1): SE uses (kurt-1)/4 = 1.0.
+
+        With SR=2.0, n=20, n_trials=10, the kurtosis bug produces a p-value
+        gap of ~0.038.  Correct: (5-1)/4=1.0, Wrong: (5-3)/4=0.5.
+        """
+        from cuic_quant.backtest.statistics import deflated_sharpe_ratio
+        from scipy import stats as sp_stats
+        import math
+
+        sr = 2.0
+        n = 20
+        n_trials = 10
+        sr2 = sr ** 2
+        skew = -1.0
+        kurt = 5.0
+
+        euler = 0.5772156649
+        expected_max = 1.0 * (
+            (1 - euler) * sp_stats.norm.ppf(1 - 1 / n_trials)
+            + euler * sp_stats.norm.ppf(1 - 1 / (n_trials * math.e))
+        )
+
+        # Correct SE: (kurt-1)/4 = 1.0
+        correct_se = math.sqrt((1 - skew * sr + ((kurt - 1) / 4) * sr2) / (n - 1))
+        z_correct = (sr - expected_max) / correct_se
+        p_correct = 1 - sp_stats.norm.cdf(z_correct)
+
+        p_actual = deflated_sharpe_ratio(
+            observed_sharpe=sr,
+            n_trials=n_trials,
+            n_observations=n,
+            skewness=skew,
+            kurtosis=kurt,
+        )
+        assert abs(p_actual - p_correct) < 0.01, (
+            f"DSR p-value {p_actual} != expected {p_correct:.6f} for skewed returns"
+        )
+
+    # ------------------------------------------------------------------
+    # Fix 2: minimum_sample_size — one-sided z_alpha
+    # ------------------------------------------------------------------
+
+    def test_minimum_sample_size_one_sided(self):
+        """5% edge, 80% power, alpha=0.01: one-sided gives ~1,001 not ~1,166."""
+        from cuic_quant.backtest.statistics import minimum_sample_size
+
+        n = minimum_sample_size(expected_edge=0.05, power=0.80, alpha=0.01)
+
+        # One-sided z_alpha = norm.ppf(0.99) ≈ 2.326
+        # Two-sided z_alpha = norm.ppf(0.995) ≈ 2.576
+        # One-sided should give ~1,001; two-sided bug gives ~1,166
+        assert n < 1100, (
+            f"minimum_sample_size returned {n}, expected < 1100 "
+            f"(two-sided bug gives ~1,166)"
+        )
+        assert n > 900, f"minimum_sample_size returned {n}, expected > 900"
+
+    def test_minimum_sample_size_known_value(self):
+        """10% edge, 80% power, alpha=0.05: verify against analytical formula."""
+        from cuic_quant.backtest.statistics import minimum_sample_size
+        from scipy import stats as sp_stats
+        import math
+
+        edge = 0.10
+        p0 = 0.5
+        p1 = p0 + edge
+        z_alpha = sp_stats.norm.ppf(1 - 0.05)  # one-sided
+        z_beta = sp_stats.norm.ppf(0.80)
+        numerator = (z_alpha * math.sqrt(p0 * (1 - p0)) + z_beta * math.sqrt(p1 * (1 - p1))) ** 2
+        denominator = (p1 - p0) ** 2
+        expected_n = int(math.ceil(numerator / denominator))
+
+        actual_n = minimum_sample_size(expected_edge=0.10, power=0.80, alpha=0.05)
+        assert actual_n == expected_n, (
+            f"minimum_sample_size returned {actual_n}, expected {expected_n}"
+        )
+
+    # ------------------------------------------------------------------
+    # Fix 3: ROI bootstrap — resample (pnl, bet_size) pairs
+    # ------------------------------------------------------------------
+
+    def test_roi_bootstrap_pairs(self):
+        """Variable bet sizes: ROI CI should be non-degenerate with paired resampling."""
+        from cuic_quant.backtest.statistics import significance_report
+        import pandas as pd
+        import numpy as np
+
+        rng = np.random.default_rng(123)
+        n = 200
+        # Variable bet sizes: some bets 10x larger than others
+        bet_sizes = rng.choice([1.0, 10.0], size=n, p=[0.5, 0.5])
+        # PnL correlated with bet size (bigger bets = bigger swings)
+        pnl = bet_sizes * rng.normal(0.05, 0.5, size=n)
+
+        df = pd.DataFrame({
+            "outcome": ["WIN" if p > 0 else "LOSS" for p in pnl],
+            "pnl": pnl,
+            "bet_size": bet_sizes,
+        })
+
+        report = significance_report(df)
+        ci = report["confidence_intervals"]["roi_95ci"]
+        lower, point, upper = ci
+
+        # CI should be a real interval (not degenerate)
+        assert upper > lower, f"ROI CI is degenerate: {ci}"
+        # Point estimate should be between bounds
+        assert lower <= point <= upper, f"Point {point} not in [{lower}, {upper}]"
+        # CI should be non-trivially wide with variable bet sizes
+        width = upper - lower
+        assert width > 0.01, f"ROI CI width {width} suspiciously narrow"
+
+    # ------------------------------------------------------------------
+    # Integration: small sample warning
+    # ------------------------------------------------------------------
+
+    def test_significance_report_small_sample_warning(self):
+        """25 trades should trigger INSUFFICIENT assessment and small sample warning."""
+        from cuic_quant.backtest.statistics import significance_report
+        import pandas as pd
+
+        df = pd.DataFrame({
+            "outcome": ["WIN"] * 15 + ["LOSS"] * 10,
+            "pnl": [10.0] * 15 + [-12.0] * 10,
+            "bet_size": [100.0] * 25,
+        })
+
+        report = significance_report(df)
+        assert "INSUFFICIENT" in report["sample_size_assessment"]
+        assert any("sample size" in w.lower() or "small" in w.lower()
+                    for w in report["warnings"]), (
+            f"Expected small sample warning in {report['warnings']}"
+        )
