@@ -118,6 +118,10 @@ def _aggregate_metrics(
 
     if all_oos_results:
         combined = pd.concat(all_oos_results, ignore_index=True)
+        # Recompute cumulative_pnl across all folds so metrics (max_drawdown)
+        # see a continuous equity curve, not artificial drops at fold boundaries.
+        if "pnl" in combined.columns:
+            combined["cumulative_pnl"] = combined["pnl"].cumsum()
         combined_metrics = calculate_all_metrics(combined)
         aggregated["sharpe_ratio"] = round(combined_metrics.get("sharpe_ratio", 0.0), 4)
         aggregated["sortino_ratio"] = round(combined_metrics.get("sortino_ratio", 0.0), 4)

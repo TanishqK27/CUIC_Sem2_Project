@@ -121,7 +121,9 @@ def plot_performance(
     # 2. Drawdown
     ax = axes[0, 1]
     equity = cum_pnl + initial_bankroll
-    running_peak = equity.cummax()
+    # Prepend initial_bankroll so cummax sees the starting equity,
+    # matching calculate_max_drawdown logic for early-loss drawdowns.
+    running_peak = pd.concat([pd.Series([initial_bankroll]), equity]).cummax().iloc[1:].reset_index(drop=True)
     drawdown_pct = (running_peak - equity) / running_peak * 100
     ax.fill_between(trade_num, drawdown_pct, color="#F44336", alpha=0.4)
     ax.plot(trade_num, drawdown_pct, color="#F44336", linewidth=1.0)

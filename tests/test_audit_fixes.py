@@ -2845,3 +2845,65 @@ class TestEndDateInclusive:
 
         df = load_backtest_data("2025-01-01", "2025-01-01", csv_path=csv)
         assert len(df) == 1, "Midnight row on end_date should be included"
+
+
+# ---------------------------------------------------------------------------
+# comparison: rank_strategies NaN-safe ranking
+# ---------------------------------------------------------------------------
+
+class TestRankStrategiesNaN:
+    """rank_strategies must handle NaN metrics without IntCastingNaNError."""
+
+    def test_nan_metric_does_not_crash(self) -> None:
+        from cuic_quant.backtest.comparison import rank_strategies
+
+        df = pd.DataFrame({
+            "strategy": ["good", "bad"],
+            "sharpe_ratio": [1.5, float("nan")],
+        }).set_index("strategy")
+        ranked = rank_strategies(df, metric="sharpe_ratio")
+        assert len(ranked) == 2
+        assert pd.isna(ranked.loc["bad", "rank"])
+
+
+# ---------------------------------------------------------------------------
+# comparison: implied_edge_analysis early return has edge_pct
+# ---------------------------------------------------------------------------
+
+class TestImpliedEdgeAnalysisKeys:
+    """Early return must have same keys as normal return."""
+
+    def test_empty_input_has_edge_pct(self) -> None:
+        from cuic_quant.backtest.comparison import implied_edge_analysis
+
+        result = implied_edge_analysis(pd.DataFrame())
+        assert "edge_pct" in result
+        assert result["edge_pct"] == 0.0
+
+
+# ---------------------------------------------------------------------------
+# mean_reversion: deviation_pct zero-price guard
+# ---------------------------------------------------------------------------
+
+class TestMeanReversionZeroPrice:
+    """mean_reversion_signal must not crash when all prices are 0."""
+
+    def test_zero_prices_no_crash(self) -> None:
+        from cuic_quant.strategies.mean_reversion import analyze_mean_reversion
+
+        result = analyze_mean_reversion([0.0] * 25)
+        assert result.deviation_pct == 0.0
+
+
+# ---------------------------------------------------------------------------
+# mean_reversion: calculate_half_life constant prices
+# ---------------------------------------------------------------------------
+
+class TestHalfLifeConstantPrices:
+    """calculate_half_life must return None for constant prices."""
+
+    def test_constant_prices_returns_none(self) -> None:
+        from cuic_quant.strategies.mean_reversion import calculate_half_life
+
+        result = calculate_half_life([1.0] * 20)
+        assert result is None

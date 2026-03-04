@@ -121,7 +121,7 @@ def rank_strategies(
     # Use dense ranking to handle ties (equal values get same rank)
     ranked.insert(
         0, "rank",
-        ranked[metric].rank(method="dense", ascending=ascending).astype(int).values
+        ranked[metric].rank(method="dense", ascending=ascending).astype("Int64").values
     )
     return ranked
 
@@ -405,7 +405,7 @@ def implied_edge_analysis(
         Dict with actual_win_rate, implied_win_rate, edge, edge_pct.
     """
     if len(results) == 0 or "odds" not in results.columns:
-        return {"actual_win_rate": 0.0, "implied_win_rate": 0.0, "edge": 0.0}
+        return {"actual_win_rate": 0.0, "implied_win_rate": 0.0, "edge": 0.0, "edge_pct": 0.0}
 
     actual_win_rate = float((results["outcome"] == "WIN").mean())
     implied_win_rate = float((1.0 / results["odds"]).mean())

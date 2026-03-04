@@ -111,7 +111,10 @@ def analyze_mean_reversion(
     else:
         z_score = (current_price - mean_price) / std_dev
 
-    deviation_pct = (current_price - mean_price) / mean_price * 100
+    if abs(mean_price) < 1e-10:
+        deviation_pct = 0.0
+    else:
+        deviation_pct = (current_price - mean_price) / mean_price * 100
 
     # Generate signal
     if z_score < -z_threshold:
@@ -171,7 +174,10 @@ def calculate_half_life(prices: list[float] | np.ndarray) -> float | None:
         x = lagged_prices - np.mean(lagged_prices)
         y = price_changes
 
-        beta = np.dot(x, y) / np.dot(x, x)
+        denom = np.dot(x, x)
+        if denom < 1e-15:
+            return None  # Constant prices — not mean-reverting
+        beta = np.dot(x, y) / denom
 
         if beta >= 0:
             return None  # Not mean-reverting
