@@ -2121,31 +2121,33 @@ class TestStatisticsMathAudit:
     def test_roi_bootstrap_pairs(self) -> None:
         """Paired resampling: CI width should reflect bet-size heterogeneity.
 
-        Dataset: small bets win big (500% ROI each), large bets lose small
-        (-5% ROI each).  Overall PnL = 0, total wagered = 5050, point ROI ~ 0.
+        Dataset: 5 small bets (size=1, pnl=+50) and 5 large bets
+        (size=100, pnl=-50).  Overall PnL = 0, total wagered = 505,
+        point ROI ~ 0.
 
-        With paired resampling the denominator varies per bootstrap sample,
-        producing a wide CI (> 0.5).  With the non-paired bug (fixed
-        denominator = 5050), PnL variation is divided by the same constant
-        every time, yielding a much narrower CI.
+        With small n and extreme heterogeneity, the sum-ratio bootstrap
+        pnl[idx].sum()/bet[idx].sum() produces a wide CI (> 0.5) because
+        bootstrap samples that over-represent small bets shift the ratio
+        significantly.  A non-paired approach (fixed denominator) would
+        yield a much narrower CI.
         """
-        # 50 small bets: size=1, pnl=+5 each  (ROI = 500%)
-        # 50 large bets: size=100, pnl=-5 each (ROI = -5%)
+        # 5 small bets: size=1, pnl=+50 each  (ROI = 5000%)
+        # 5 large bets: size=100, pnl=-50 each (ROI = -50%)
         small_bets = pd.DataFrame({
-            "outcome": ["WIN"] * 50,
-            "pnl": [5.0] * 50,
-            "bet_size": [1.0] * 50,
+            "outcome": ["WIN"] * 5,
+            "pnl": [50.0] * 5,
+            "bet_size": [1.0] * 5,
         })
         large_bets = pd.DataFrame({
-            "outcome": ["LOSS"] * 50,
-            "pnl": [-5.0] * 50,
-            "bet_size": [100.0] * 50,
+            "outcome": ["LOSS"] * 5,
+            "pnl": [-50.0] * 5,
+            "bet_size": [100.0] * 5,
         })
         df = pd.concat([small_bets, large_bets], ignore_index=True)
 
-        # Total wagered = 50*1 + 50*100 = 5050
-        # Total PnL = 50*5 + 50*(-5) = 0
-        # Point ROI = 0/5050 = 0.0%
+        # Total wagered = 5*1 + 5*100 = 505
+        # Total PnL = 5*50 + 5*(-50) = 0
+        # Point ROI = 0/505 = 0.0%
 
         report = significance_report(df)
         ci = report["confidence_intervals"]["roi_95ci"]
@@ -2156,11 +2158,9 @@ class TestStatisticsMathAudit:
         # CI should be non-degenerate
         assert upper > lower, f"ROI CI is degenerate: {ci}"
 
-        # KEY ASSERTION: With paired resampling, the CI should be WIDE
-        # because samples dominated by small bets give ROI >> 0
-        # and samples dominated by large bets give ROI << 0.
-        # With NON-paired (fixed denom=5050), the CI is narrow because
-        # PnL varies but denominator doesn't.
+        # KEY ASSERTION: With paired sum-ratio resampling, the CI should be
+        # WIDE because bootstrap samples that over-represent small bets
+        # shift pnl.sum()/bet.sum() dramatically.
         width = upper - lower
         assert width > 0.5, (
             f"ROI CI width {width:.4f} is too narrow — "

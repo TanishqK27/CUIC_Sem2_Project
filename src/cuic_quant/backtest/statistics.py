@@ -172,12 +172,13 @@ def significance_report(results_df: pd.DataFrame) -> dict[str, Any]:
         if total_wagered > 0:
             pnl_arr = pnl.values
             bet_arr = results_df["bet_size"].values
-            per_bet_roi = pnl_arr / bet_arr
             rng = np.random.default_rng(42)
             roi_boot = []
             for _ in range(10_000):
                 idx = rng.integers(0, len(pnl_arr), size=len(pnl_arr))
-                roi_boot.append(float(np.mean(per_bet_roi[idx])))
+                wager = bet_arr[idx].sum()
+                if wager > 0:
+                    roi_boot.append(pnl_arr[idx].sum() / wager)
             roi_boot = np.array(roi_boot)
             roi_ci = (
                 float(np.percentile(roi_boot, 2.5)),
@@ -321,9 +322,10 @@ def deflated_sharpe_ratio(
     # SE(SR) = sqrt( (1 - skew*SR + (kurtosis-1)/4 * SR^2) / (n-1) )
     # Where kurtosis is standard kurtosis (3 for Gaussian)
     sr2 = observed_sharpe ** 2
-    se_sharpe = math.sqrt(
-        (1 - skewness * observed_sharpe + ((kurtosis - 1) / 4) * sr2) / max(n_observations - 1, 1)
-    )
+    radicand = (1 - skewness * observed_sharpe + ((kurtosis - 1) / 4) * sr2) / max(n_observations - 1, 1)
+    if radicand <= 0:
+        return 1.0
+    se_sharpe = math.sqrt(radicand)
 
     if se_sharpe < 1e-10:
         return 1.0
