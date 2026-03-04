@@ -15,6 +15,22 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### M1: Metrics Audit — bet_frequency fencepost fix + known-value tests
+**Date:** 2026-03-04
+**Commits:** 8562ea0, 2bb3ce0
+
+**Problem:** All M1 metrics (ROI, yield, Calmar, Kelly, etc.) already existed but:
+1. `bet_frequency` used N/span instead of (N-1)/span, inconsistent with `_compute_periods_per_year`
+2. No known-value tests proving formulas correct
+
+**Fix:** Fixed fencepost. Added 8 known-value tests for ROI, yield_per_bet, return_on_capital, avg_odds, bet_frequency, calmar_ratio, kelly_growth_rate, and periods_per_year.
+
+**Files changed:**
+- `src/cuic_quant/metrics/__init__.py` — bet_frequency fencepost fix
+- `tests/test_audit_fixes.py` — `TestMetricsKnownValues` (8 tests)
+
+---
+
 ## 2026-03-04 — S4: Overfitting Protection — BH-FDR, CSCV PBO, report integration
 
 **Problem:** S4 functions existed but had gaps:
