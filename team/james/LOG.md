@@ -15,6 +15,27 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+## 2026-03-04 — S1: Sharpe/Sortino Annualization Fencepost Fix
+
+**Problem:** `_compute_periods_per_year` used `n_bets / time_span_days` to estimate bets per
+year, but the time span from first to last of n events covers (n-1) intervals, not n. The
+MLE rate is `(n-1)/T`. For a 2-bet backtest 7 days apart, Sharpe was overstated by 100%
+(52 bets/yr reported as 104). For 10 bets over 9 days, overstated by 11%. Additionally,
+the zero-time-span fallback was silent (no warning), and `calculate_sharpe_ratio` defaulted
+to 252 (stock trading days) while `calculate_sortino_ratio` defaulted to 365.
+
+**Fix:** Changed formula to `(n_bets - 1) / (time_span_days / 365.25)`. Added warning for
+zero time span. Harmonized Sharpe default from 252 to 365 (sports betting context).
+
+**Files changed:**
+- `src/cuic_quant/metrics/__init__.py` — fencepost fix, zero-span warning, Sharpe default
+- `tests/test_audit_fixes.py` — `TestComputePeriodsPerYear` (6) + `TestAnnualizationIntegration` (4)
+
+**Tests:** 316/316 passing (10 new tests added).
+**Commits:** ff25e17 (tests TDD), cd99dc2 (test precision fix), ce51626 (implementation)
+
+---
+
 ## 2026-03-04 — Bug Fix B5: Validator Check Numbering Cleanup
 
 **Problem:** The original B5 bug had two `# Check 5` comments in `validator.py` — one
