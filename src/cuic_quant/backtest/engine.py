@@ -174,12 +174,12 @@ def backtest(
             are invalid (NaN, out of range, etc.).
     """
     # --- Input validation (fail fast on bad parameters) ---
-    if not isinstance(initial_bankroll, (int, float)) or math.isnan(initial_bankroll):
+    if not isinstance(initial_bankroll, (int, float)) or not math.isfinite(initial_bankroll):
         raise ValueError(f"initial_bankroll must be a finite number, got {initial_bankroll!r}")
     if initial_bankroll <= 0:
         raise ValueError(f"initial_bankroll must be positive, got {initial_bankroll}")
 
-    if not isinstance(cost_pct, (int, float)) or math.isnan(cost_pct):
+    if not isinstance(cost_pct, (int, float)) or not math.isfinite(cost_pct):
         raise ValueError(f"cost_pct must be a finite number, got {cost_pct!r}")
     if cost_pct < 0 or cost_pct > 1:
         raise ValueError(
@@ -187,7 +187,7 @@ def backtest(
             f"Note: cost_pct is a fraction (0.05 = 5%), not a percentage."
         )
 
-    if not isinstance(cost_flat, (int, float)) or math.isnan(cost_flat):
+    if not isinstance(cost_flat, (int, float)) or not math.isfinite(cost_flat):
         raise ValueError(f"cost_flat must be a finite number, got {cost_flat!r}")
     if cost_flat < 0:
         raise ValueError(f"cost_flat must be non-negative, got {cost_flat}")

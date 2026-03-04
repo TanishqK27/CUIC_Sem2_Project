@@ -2742,3 +2742,32 @@ class TestPBONaNReject:
         matrix = np.array([[1, 2], [3, np.inf], [5, 6], [7, 8]])
         with pytest.raises(ValueError, match="NaN or inf"):
             probability_of_backtest_overfitting(matrix, n_groups=4)
+
+
+# ---------------------------------------------------------------------------
+# Inf validation in backtest() parameters
+# ---------------------------------------------------------------------------
+
+
+class TestInfParameterValidation:
+    """backtest() must reject inf for initial_bankroll, cost_pct, cost_flat."""
+
+    def test_inf_initial_bankroll_raises(self) -> None:
+        data = _make_input(n=3, home_wins=[1, 0, 1])
+        with pytest.raises(ValueError, match="finite"):
+            backtest(data, always_bet_home, initial_bankroll=float("inf"))
+
+    def test_neg_inf_initial_bankroll_raises(self) -> None:
+        data = _make_input(n=3, home_wins=[1, 0, 1])
+        with pytest.raises(ValueError, match="finite"):
+            backtest(data, always_bet_home, initial_bankroll=float("-inf"))
+
+    def test_inf_cost_flat_raises(self) -> None:
+        data = _make_input(n=3, home_wins=[1, 0, 1])
+        with pytest.raises(ValueError, match="finite"):
+            backtest(data, always_bet_home, cost_flat=float("inf"))
+
+    def test_inf_cost_pct_raises(self) -> None:
+        data = _make_input(n=3, home_wins=[1, 0, 1])
+        with pytest.raises(ValueError, match="finite"):
+            backtest(data, always_bet_home, cost_pct=float("inf"))
