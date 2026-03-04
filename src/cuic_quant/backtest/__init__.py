@@ -29,9 +29,13 @@ except ImportError:
 
 try:
     from cuic_quant.backtest.walk_forward import (
+        TrainableStrategy,
+        anchored_walk_forward,
+        combinatorial_purged_cv,
+        expanding_window_backtest,
         train_test_split,
         walk_forward_backtest,
-        expanding_window_backtest,
+        walk_forward_report,
     )
 except ImportError:
     pass
@@ -58,9 +62,13 @@ __all__ = [
     "compare_strategies",
     "detect_suspicious_results",
     # Walk-forward
+    "TrainableStrategy",
+    "anchored_walk_forward",
+    "combinatorial_purged_cv",
+    "expanding_window_backtest",
     "train_test_split",
     "walk_forward_backtest",
-    "expanding_window_backtest",
+    "walk_forward_report",
     # Statistics
     "significance_report",
     "overfitting_report",
