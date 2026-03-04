@@ -15,6 +15,35 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+## 2026-03-04 — S2: TrainableStrategy Protocol for Walk-Forward Retraining
+
+**Problem:** Walk-forward module had 6 functions managing fold splitting correctly, but
+strategies were pure stateless functions `(row, context) -> signal` with no mechanism for
+retraining between folds. A user fitting a model on data and evaluating on the same data
+got meaningless results. The walk-forward analysis was cosmetic — it split data but didn't
+retrain, so OOS results still reflected in-sample fitting.
+
+**Fix:** Added `TrainableStrategy` protocol (`@runtime_checkable`) with `fit(train_data)` and
+`predict(row, context)` methods. Walk-forward functions auto-detect trainable strategies via
+isinstance check and call `fit(train_data.copy())` before each fold's backtest. Defensive
+copy prevents in-place mutations from corrupting subsequent folds. Added class-vs-instance
+guard and callable check for fit/predict attributes. Existing pure-function strategies keep
+working unchanged (backward compatible). Training data correctly includes `home_win` for
+model fitting; predict rows correctly exclude it (engine strips it).
+
+**Files changed:**
+- `src/cuic_quant/backtest/walk_forward/protocol.py` — NEW: TrainableStrategy protocol
+- `src/cuic_quant/backtest/walk_forward/_helpers.py` — `_prepare_strategy_for_fold` helper
+- `src/cuic_quant/backtest/walk_forward/strategies.py` — 4 functions call prepare helper
+- `src/cuic_quant/backtest/walk_forward/__init__.py` — export TrainableStrategy
+- `src/cuic_quant/backtest/__init__.py` — export TrainableStrategy
+- `tests/test_audit_fixes.py` — `TestTrainableStrategyProtocol` (6) + `TestWalkForwardDataLeakage` (7)
+
+**Tests:** 329/329 passing (13 new tests added).
+**Commits:** ce29f7a (tests TDD), 7e62732 (quality fixes), f84fbae (implementation), a50d074 (docstring), 60a039f (audit hardening)
+
+---
+
 ## 2026-03-04 — S1: Sharpe/Sortino Annualization Fencepost Fix
 
 **Problem:** `_compute_periods_per_year` used `n_bets / time_span_days` to estimate bets per
