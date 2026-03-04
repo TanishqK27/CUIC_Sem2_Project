@@ -124,7 +124,7 @@ def minimum_sample_size(
     p0 = 0.5  # null hypothesis
     p1 = p0 + expected_edge
 
-    z_alpha = stats.norm.ppf(1 - alpha / 2)
+    z_alpha = stats.norm.ppf(1 - alpha)
     z_beta = stats.norm.ppf(power)
 
     # Sample size formula for comparing two proportions (one-sample version)
@@ -170,8 +170,20 @@ def significance_report(results_df: pd.DataFrame) -> dict[str, Any]:
     if "bet_size" in results_df.columns:
         total_wagered = results_df["bet_size"].sum()
         if total_wagered > 0:
-            roi_fn = lambda s: float(s.sum()) / total_wagered
-            roi_ci = bootstrap_confidence_interval(pnl, metric_fn=roi_fn)
+            pnl_arr = pnl.values
+            bet_arr = results_df["bet_size"].values
+            per_bet_roi = pnl_arr / bet_arr
+            rng = np.random.default_rng(42)
+            roi_boot = []
+            for _ in range(10_000):
+                idx = rng.integers(0, len(pnl_arr), size=len(pnl_arr))
+                roi_boot.append(float(np.mean(per_bet_roi[idx])))
+            roi_boot = np.array(roi_boot)
+            roi_ci = (
+                float(np.percentile(roi_boot, 2.5)),
+                float(pnl_arr.sum() / total_wagered),
+                float(np.percentile(roi_boot, 97.5)),
+            )
 
     # Sample size assessment
     min_needed = minimum_sample_size(expected_edge=0.05, power=0.80, alpha=0.01)
@@ -307,11 +319,10 @@ def deflated_sharpe_ratio(
 
     # Standard error of the Sharpe ratio — full formula from Bailey & LdP (2014)
     # SE(SR) = sqrt( (1 - skew*SR + (kurtosis-1)/4 * SR^2) / (n-1) )
-    # Where kurtosis here is the standard kurtosis (excess_kurtosis + 3)
+    # Where kurtosis is standard kurtosis (3 for Gaussian)
     sr2 = observed_sharpe ** 2
-    excess_kurtosis = kurtosis - 3.0  # convert to excess kurtosis for the formula
     se_sharpe = math.sqrt(
-        (1 - skewness * observed_sharpe + (excess_kurtosis / 4) * sr2) / max(n_observations - 1, 1)
+        (1 - skewness * observed_sharpe + ((kurtosis - 1) / 4) * sr2) / max(n_observations - 1, 1)
     )
 
     if se_sharpe < 1e-10:
