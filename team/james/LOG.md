@@ -15,6 +15,29 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+## 2026-03-04 — S4: Overfitting Protection — BH-FDR, CSCV PBO, report integration
+
+**Problem:** S4 functions existed but had gaps:
+1. No FDR correction — only Bonferroni/Holm (FWER), overly conservative for 55 strategies
+2. Simplified PBO — single-split rank test, coarse 1/(N-1) quantization
+3. `overfitting_report` DSR ignored skewness/kurtosis, no BH results
+
+**Fix:**
+- Added Benjamini-Hochberg FDR correction (Benjamini & Hochberg, 1995)
+- Replaced simplified PBO with full CSCV algorithm (Bailey et al. 2017) — enumerates all C(S, S/2) train/test partitions
+- Wired BH into `overfitting_report`, added skewness/kurtosis passthrough to DSR
+- Added performance warning for expensive CSCV configurations (>50k combos)
+- Added 9 known-value tests
+
+**Files changed:**
+- `src/cuic_quant/backtest/statistics.py` — BH-FDR, CSCV PBO, overfitting_report updates
+- `tests/test_audit_fixes.py` — `TestOverfittingProtection` (9 tests)
+- `tests/test_statistics.py` — Updated TestPBO for new CSCV signature
+
+**Commits:** c39305a, eb22bef, f5ce033, b8322f2, 614e78c
+
+---
+
 ## 2026-03-04 — S3: Statistics Math Audit — Three formula corrections
 
 **Problem:** Three math bugs in `statistics.py`:
