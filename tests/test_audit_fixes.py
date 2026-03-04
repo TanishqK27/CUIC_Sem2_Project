@@ -2528,3 +2528,25 @@ class TestMetricsKnownValues:
         assert abs(m["periods_per_year"] - expected) < 0.1, (
             f"periods_per_year = {m['periods_per_year']}, expected {expected}"
         )
+
+    def test_clv_known_value(self) -> None:
+        """CLV = mean(bet_odds / closing_odds - 1).
+
+        M2: CLV measures edge captured vs closing line.
+        odds=[1.80, 2.10, 1.95], closing=[1.70, 2.00, 2.00]
+        CLV per bet: [1.80/1.70-1, 2.10/2.00-1, 1.95/2.00-1]
+                   = [0.05882, 0.05, -0.025]
+        mean CLV = 0.02794
+        """
+        from cuic_quant.metrics import calculate_clv
+
+        df = pd.DataFrame({
+            "odds": [1.80, 2.10, 1.95],
+            "closing_odds": [1.70, 2.00, 2.00],
+            "outcome": ["WIN", "LOSS", "WIN"],
+        })
+        clv = calculate_clv(df)
+        expected = ((1.80 / 1.70 - 1) + (2.10 / 2.00 - 1) + (1.95 / 2.00 - 1)) / 3
+        assert abs(clv - expected) < 1e-10, (
+            f"CLV = {clv}, expected {expected}"
+        )
