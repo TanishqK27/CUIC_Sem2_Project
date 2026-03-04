@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 import warnings
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -2797,3 +2798,50 @@ class TestKellyNoHiddenCap:
         assert results.iloc[0]["bet_size"] > 5000.0, (
             f"bet_size={results.iloc[0]['bet_size']} — Kelly appears silently capped"
         )
+
+
+# ---------------------------------------------------------------------------
+# data_loader: end_date inclusive with intra-day timestamps
+# ---------------------------------------------------------------------------
+
+class TestEndDateInclusive:
+    """end_date='2025-01-02' must include rows with timestamps on that day."""
+
+    def test_intraday_rows_included(self, tmp_path: Path) -> None:
+        """Rows at 14:00 on end_date should not be dropped."""
+        csv = tmp_path / "games.csv"
+        rows = [
+            {"timestamp": "2025-01-01 10:00:00", "game": "A vs B",
+             "home_team": "A", "away_team": "B",
+             "home_odds": 1.9, "away_odds": 2.0, "home_win": 1},
+            {"timestamp": "2025-01-02 14:00:00", "game": "C vs D",
+             "home_team": "C", "away_team": "D",
+             "home_odds": 1.8, "away_odds": 2.1, "home_win": 0},
+            {"timestamp": "2025-01-03 09:00:00", "game": "E vs F",
+             "home_team": "E", "away_team": "F",
+             "home_odds": 1.7, "away_odds": 2.2, "home_win": 1},
+        ]
+        pd.DataFrame(rows).to_csv(csv, index=False)
+
+        from cuic_quant.backtest.data_loader import load_backtest_data
+
+        df = load_backtest_data("2025-01-01", "2025-01-02", csv_path=csv)
+        assert len(df) == 2, f"Expected 2 rows, got {len(df)}"
+        games = set(df["game"])
+        assert "C vs D" in games, "Intra-day row on end_date was dropped"
+        assert "E vs F" not in games, "Row after end_date was included"
+
+    def test_midnight_row_included(self, tmp_path: Path) -> None:
+        """Row at exactly midnight on end_date should be included."""
+        csv = tmp_path / "games.csv"
+        rows = [
+            {"timestamp": "2025-01-01 00:00:00", "game": "A vs B",
+             "home_team": "A", "away_team": "B",
+             "home_odds": 1.9, "away_odds": 2.0, "home_win": 1},
+        ]
+        pd.DataFrame(rows).to_csv(csv, index=False)
+
+        from cuic_quant.backtest.data_loader import load_backtest_data
+
+        df = load_backtest_data("2025-01-01", "2025-01-01", csv_path=csv)
+        assert len(df) == 1, "Midnight row on end_date should be included"

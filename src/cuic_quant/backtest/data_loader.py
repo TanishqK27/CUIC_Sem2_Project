@@ -102,14 +102,19 @@ def load_backtest_data(
                 FROM sportsbook_matches m
                 JOIN sportsbook_odds o ON m.id = o.match_id
                 WHERE m.commence_time >= :start_date
-                  AND m.commence_time <= :end_date
+                  AND m.commence_time < :end_date_exclusive
                 ORDER BY m.commence_time ASC
             """)
 
             with engine.connect() as conn:
                 df = pd.read_sql(
                     query, conn,
-                    params={"start_date": start_date, "end_date": end_date},
+                    params={
+                        "start_date": start_date,
+                        "end_date_exclusive": str(
+                            pd.Timestamp(end_date) + pd.Timedelta(days=1)
+                        ),
+                    },
                 )
 
             df["timestamp"] = pd.to_datetime(df["timestamp"])
@@ -140,8 +145,9 @@ def load_backtest_data(
 
     df = pd.read_csv(csv_path, parse_dates=["timestamp"])
 
-    # Filter by date range
-    mask = (df["timestamp"] >= start_date) & (df["timestamp"] <= end_date)
+    # Filter by date range (use < end + 1 day so intra-day rows are included)
+    end_ts = pd.Timestamp(end_date) + pd.Timedelta(days=1)
+    mask = (df["timestamp"] >= start_date) & (df["timestamp"] < end_ts)
     df = df.loc[mask].sort_values(["timestamp", "game"]).reset_index(drop=True)
 
     logger.info("Loaded %d rows from %s.", len(df), csv_path.name)
