@@ -1890,3 +1890,98 @@ class TestWalkForwardDataLeakage:
                 f"Fold {i} training size {fit_sizes[i]} not larger than "
                 f"fold {i-1} size {fit_sizes[i-1]}"
             )
+
+    def test_anchored_walk_forward_trainable(self):
+        """anchored_walk_forward also calls fit() per fold with correct data."""
+        from cuic_quant.backtest.walk_forward import anchored_walk_forward
+
+        fit_max_ts: list[pd.Timestamp] = []
+
+        class AnchorTracker:
+            def fit(self, train_data: pd.DataFrame) -> None:
+                fit_max_ts.append(pd.to_datetime(train_data["timestamp"]).max())
+
+            def predict(self, row: pd.Series, context=None) -> dict:
+                return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
+
+        data = _make_wf_data(100)
+        model = AnchorTracker()
+        test_periods = [
+            ("2025-02-15", "2025-03-01"),
+            ("2025-03-01", "2025-03-15"),
+            ("2025-03-15", "2025-04-01"),
+        ]
+        results = anchored_walk_forward(
+            data, model, anchor_date="2025-01-01", test_periods=test_periods,
+        )
+        n_folds = len(results["splits"])
+        assert len(fit_max_ts) == n_folds, (
+            f"fit() called {len(fit_max_ts)} times, expected {n_folds}"
+        )
+        # Each fold's training max timestamp must be before test start
+        for i, split in enumerate(results["splits"]):
+            test_min = pd.to_datetime(split["test_data"]["timestamp"]).min()
+            assert fit_max_ts[i] < test_min, (
+                f"Fold {i}: train max {fit_max_ts[i]} >= test start {test_min}"
+            )
+
+    def test_cpcv_trainable(self):
+        """combinatorial_purged_cv calls fit() per combination."""
+        from cuic_quant.backtest.walk_forward import combinatorial_purged_cv
+
+        fit_calls: list[int] = []
+
+        class CPCVTracker:
+            def fit(self, train_data: pd.DataFrame) -> None:
+                fit_calls.append(len(train_data))
+
+            def predict(self, row: pd.Series, context=None) -> dict:
+                return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
+
+        data = _make_wf_data(100)
+        model = CPCVTracker()
+        results = combinatorial_purged_cv(
+            data, model, n_splits=4, n_test_splits=2,
+        )
+        n_combos = results["n_combinations"]
+        assert len(fit_calls) == n_combos, (
+            f"fit() called {len(fit_calls)} times, expected {n_combos} combinations"
+        )
+        assert all(n > 0 for n in fit_calls), (
+            f"fit() received empty training data: {fit_calls}"
+        )
+
+    def test_fit_mutation_does_not_corrupt_subsequent_folds(self):
+        """fit() that mutates train_data in-place must not corrupt later folds."""
+        from cuic_quant.backtest.walk_forward import walk_forward_backtest
+
+        columns_seen: list[list[str]] = []
+
+        class MutatingModel:
+            def fit(self, train_data: pd.DataFrame) -> None:
+                columns_seen.append(list(train_data.columns))
+                # Intentionally mutate in-place — should not affect other folds
+                train_data.drop(columns=["home_win"], inplace=True)
+                train_data["injected_column"] = 999
+
+            def predict(self, row: pd.Series, context=None) -> dict:
+                return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
+
+        data = _make_wf_data(100)
+        original_columns = list(data.columns)
+        model = MutatingModel()
+        results = walk_forward_backtest(data, model, n_splits=3)
+
+        # All folds must have received home_win (not corrupted by prior fit)
+        for i, cols in enumerate(columns_seen):
+            assert "home_win" in cols, (
+                f"Fold {i}: fit() missing home_win — prior fold's mutation leaked"
+            )
+            assert "injected_column" not in cols, (
+                f"Fold {i}: fit() saw injected_column from prior fold"
+            )
+
+        # Original data must be unchanged
+        assert list(data.columns) == original_columns, (
+            f"Original data corrupted: {list(data.columns)} != {original_columns}"
+        )

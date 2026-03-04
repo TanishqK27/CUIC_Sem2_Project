@@ -142,14 +142,36 @@ def _prepare_strategy_for_fold(
     ``strategy.fit(train_data)`` and returns ``strategy.predict`` as the
     callable for ``backtest()``.  Otherwise returns *strategy* unchanged.
 
+    A defensive copy of *train_data* is passed to ``fit()`` so that
+    in-place mutations inside ``fit()`` cannot corrupt subsequent folds.
+
     Args:
         strategy: Either a plain callable or a ``TrainableStrategy`` instance.
         train_data: Training data for this fold (includes ``home_win``).
 
     Returns:
         Callable suitable for passing to ``backtest()`` as ``strategy_fn``.
+
+    Raises:
+        TypeError: If *strategy* is a class (not an instance) that looks
+            like a TrainableStrategy, or if ``fit``/``predict`` are not
+            callable.
     """
+    # Guard: user passed a class instead of an instance
+    if isinstance(strategy, type) and (
+        hasattr(strategy, "fit") and hasattr(strategy, "predict")
+    ):
+        raise TypeError(
+            f"Received class {strategy.__name__} instead of an instance. "
+            f"Pass {strategy.__name__}() (with parentheses) as strategy_fn."
+        )
+
     if isinstance(strategy, TrainableStrategy):
-        strategy.fit(train_data)
+        if not callable(strategy.fit) or not callable(strategy.predict):
+            raise TypeError(
+                f"Strategy {type(strategy).__name__} has 'fit' and 'predict' "
+                f"attributes but they are not callable. Both must be methods."
+            )
+        strategy.fit(train_data.copy())
         return strategy.predict
     return strategy
