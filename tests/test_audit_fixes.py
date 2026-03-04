@@ -2622,3 +2622,50 @@ class TestPeriodsPerYearCap:
         result = _compute_periods_per_year(df)
         expected = (30 - 1) / (29.0 / 365.25)
         assert abs(result - expected) < 0.1, f"Expected ~{expected}, got {result}"
+
+
+# ---------------------------------------------------------------------------
+# S2: significance_report null hypothesis should use implied odds
+# ---------------------------------------------------------------------------
+
+
+class TestSignificanceReportOddsNull:
+    """S2: significance_report must use implied win rate from odds, not 0.5."""
+
+    def test_favorite_strategy_not_falsely_significant(self) -> None:
+        """Betting on heavy favorites should NOT appear significant against implied null.
+
+        A strategy with 70% win rate betting at odds=1.40 (implied 71.4%)
+        has no edge — p-value should be high (not significant).
+        """
+        n = 100
+        wins = 70  # 70% win rate
+        outcomes = ["WIN"] * wins + ["LOSS"] * (n - wins)
+        df = pd.DataFrame({
+            "outcome": outcomes,
+            "pnl": [40.0] * wins + [-100.0] * (n - wins),
+            "bet_size": [100.0] * n,
+            "odds": [1.40] * n,  # implied prob = 1/1.40 = 0.714
+        })
+        report = significance_report(df)
+        # 70% win rate vs 71.4% null → NOT significant
+        assert report["p_value"] > 0.05, (
+            f"p_value={report['p_value']:.4f} — favorite strategy falsely significant"
+        )
+
+    def test_edge_over_implied_is_significant(self) -> None:
+        """A strategy with genuine edge over implied odds should be significant."""
+        n = 200
+        wins = 130  # 65% win rate
+        outcomes = ["WIN"] * wins + ["LOSS"] * (n - wins)
+        df = pd.DataFrame({
+            "outcome": outcomes,
+            "pnl": [100.0] * wins + [-100.0] * (n - wins),
+            "bet_size": [100.0] * n,
+            "odds": [2.00] * n,  # implied prob = 0.50, actual = 0.65
+        })
+        report = significance_report(df)
+        # 65% vs 50% null with 200 trades → very significant
+        assert report["p_value"] < 0.01, (
+            f"p_value={report['p_value']:.4f} — genuine edge not detected"
+        )

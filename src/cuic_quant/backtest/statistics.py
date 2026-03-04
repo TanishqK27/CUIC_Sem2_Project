@@ -161,8 +161,14 @@ def significance_report(results_df: pd.DataFrame) -> dict[str, Any]:
     total = len(outcomes)
     win_rate = wins / total if total > 0 else 0.0
 
-    # P-value
-    p_value = calculate_p_value(win_rate, total)
+    # P-value — S2: use implied win rate from odds as null, not 0.5
+    null_h = 0.5
+    if "odds" in results_df.columns:
+        implied = 1.0 / results_df["odds"].astype(float)
+        implied_mean = float(implied.mean())
+        if 0.0 < implied_mean < 1.0:
+            null_h = implied_mean
+    p_value = calculate_p_value(win_rate, total, null_hypothesis=null_h)
 
     # Bootstrap CIs
     pnl = results_df["pnl"]
