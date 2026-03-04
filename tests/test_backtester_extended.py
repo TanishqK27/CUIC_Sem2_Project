@@ -229,6 +229,33 @@ class TestLoadBacktestDataDatabase:
                     "2026-01-01", "2026-01-31", strict=True,
                 )
 
+    def test_schema_mismatch_falls_back_to_csv(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """DB query raising ProgrammingError (missing column) should fall back to CSV."""
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fake:5432/testdb")
+
+        mock_engine = MagicMock()
+        mock_conn = MagicMock()
+        mock_engine.connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
+        mock_engine.connect.return_value.__exit__ = MagicMock(return_value=False)
+
+        from cuic_quant.backtest.backtester_backend import DUMMY_CSV
+
+        # Simulate ProgrammingError from missing closing_home_odds column
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            with (
+                patch("cuic_quant.backtest.data_loader.pd.read_sql",
+                      side_effect=Exception('column "closing_home_odds" does not exist')),
+                patch("sqlalchemy.create_engine", return_value=mock_engine),
+                patch("sqlalchemy.text"),
+            ):
+                df = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+
+        assert len(df) > 0  # Fell back to CSV
+        runtime_warnings = [w for w in caught if issubclass(w.category, RuntimeWarning)]
+        assert len(runtime_warnings) >= 1
+        assert "falling back" in str(runtime_warnings[0].message).lower()
+
 
 # ============================================================================
 # T3 — Validator checks 8 (overbetting) and 11 (chronological order)
