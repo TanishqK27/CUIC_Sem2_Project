@@ -937,9 +937,9 @@ class TestEdgeCases:
         )
 
         data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
-        results = backtest(data, always_bet_home, initial_bankroll=0.0)
-        assert len(results) == 0
-        assert results.columns.tolist() == OUTPUT_COLUMNS
+        # U1: initial_bankroll=0 now raises ValueError (can never produce trades)
+        with pytest.raises(ValueError, match="must be positive"):
+            backtest(data, always_bet_home, initial_bankroll=0.0)
 
     def test_invalid_action_string_skipped(self) -> None:
         """Strategy returning an invalid action should be skipped."""

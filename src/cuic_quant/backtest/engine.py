@@ -176,8 +176,8 @@ def backtest(
     # --- Input validation (fail fast on bad parameters) ---
     if not isinstance(initial_bankroll, (int, float)) or math.isnan(initial_bankroll):
         raise ValueError(f"initial_bankroll must be a finite number, got {initial_bankroll!r}")
-    if initial_bankroll < 0:
-        raise ValueError(f"initial_bankroll must be non-negative, got {initial_bankroll}")
+    if initial_bankroll <= 0:
+        raise ValueError(f"initial_bankroll must be positive, got {initial_bankroll}")
 
     if not isinstance(cost_pct, (int, float)) or math.isnan(cost_pct):
         raise ValueError(f"cost_pct must be a finite number, got {cost_pct!r}")
