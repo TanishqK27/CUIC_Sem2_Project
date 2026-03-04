@@ -500,7 +500,7 @@ def calculate_all_metrics(trades_df: pd.DataFrame) -> dict[str, float | int]:
         if len(timestamps) >= 2:
             span_days = (timestamps.max() - timestamps.min()).total_seconds() / 86400.0
             if span_days > 0:
-                metrics["bet_frequency"] = len(timestamps) / span_days
+                metrics["bet_frequency"] = (len(timestamps) - 1) / span_days
 
     # Store the annualization factor used (for transparency)
     metrics["periods_per_year"] = periods_per_year
