@@ -2721,3 +2721,24 @@ class TestBuildReturnsMatrix:
 
         with pytest.raises(ValueError, match="at least 2"):
             build_returns_matrix([pd.DataFrame({"timestamp": [], "pnl": []})])
+
+
+# ---------------------------------------------------------------------------
+# T2: PBO rejects NaN/inf in returns matrix
+# ---------------------------------------------------------------------------
+
+
+class TestPBONaNReject:
+    """T2: probability_of_backtest_overfitting must reject NaN/inf input."""
+
+    def test_nan_in_returns_raises(self) -> None:
+        """NaN in returns_matrix should raise ValueError."""
+        matrix = np.array([[1, 2], [3, np.nan], [5, 6], [7, 8]])
+        with pytest.raises(ValueError, match="NaN or inf"):
+            probability_of_backtest_overfitting(matrix, n_groups=4)
+
+    def test_inf_in_returns_raises(self) -> None:
+        """Inf in returns_matrix should raise ValueError."""
+        matrix = np.array([[1, 2], [3, np.inf], [5, 6], [7, 8]])
+        with pytest.raises(ValueError, match="NaN or inf"):
+            probability_of_backtest_overfitting(matrix, n_groups=4)

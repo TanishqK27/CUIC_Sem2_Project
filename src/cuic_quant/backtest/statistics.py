@@ -454,9 +454,11 @@ def probability_of_backtest_overfitting(
         ValueError: If n_groups is odd, < 4, or returns_matrix has
             fewer rows than n_groups.
     """
-    returns_matrix = np.asarray(returns_matrix)
+    returns_matrix = np.asarray(returns_matrix, dtype=float)
     if returns_matrix.ndim != 2:
         raise ValueError(f"returns_matrix must be 2D, got {returns_matrix.ndim}D")
+    if not np.isfinite(returns_matrix).all():
+        raise ValueError("returns_matrix contains NaN or inf values")
 
     n_periods, n_strategies = returns_matrix.shape
     if n_strategies < 2:
