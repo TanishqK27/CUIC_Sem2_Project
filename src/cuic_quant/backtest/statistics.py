@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import math
 import warnings
+from itertools import combinations
 from typing import Any, Callable
 
 import numpy as np
@@ -384,53 +385,99 @@ def deflated_sharpe_ratio(
 
 
 def probability_of_backtest_overfitting(
-    sharpe_ratios_in_sample: list[float],
-    sharpe_ratios_out_of_sample: list[float],
-) -> float:
-    """Simplified overfitting probability estimate.
+    returns_matrix: np.ndarray,
+    n_groups: int = 16,
+) -> dict[str, Any]:
+    """Probability of Backtest Overfitting via CSCV (Bailey et al. 2017).
 
-    NOTE: This is a simplified single-split rank test, NOT the full
-    Combinatorial Symmetric Cross-Validation (CSCV) algorithm from
-    Bailey et al. (2017). The full CSCV algorithm uses all possible
-    train/test partition combinations and a logit model. This simplified
-    version gives a coarse estimate from a single IS/OOS split.
-
-    For N strategies, output is quantized to multiples of 1/(N-1).
-    For rigorous PBO, use combinatorial_purged_cv() from walk_forward.py
-    with multiple split combinations.
-
-    Estimates the probability that the best in-sample strategy
-    underperforms out-of-sample by checking what fraction of other
-    strategies beat it OOS.
+    Combinatorial Symmetric Cross-Validation: partition time series into
+    S equal-sized groups, enumerate all C(S, S/2) train/test splits, and
+    check how often the IS-optimal strategy underperforms OOS.
 
     Args:
-        sharpe_ratios_in_sample: In-sample Sharpe for each strategy.
-        sharpe_ratios_out_of_sample: Out-of-sample Sharpe for same strategies.
+        returns_matrix: 2D array (n_periods x n_strategies). Each column
+            is a strategy's return series.
+        n_groups: Number of time-series groups (must be even, >= 4).
+            Default 16 gives C(16,8) = 12,870 combinations.
 
     Returns:
-        Overfitting estimate (0-1). Higher means more likely overfitting.
-        Quantized to 1/(N-1) increments.
+        Dict with:
+            pbo: float — probability of overfitting [0, 1]
+            logit_distribution: list[float] — logit of relative OOS rank
+                for the IS-best strategy in each combination
+            n_combinations: int — number of train/test splits tested
+
+    Raises:
+        ValueError: If n_groups is odd, < 4, or returns_matrix has
+            fewer rows than n_groups.
     """
-    if len(sharpe_ratios_in_sample) != len(sharpe_ratios_out_of_sample):
-        raise ValueError("IS and OOS lists must have same length")
+    returns_matrix = np.asarray(returns_matrix)
+    if returns_matrix.ndim != 2:
+        raise ValueError(f"returns_matrix must be 2D, got {returns_matrix.ndim}D")
 
-    n = len(sharpe_ratios_in_sample)
-    if n < 2:
-        return 0.0
+    n_periods, n_strategies = returns_matrix.shape
+    if n_strategies < 2:
+        return {"pbo": 0.0, "logit_distribution": [], "n_combinations": 0}
 
-    # Find the strategy with the best in-sample Sharpe
-    best_is_idx = int(np.argmax(sharpe_ratios_in_sample))
-    best_is_oos = sharpe_ratios_out_of_sample[best_is_idx]
+    if n_groups < 4 or n_groups % 2 != 0:
+        raise ValueError(f"n_groups must be even and >= 4, got {n_groups}")
 
-    # Count how many strategies had better OOS performance
-    n_better_oos = sum(
-        1 for i in range(n)
-        if i != best_is_idx and sharpe_ratios_out_of_sample[i] > best_is_oos
-    )
+    if n_periods < n_groups:
+        raise ValueError(
+            f"Need at least {n_groups} rows for {n_groups} groups, got {n_periods}"
+        )
 
-    # Fraction of strategies that beat the "best" IS strategy OOS
-    pbo = n_better_oos / (n - 1) if n > 1 else 0.0
-    return float(pbo)
+    # Split rows into n_groups equal blocks (discard trailing rows)
+    block_size = n_periods // n_groups
+    blocks = [
+        returns_matrix[i * block_size : (i + 1) * block_size]
+        for i in range(n_groups)
+    ]
+
+    half = n_groups // 2
+    logits: list[float] = []
+
+    for is_indices in combinations(range(n_groups), half):
+        oos_indices = [i for i in range(n_groups) if i not in is_indices]
+
+        # Concatenate blocks for IS and OOS
+        is_returns = np.concatenate([blocks[i] for i in is_indices], axis=0)
+        oos_returns = np.concatenate([blocks[i] for i in oos_indices], axis=0)
+
+        # Compute Sharpe per strategy (mean / std, annualization not needed
+        # since we only care about relative ranking)
+        is_means = is_returns.mean(axis=0)
+        is_stds = is_returns.std(axis=0, ddof=1)
+        is_stds[is_stds < 1e-10] = 1e-10
+        is_sharpes = is_means / is_stds
+
+        oos_means = oos_returns.mean(axis=0)
+        oos_stds = oos_returns.std(axis=0, ddof=1)
+        oos_stds[oos_stds < 1e-10] = 1e-10
+        oos_sharpes = oos_means / oos_stds
+
+        # Find IS-best strategy
+        best_is_idx = int(np.argmax(is_sharpes))
+
+        # Rank of IS-best in OOS (1 = best, N = worst)
+        # Use negative to sort descending
+        oos_ranks = np.argsort(np.argsort(-oos_sharpes)) + 1  # 1-indexed ranks
+        oos_rank = int(oos_ranks[best_is_idx])
+
+        # Logit of relative rank: log(rank / (N + 1 - rank))
+        # Positive logit → IS-best underperforms OOS (below median)
+        denom = max(n_strategies + 1 - oos_rank, 1)
+        logit = math.log(oos_rank / denom) if denom > 0 else 0.0
+        logits.append(logit)
+
+    # PBO = fraction of combinations where logit > 0
+    pbo = sum(1 for lg in logits if lg > 0) / len(logits) if logits else 0.0
+
+    return {
+        "pbo": float(pbo),
+        "logit_distribution": logits,
+        "n_combinations": len(logits),
+    }
 
 
 def overfitting_report(

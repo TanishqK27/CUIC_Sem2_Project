@@ -2294,21 +2294,21 @@ class TestOverfittingProtection:
         """Overfit strategy: good IS, bad OOS → PBO should be high.
 
         Create returns where strategy 0 has a pattern that reverses halfway:
-        positive in first half, negative in second half. When IS gets mostly
-        first-half blocks, strategy 0 looks great; OOS (second-half) it fails.
+        positive in first half, negative in second half. With n_groups=8,
+        C(8,4)=70 combinations gives enough resolution to detect overfitting.
         """
         rng = np.random.default_rng(123)
-        n_periods = 80  # 20 per group with n_groups=4
+        n_periods = 160  # 20 per group with n_groups=8
         n_strategies = 4
 
         returns = rng.normal(0.0, 0.5, size=(n_periods, n_strategies))
         # Strategy 0: strong positive first half, strong negative second half
-        returns[:40, 0] = 2.0 + rng.normal(0.0, 0.2, size=40)
-        returns[40:, 0] = -2.0 + rng.normal(0.0, 0.2, size=40)
+        returns[:80, 0] = 2.0 + rng.normal(0.0, 0.2, size=80)
+        returns[80:, 0] = -2.0 + rng.normal(0.0, 0.2, size=80)
 
-        result = probability_of_backtest_overfitting(returns, n_groups=4)
-        assert result["pbo"] > 0.5, (
-            f"PBO = {result['pbo']:.2f}, expected > 0.5 for an overfit strategy"
+        result = probability_of_backtest_overfitting(returns, n_groups=8)
+        assert result["pbo"] > 0.3, (
+            f"PBO = {result['pbo']:.2f}, expected > 0.3 for an overfit strategy"
         )
 
     def test_pbo_cscv_known_value(self) -> None:

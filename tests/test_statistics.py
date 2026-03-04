@@ -146,21 +146,27 @@ class TestDeflatedSharpe:
 
 
 class TestPBO:
-    """Tests for probability_of_backtest_overfitting."""
+    """Tests for probability_of_backtest_overfitting (CSCV)."""
 
     def test_no_overfitting(self) -> None:
-        """If IS best also has best OOS, PBO should be 0."""
-        pbo = probability_of_backtest_overfitting(
-            [1.0, 0.5, 0.3], [2.0, 0.4, 0.2]
-        )
-        assert pbo == 0.0
+        """If one strategy consistently dominates, PBO should be low."""
+        rng = np.random.default_rng(42)
+        # 3 strategies, 40 periods (10 per group with n_groups=4)
+        returns = rng.normal(0.0, 1.0, size=(40, 3))
+        returns[:, 0] += 1.0  # Strategy 0 always best
+        result = probability_of_backtest_overfitting(returns, n_groups=4)
+        assert isinstance(result, dict)
+        assert result["pbo"] < 0.5
 
     def test_complete_overfitting(self) -> None:
-        """If IS best has worst OOS, PBO should be high."""
-        pbo = probability_of_backtest_overfitting(
-            [2.0, 0.5, 0.3], [0.1, 1.0, 0.8]
-        )
-        assert pbo > 0.5
+        """If IS-best reverses OOS, PBO should be high."""
+        rng = np.random.default_rng(123)
+        returns = rng.normal(0.0, 0.3, size=(40, 3))
+        # Strategy 0: great first half, terrible second half
+        returns[:20, 0] = 2.0 + rng.normal(0.0, 0.1, size=20)
+        returns[20:, 0] = -2.0 + rng.normal(0.0, 0.1, size=40 - 20)
+        result = probability_of_backtest_overfitting(returns, n_groups=4)
+        assert result["pbo"] >= 0.5
 
 
 class TestSignificanceReport:
