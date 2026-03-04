@@ -15,6 +15,23 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+## 2026-03-04 — S3: Statistics Math Audit — Three formula corrections
+
+**Problem:** Three math bugs in `statistics.py`:
+1. DSR SE formula used `(kurtosis-3)/4` instead of `(kurtosis-1)/4` (Bailey & LdP 2014) — underestimated SE by ~18%
+2. `minimum_sample_size` used two-sided z_alpha but `calculate_p_value` defaults to one-sided — sample size ~20% overstated
+3. ROI bootstrap resampled PnL alone with fixed denominator instead of (pnl, bet_size) pairs
+
+**Fix:** Corrected all three formulas. Added radicand guard for DSR sqrt edge case. Added 6 known-value tests verifying against analytical results from the referenced papers.
+
+**Files changed:**
+- `src/cuic_quant/backtest/statistics.py` — DSR kurtosis fix, one-sided z_alpha, paired ROI bootstrap
+- `tests/test_audit_fixes.py` — `TestStatisticsMathAudit` (6 tests)
+
+**Commits:** dc58d56, 7133e8e, f942717, 8901df5
+
+---
+
 ## 2026-03-04 — S2: TrainableStrategy Protocol for Walk-Forward Retraining
 
 **Problem:** Walk-forward module had 6 functions managing fold splitting correctly, but
