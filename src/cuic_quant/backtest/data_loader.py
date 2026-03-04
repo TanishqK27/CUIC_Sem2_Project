@@ -6,9 +6,12 @@ then falls back to local CSV.
 
 from __future__ import annotations
 
+import logging
 import os
 import warnings
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 import pandas as pd
 
@@ -112,7 +115,7 @@ def load_backtest_data(
             df["timestamp"] = pd.to_datetime(df["timestamp"])
             # U4: Apply same deterministic sort as CSV path
             df = df.sort_values(["timestamp", "game"]).reset_index(drop=True)
-            print(f"Loaded {len(df)} rows from Railway database.")
+            logger.info("Loaded %d rows from Railway database.", len(df))
             return df
 
         except Exception as e:
@@ -141,7 +144,7 @@ def load_backtest_data(
     mask = (df["timestamp"] >= start_date) & (df["timestamp"] <= end_date)
     df = df.loc[mask].sort_values(["timestamp", "game"]).reset_index(drop=True)
 
-    print(f"Loaded {len(df)} rows from {csv_path.name}.")
+    logger.info("Loaded %d rows from %s.", len(df), csv_path.name)
     return df
 
 
