@@ -1650,21 +1650,22 @@ class TestAnnualizationIntegration:
             "Sortino default should be 365.0"
 
 
+def _make_wf_data(n: int = 100) -> pd.DataFrame:
+    """Create n-row DataFrame suitable for walk-forward tests."""
+    rng = np.random.default_rng(42)
+    return pd.DataFrame({
+        "timestamp": pd.date_range("2025-01-01", periods=n, freq="D"),
+        "game": [f"TeamA vs TeamB_{i}" for i in range(n)],
+        "home_team": ["TeamA"] * n,
+        "away_team": [f"TeamB_{i}" for i in range(n)],
+        "home_odds": rng.uniform(1.5, 3.0, size=n).round(2),
+        "away_odds": rng.uniform(1.5, 3.0, size=n).round(2),
+        "home_win": rng.integers(0, 2, size=n),
+    })
+
+
 class TestTrainableStrategyProtocol:
     """Tests for TrainableStrategy protocol detection and walk-forward integration."""
-
-    def _make_wf_data(self, n: int = 100) -> pd.DataFrame:
-        """Create n-row DataFrame suitable for walk-forward tests."""
-        rng = np.random.default_rng(42)
-        return pd.DataFrame({
-            "timestamp": pd.date_range("2025-01-01", periods=n, freq="D"),
-            "game": [f"TeamA vs TeamB_{i}" for i in range(n)],
-            "home_team": ["TeamA"] * n,
-            "away_team": [f"TeamB_{i}" for i in range(n)],
-            "home_odds": rng.uniform(1.5, 3.0, size=n).round(2),
-            "away_odds": rng.uniform(1.5, 3.0, size=n).round(2),
-            "home_win": rng.integers(0, 2, size=n),
-        })
 
     def test_protocol_detected(self):
         """Class with fit + predict is recognized as TrainableStrategy."""
@@ -1700,7 +1701,7 @@ class TestTrainableStrategyProtocol:
             def predict(self, row: pd.Series, context=None) -> dict:
                 return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
 
-        data = self._make_wf_data(100)
+        data = _make_wf_data(100)
         model = TrackingModel()
         results = walk_forward_backtest(data, model, n_splits=3)
         # fit() must be called once per non-skipped fold
@@ -1730,7 +1731,7 @@ class TestTrainableStrategyProtocol:
                     return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.6}
                 return {"action": "SKIP"}
 
-        data = self._make_wf_data(100)
+        data = _make_wf_data(100)
         model = OddsThresholdModel()
         results = walk_forward_backtest(data, model, n_splits=3)
 
@@ -1749,37 +1750,34 @@ class TestTrainableStrategyProtocol:
         """fit() receives ONLY data chronologically before the test window."""
         from cuic_quant.backtest.walk_forward import walk_forward_backtest
 
-        fit_data_timestamps: list[pd.Timestamp] = []
-        test_start_timestamps: list[pd.Timestamp] = []
+        # Collect (max_train_ts, fold_index) pairs inside fit()
+        fit_max_timestamps: dict[int, pd.Timestamp] = {}
+        fold_counter = [0]
 
         class TimestampTracker:
             def fit(self, train_data: pd.DataFrame) -> None:
-                if len(train_data) > 0:
-                    max_ts = pd.to_datetime(train_data["timestamp"]).max()
-                    fit_data_timestamps.append(max_ts)
+                idx = fold_counter[0]
+                fold_counter[0] += 1
+                max_ts = pd.to_datetime(train_data["timestamp"]).max()
+                fit_max_timestamps[idx] = max_ts
 
             def predict(self, row: pd.Series, context=None) -> dict:
                 return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
 
-        data = self._make_wf_data(100)
+        data = _make_wf_data(100)
         model = TimestampTracker()
         results = walk_forward_backtest(data, model, n_splits=3)
 
-        # Collect test window start timestamps
-        for split in results["splits"]:
-            test_data = split["test_data"]
-            if len(test_data) > 0:
-                test_start_timestamps.append(
-                    pd.to_datetime(test_data["timestamp"]).min()
-                )
-
         # For each fold, max training timestamp must be < min test timestamp
-        assert len(fit_data_timestamps) == len(test_start_timestamps)
-        for i, (train_max, test_min) in enumerate(
-            zip(fit_data_timestamps, test_start_timestamps)
-        ):
+        assert len(fit_max_timestamps) == len(results["splits"]), (
+            f"fit() called {len(fit_max_timestamps)} times but "
+            f"{len(results['splits'])} folds ran"
+        )
+        for fold_idx, split in enumerate(results["splits"]):
+            train_max = fit_max_timestamps[fold_idx]
+            test_min = pd.to_datetime(split["test_data"]["timestamp"]).min()
             assert train_max < test_min, (
-                f"Fold {i}: training data max timestamp {train_max} >= "
+                f"Fold {fold_idx}: training data max timestamp {train_max} >= "
                 f"test start {test_min} — FUTURE DATA LEAKED INTO TRAINING"
             )
 
@@ -1787,33 +1785,24 @@ class TestTrainableStrategyProtocol:
         """Existing always_bet_home works unchanged through walk-forward."""
         from cuic_quant.backtest.walk_forward import walk_forward_backtest
 
-        data = self._make_wf_data(100)
+        data = _make_wf_data(100)
         # Should not raise — plain function backward compat
         results = walk_forward_backtest(data, always_bet_home, n_splits=3)
         assert results["aggregated_metrics"]["total_trades"] > 0
 
 
 class TestWalkForwardDataLeakage:
-    """Integration tests verifying walk-forward data isolation end-to-end."""
+    """Integration tests verifying walk-forward data isolation end-to-end.
 
-    def _make_wf_data(self, n: int = 100) -> pd.DataFrame:
-        """Create n-row DataFrame suitable for walk-forward tests."""
-        rng = np.random.default_rng(42)
-        return pd.DataFrame({
-            "timestamp": pd.date_range("2025-01-01", periods=n, freq="D"),
-            "game": [f"TeamA vs TeamB_{i}" for i in range(n)],
-            "home_team": ["TeamA"] * n,
-            "away_team": [f"TeamB_{i}" for i in range(n)],
-            "home_odds": rng.uniform(1.5, 3.0, size=n).round(2),
-            "away_odds": rng.uniform(1.5, 3.0, size=n).round(2),
-            "home_win": rng.integers(0, 2, size=n),
-        })
+    Complements TestTrainableStrategyProtocol by focusing on data integrity
+    rather than protocol mechanics.
+    """
 
     def test_train_test_no_overlap(self):
         """For every fold, assert zero row overlap between train and test."""
         from cuic_quant.backtest.walk_forward import walk_forward_backtest
 
-        data = self._make_wf_data(100)
+        data = _make_wf_data(100)
         results = walk_forward_backtest(data, always_bet_home, n_splits=3)
 
         for split in results["splits"]:
@@ -1838,7 +1827,7 @@ class TestWalkForwardDataLeakage:
             def predict(self, row: pd.Series, context=None) -> dict:
                 return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
 
-        data = self._make_wf_data(100)
+        data = _make_wf_data(100)
         model = ColumnTracker()
         walk_forward_backtest(data, model, n_splits=3)
 
@@ -1862,7 +1851,7 @@ class TestWalkForwardDataLeakage:
                 predict_columns.append(list(row.index))
                 return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
 
-        data = self._make_wf_data(100)
+        data = _make_wf_data(100)
         model = RowInspector()
         walk_forward_backtest(data, model, n_splits=3)
 
@@ -1885,7 +1874,7 @@ class TestWalkForwardDataLeakage:
             def predict(self, row: pd.Series, context=None) -> dict:
                 return {"action": "BUY_HOME", "size": 100.0, "confidence": 0.5}
 
-        data = self._make_wf_data(100)
+        data = _make_wf_data(100)
         model = ExpandTracker()
         results = expanding_window_backtest(
             data, model, min_train_size=30, step_size=10,
