@@ -2359,14 +2359,20 @@ class TestOverfittingProtection:
     def test_overfitting_report_skewness_kurtosis(self) -> None:
         """DSR should use provided skewness/kurtosis when available."""
         # With skew=-2, kurt=8 (typical betting returns), DSR p-value
-        # should be different from default skew=0, kurt=3
+        # should be different from default skew=0, kurt=3.
+        # Use multiple strategies so n_trials > 1 and DSR produces
+        # non-trivial p-values that vary with skewness/kurtosis.
+        base = [
+            {"name": "s2", "sharpe": 0.5, "p_value": 0.30, "n_trades": 100},
+            {"name": "s3", "sharpe": 0.3, "p_value": 0.50, "n_trades": 100},
+        ]
         strategies_with = [
             {"name": "s1", "sharpe": 1.5, "p_value": 0.01, "n_trades": 100,
              "skewness": -2.0, "kurtosis": 8.0},
-        ]
+        ] + base
         strategies_without = [
             {"name": "s1", "sharpe": 1.5, "p_value": 0.01, "n_trades": 100},
-        ]
+        ] + base
         report_with = overfitting_report(strategies_with, alpha=0.05)
         report_without = overfitting_report(strategies_without, alpha=0.05)
 

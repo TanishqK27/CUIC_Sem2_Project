@@ -492,11 +492,14 @@ def overfitting_report(
             - sharpe (float): Sharpe ratio
             - p_value (float): P-value from significance test
             - n_trades (int): Number of trades
+            - skewness (float, optional): Return skewness for DSR. Default 0.0.
+            - kurtosis (float, optional): Return kurtosis for DSR. Default 3.0.
         alpha: Family-wise error rate for corrections.
 
     Returns:
-        Dict with corrected_p_values, significant_after_correction,
-        deflated_sharpes, warnings.
+        Dict with bonferroni_significant, holm_significant,
+        benjamini_hochberg_significant, n_significant_bh,
+        deflated_sharpe_pvalues, warnings, and more.
     """
     report_warnings: list[str] = []
     n_strategies = len(strategy_results)
@@ -518,6 +521,9 @@ def overfitting_report(
     # Holm-Bonferroni correction
     holm_sig = holm_bonferroni_correction(p_values, alpha)
 
+    # Benjamini-Hochberg FDR correction
+    bh_sig = benjamini_hochberg_correction(p_values, alpha)
+
     # Deflated Sharpe Ratios
     deflated = []
     for sr in strategy_results:
@@ -525,6 +531,8 @@ def overfitting_report(
             observed_sharpe=sr.get("sharpe", 0.0),
             n_trials=n_strategies,
             n_observations=sr.get("n_trades", 100),
+            skewness=sr.get("skewness", 0.0),
+            kurtosis=sr.get("kurtosis", 3.0),
         )
         deflated.append(dsr)
 
@@ -541,6 +549,7 @@ def overfitting_report(
 
     n_bonferroni = sum(bonferroni_sig)
     n_holm = sum(holm_sig)
+    n_bh = sum(bh_sig)
 
     return {
         "n_strategies": n_strategies,
@@ -548,9 +557,11 @@ def overfitting_report(
         "raw_p_values": p_values,
         "bonferroni_significant": bonferroni_sig,
         "holm_significant": holm_sig,
+        "benjamini_hochberg_significant": bh_sig,
         "n_significant_raw": n_significant_raw,
         "n_significant_bonferroni": n_bonferroni,
         "n_significant_holm": n_holm,
+        "n_significant_bh": n_bh,
         "deflated_sharpe_pvalues": deflated,
         "expected_false_positives": expected_false,
         "warnings": report_warnings,
