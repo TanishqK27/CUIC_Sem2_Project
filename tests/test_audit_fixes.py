@@ -1534,11 +1534,11 @@ class TestComputePeriodsPerYear:
         """30 bets over days 0-9 (3/day): (30-1)/9 * 365.25 ≈ 1176.9."""
         from cuic_quant.metrics import _compute_periods_per_year
 
-        # 3 bets per day for 10 days = 30 bets, time span = 9 days
+        # 3 bets per day for 10 days = 30 bets, all at midnight → time span = 9 days exactly
         dates = []
         for d in range(10):
             base = pd.Timestamp("2025-01-01") + pd.Timedelta(days=d)
-            dates.extend([base, base + pd.Timedelta(hours=4), base + pd.Timedelta(hours=8)])
+            dates.extend([base, base, base])
         df = pd.DataFrame({"timestamp": dates, "pnl": [1.0] * 30})
         result = _compute_periods_per_year(df)
         expected = 29.0 / 9.0 * 365.25  # ≈ 1176.9
