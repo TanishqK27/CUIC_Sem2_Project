@@ -21,10 +21,19 @@ from cuic_quant.backtest.backtester_backend import (
     validate_backtest_results,
 )
 from cuic_quant.backtest.statistics import (
+    bonferroni_correction,
     deflated_sharpe_ratio,
+    holm_bonferroni_correction,
     minimum_sample_size,
+    overfitting_report,
+    probability_of_backtest_overfitting,
     significance_report,
 )
+
+try:
+    from cuic_quant.backtest.statistics import benjamini_hochberg_correction
+except ImportError:
+    benjamini_hochberg_correction = None  # type: ignore[assignment]
 
 
 # ============================================================================
@@ -2184,4 +2193,185 @@ class TestStatisticsMathAudit:
         assert any("sample size" in w.lower() or "small" in w.lower()
                     for w in report["warnings"]), (
             f"Expected small sample warning in {report['warnings']}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# S4 Overfitting Protection — BH-FDR, CSCV PBO, overfitting_report updates
+# ---------------------------------------------------------------------------
+
+
+class TestOverfittingProtection:
+    """Tests for S4: overfitting protection additions.
+
+    References:
+    - Benjamini & Hochberg (1995): Controlling the False Discovery Rate
+    - Bailey, Borwein, Lopez de Prado, Zhu (2017): Probability of Backtest
+      Overfitting (CSCV algorithm)
+    """
+
+    # ------------------------------------------------------------------
+    # Benjamini-Hochberg FDR
+    # ------------------------------------------------------------------
+
+    def test_bh_basic(self) -> None:
+        """BH with 5 p-values at alpha=0.05: first 4 should be rejected.
+
+        p-values sorted: [0.001, 0.01, 0.03, 0.04, 0.80]
+        Thresholds: [0.01, 0.02, 0.03, 0.04, 0.05]
+        p[0]=0.001 <= 0.01 ✓, p[1]=0.01 <= 0.02 ✓,
+        p[2]=0.03 <= 0.03 ✓, p[3]=0.04 <= 0.04 ✓,
+        p[4]=0.80 > 0.05 ✗
+        Largest k=3 (0-indexed), reject ranks 0-3 → first 4 rejected.
+        """
+        from cuic_quant.backtest.statistics import benjamini_hochberg_correction
+
+        p_values = [0.03, 0.001, 0.80, 0.04, 0.01]
+        result = benjamini_hochberg_correction(p_values, alpha=0.05)
+        # Indices 0(0.03), 1(0.001), 3(0.04), 4(0.01) should be True
+        # Index 2(0.80) should be False
+        assert result[0] is True, "p=0.03 should be rejected"
+        assert result[1] is True, "p=0.001 should be rejected"
+        assert result[2] is False, "p=0.80 should NOT be rejected"
+        assert result[3] is True, "p=0.04 should be rejected"
+        assert result[4] is True, "p=0.01 should be rejected"
+
+    def test_bh_vs_bonferroni(self) -> None:
+        """BH should reject at least as many as Bonferroni (more powerful)."""
+        from cuic_quant.backtest.statistics import benjamini_hochberg_correction
+
+        p_values = [0.001, 0.008, 0.02, 0.04, 0.06, 0.10, 0.50]
+        bh = benjamini_hochberg_correction(p_values, alpha=0.05)
+        bonf = bonferroni_correction(p_values, alpha=0.05)
+        assert sum(bh) >= sum(bonf), (
+            f"BH rejected {sum(bh)}, Bonferroni rejected {sum(bonf)} — "
+            f"BH should be at least as powerful"
+        )
+        # BH should reject MORE than Bonferroni for this dataset
+        # Bonferroni threshold = 0.05/7 ≈ 0.00714, only p=0.001 passes
+        # BH is less conservative
+        assert sum(bh) > sum(bonf), (
+            f"BH and Bonferroni rejected same count ({sum(bh)}) — "
+            f"BH should reject more for this dataset"
+        )
+
+    def test_bh_all_significant(self) -> None:
+        """When all p-values are tiny, all should be rejected."""
+        from cuic_quant.backtest.statistics import benjamini_hochberg_correction
+
+        p_values = [0.0001, 0.0002, 0.0003, 0.0004, 0.0005]
+        result = benjamini_hochberg_correction(p_values, alpha=0.05)
+        assert all(result), f"All tiny p-values should be rejected, got {result}"
+
+    # ------------------------------------------------------------------
+    # CSCV Probability of Backtest Overfitting
+    # ------------------------------------------------------------------
+
+    def test_pbo_cscv_no_overfitting(self) -> None:
+        """Strategy that genuinely outperforms: PBO should be low.
+
+        Create a returns matrix where strategy 0 has consistent positive
+        returns across ALL time blocks, while others are noise. The IS-best
+        should also be OOS-best in most combinations → PBO near 0.
+        """
+        rng = np.random.default_rng(42)
+        n_periods = 160  # 10 per group with n_groups=16
+        n_strategies = 5
+
+        # Strategy 0: consistent 0.1 return + small noise
+        # Strategies 1-4: pure noise centered at 0
+        returns = rng.normal(0.0, 1.0, size=(n_periods, n_strategies))
+        returns[:, 0] = 0.5 + rng.normal(0.0, 0.3, size=n_periods)
+
+        result = probability_of_backtest_overfitting(returns, n_groups=4)
+        assert isinstance(result, dict), f"Expected dict, got {type(result)}"
+        assert "pbo" in result, f"Missing 'pbo' key in {result.keys()}"
+        assert result["pbo"] < 0.3, (
+            f"PBO = {result['pbo']:.2f}, expected < 0.3 for a genuinely good strategy"
+        )
+
+    def test_pbo_cscv_complete_overfitting(self) -> None:
+        """Overfit strategy: good IS, bad OOS → PBO should be high.
+
+        Create returns where strategy 0 has a pattern that reverses halfway:
+        positive in first half, negative in second half. When IS gets mostly
+        first-half blocks, strategy 0 looks great; OOS (second-half) it fails.
+        """
+        rng = np.random.default_rng(123)
+        n_periods = 80  # 20 per group with n_groups=4
+        n_strategies = 4
+
+        returns = rng.normal(0.0, 0.5, size=(n_periods, n_strategies))
+        # Strategy 0: strong positive first half, strong negative second half
+        returns[:40, 0] = 2.0 + rng.normal(0.0, 0.2, size=40)
+        returns[40:, 0] = -2.0 + rng.normal(0.0, 0.2, size=40)
+
+        result = probability_of_backtest_overfitting(returns, n_groups=4)
+        assert result["pbo"] > 0.5, (
+            f"PBO = {result['pbo']:.2f}, expected > 0.5 for an overfit strategy"
+        )
+
+    def test_pbo_cscv_known_value(self) -> None:
+        """4 groups, C(4,2)=6 combinations: verify exact n_combinations.
+
+        With n_groups=4 and S/2=2, there are C(4,2)=6 IS/OOS splits.
+        """
+        rng = np.random.default_rng(99)
+        returns = rng.normal(0.0, 1.0, size=(40, 3))
+
+        result = probability_of_backtest_overfitting(returns, n_groups=4)
+        assert result["n_combinations"] == 6, (
+            f"Expected C(4,2)=6 combinations, got {result['n_combinations']}"
+        )
+        assert 0.0 <= result["pbo"] <= 1.0
+        assert len(result["logit_distribution"]) == 6
+
+    def test_pbo_cscv_n_combinations(self) -> None:
+        """n_groups=8 → C(8,4)=70 combinations."""
+        rng = np.random.default_rng(77)
+        returns = rng.normal(0.0, 1.0, size=(80, 3))
+
+        result = probability_of_backtest_overfitting(returns, n_groups=8)
+        assert result["n_combinations"] == 70, (
+            f"Expected C(8,4)=70 combinations, got {result['n_combinations']}"
+        )
+
+    # ------------------------------------------------------------------
+    # overfitting_report updates
+    # ------------------------------------------------------------------
+
+    def test_overfitting_report_with_bh(self) -> None:
+        """overfitting_report should include BH-FDR results."""
+        strategies = [
+            {"name": "good", "sharpe": 2.0, "p_value": 0.001, "n_trades": 200},
+            {"name": "ok", "sharpe": 1.0, "p_value": 0.02, "n_trades": 200},
+            {"name": "bad1", "sharpe": 0.3, "p_value": 0.40, "n_trades": 200},
+            {"name": "bad2", "sharpe": 0.1, "p_value": 0.60, "n_trades": 200},
+        ]
+        report = overfitting_report(strategies, alpha=0.05)
+        assert "benjamini_hochberg_significant" in report, (
+            f"Missing BH key in report: {report.keys()}"
+        )
+        assert "n_significant_bh" in report
+        # "good" (p=0.001) should survive BH correction with 4 tests
+        assert report["benjamini_hochberg_significant"][0] is True
+
+    def test_overfitting_report_skewness_kurtosis(self) -> None:
+        """DSR should use provided skewness/kurtosis when available."""
+        # With skew=-2, kurt=8 (typical betting returns), DSR p-value
+        # should be different from default skew=0, kurt=3
+        strategies_with = [
+            {"name": "s1", "sharpe": 1.5, "p_value": 0.01, "n_trades": 100,
+             "skewness": -2.0, "kurtosis": 8.0},
+        ]
+        strategies_without = [
+            {"name": "s1", "sharpe": 1.5, "p_value": 0.01, "n_trades": 100},
+        ]
+        report_with = overfitting_report(strategies_with, alpha=0.05)
+        report_without = overfitting_report(strategies_without, alpha=0.05)
+
+        dsr_with = report_with["deflated_sharpe_pvalues"][0]
+        dsr_without = report_without["deflated_sharpe_pvalues"][0]
+        assert dsr_with != dsr_without, (
+            f"DSR should differ with skew/kurt: with={dsr_with}, without={dsr_without}"
         )
