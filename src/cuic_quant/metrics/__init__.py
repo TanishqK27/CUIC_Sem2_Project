@@ -50,6 +50,19 @@ def _compute_periods_per_year(trades_df: pd.DataFrame) -> float:
 
     n_bets = len(timestamps)
     bets_per_year = (n_bets - 1) / (time_span_days / 365.25)
+
+    # B4: Cap at 3650 (≈10 bets/day) to prevent inflated Sharpe/Sortino
+    # from intraday or same-day multi-game scenarios
+    max_periods = 3650.0
+    if bets_per_year > max_periods:
+        warnings.warn(
+            f"Inferred {bets_per_year:.0f} bets/year from {n_bets} bets over "
+            f"{time_span_days:.2f} days — capping at {max_periods:.0f} to prevent "
+            f"inflated annualized ratios.",
+            stacklevel=3,
+        )
+        bets_per_year = max_periods
+
     return bets_per_year
 
 

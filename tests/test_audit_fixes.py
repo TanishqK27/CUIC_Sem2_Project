@@ -2596,3 +2596,40 @@ class TestBankrollRoundingClamp:
             assert row["bankroll"] >= 0.0, (
                 f"Bankroll went negative: {row['bankroll']}"
             )
+
+
+# ---------------------------------------------------------------------------
+# B4: periods_per_year cap for intraday data
+# ---------------------------------------------------------------------------
+
+
+class TestPeriodsPerYearCap:
+    """B4: _compute_periods_per_year must cap at 3650 for intraday data."""
+
+    def test_intraday_bets_capped(self) -> None:
+        """10 bets within 1 hour should be capped at 3650 periods/year."""
+        from cuic_quant.metrics import _compute_periods_per_year
+
+        base = pd.Timestamp("2026-01-01 12:00:00")
+        df = pd.DataFrame({
+            "timestamp": [base + pd.Timedelta(minutes=i * 6) for i in range(10)],
+        })
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            result = _compute_periods_per_year(df)
+
+        assert result == 3650.0, f"Expected 3650.0, got {result}"
+        assert any("capping" in str(w.message).lower() for w in caught), (
+            "Expected capping warning"
+        )
+
+    def test_normal_daily_bets_not_capped(self) -> None:
+        """Daily bets over 30 days should NOT be capped."""
+        from cuic_quant.metrics import _compute_periods_per_year
+
+        df = pd.DataFrame({
+            "timestamp": pd.date_range("2026-01-01", periods=30, freq="D"),
+        })
+        result = _compute_periods_per_year(df)
+        expected = (30 - 1) / (29.0 / 365.25)
+        assert abs(result - expected) < 0.1, f"Expected ~{expected}, got {result}"
