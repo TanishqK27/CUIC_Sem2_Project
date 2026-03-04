@@ -275,6 +275,52 @@ def holm_bonferroni_correction(
     return significant
 
 
+def benjamini_hochberg_correction(
+    p_values: list[float],
+    alpha: float = 0.05,
+) -> list[bool]:
+    """Benjamini-Hochberg FDR correction for multiple testing.
+
+    Controls the false discovery rate (expected proportion of false
+    positives among rejections). Less conservative than Bonferroni/Holm
+    for large strategy pools.
+
+    Algorithm (Benjamini & Hochberg, 1995):
+      1. Sort p-values ascending with rank i (1-indexed)
+      2. Threshold for rank i: (i / n) * alpha
+      3. Find largest k where p[k] <= threshold[k]
+      4. Reject all hypotheses with rank <= k
+
+    Args:
+        p_values: List of p-values from multiple strategy tests.
+        alpha: False discovery rate to control.
+
+    Returns:
+        List of bools: True if significant after FDR correction.
+    """
+    n = len(p_values)
+    if n == 0:
+        return []
+
+    # Sort p-values with original indices
+    indexed = sorted(enumerate(p_values), key=lambda x: x[1])
+
+    # Find largest rank k where p[k] <= (k/n) * alpha
+    max_k = -1
+    for rank_0, (_orig_idx, p) in enumerate(indexed):
+        rank_1 = rank_0 + 1  # BH uses 1-indexed ranks
+        if p <= (rank_1 / n) * alpha:
+            max_k = rank_0
+
+    # Reject all hypotheses with rank <= max_k
+    significant = [False] * n
+    for rank_0, (orig_idx, _p) in enumerate(indexed):
+        if rank_0 <= max_k:
+            significant[orig_idx] = True
+
+    return significant
+
+
 def deflated_sharpe_ratio(
     observed_sharpe: float,
     n_trials: int,
@@ -471,6 +517,7 @@ __all__ = [
     "significance_report",
     "bonferroni_correction",
     "holm_bonferroni_correction",
+    "benjamini_hochberg_correction",
     "deflated_sharpe_ratio",
     "probability_of_backtest_overfitting",
     "overfitting_report",
