@@ -1516,3 +1516,135 @@ class TestInitialBankrollResolution:
 
         with pytest.raises(ValueError, match="positive"):
             calculate_max_drawdown(pd.Series([100.0, 200.0]), initial_bankroll=0.0)
+
+
+class TestComputePeriodsPerYear:
+    """Unit tests for _compute_periods_per_year fencepost fix and fallbacks."""
+
+    def test_one_bet_per_day(self):
+        """10 bets on consecutive days 0-9: (10-1)/9 * 365.25 = 365.25."""
+        from cuic_quant.metrics import _compute_periods_per_year
+
+        dates = pd.date_range("2025-01-01", periods=10, freq="D")
+        df = pd.DataFrame({"timestamp": dates, "pnl": [1.0] * 10})
+        result = _compute_periods_per_year(df)
+        assert result == pytest.approx(365.25, rel=1e-6), f"Expected 365.25, got {result}"
+
+    def test_three_bets_per_day(self):
+        """30 bets over days 0-9 (3/day): (30-1)/9 * 365.25 ≈ 1176.9."""
+        from cuic_quant.metrics import _compute_periods_per_year
+
+        # 3 bets per day for 10 days = 30 bets, time span = 9 days
+        dates = []
+        for d in range(10):
+            base = pd.Timestamp("2025-01-01") + pd.Timedelta(days=d)
+            dates.extend([base, base + pd.Timedelta(hours=4), base + pd.Timedelta(hours=8)])
+        df = pd.DataFrame({"timestamp": dates, "pnl": [1.0] * 30})
+        result = _compute_periods_per_year(df)
+        expected = 29.0 / 9.0 * 365.25  # ≈ 1176.9
+        assert result == pytest.approx(expected, rel=1e-6), f"Expected {expected}, got {result}"
+
+    def test_one_bet_per_week(self):
+        """5 bets on days 0,7,14,21,28: (5-1)/28 * 365.25 ≈ 52.18."""
+        from cuic_quant.metrics import _compute_periods_per_year
+
+        dates = [pd.Timestamp("2025-01-01") + pd.Timedelta(weeks=w) for w in range(5)]
+        df = pd.DataFrame({"timestamp": dates, "pnl": [1.0] * 5})
+        result = _compute_periods_per_year(df)
+        expected = 4.0 / 28.0 * 365.25  # ≈ 52.18
+        assert result == pytest.approx(expected, rel=1e-6), f"Expected {expected}, got {result}"
+
+    def test_two_bets_fencepost(self):
+        """2 bets 7 days apart: (2-1)/7 * 365.25 = 52.18, NOT 104.36."""
+        from cuic_quant.metrics import _compute_periods_per_year
+
+        dates = [pd.Timestamp("2025-01-01"), pd.Timestamp("2025-01-08")]
+        df = pd.DataFrame({"timestamp": dates, "pnl": [1.0] * 2})
+        result = _compute_periods_per_year(df)
+        correct = 1.0 / 7.0 * 365.25  # 52.18
+        wrong = 2.0 / 7.0 * 365.25    # 104.36 (old formula)
+        assert result == pytest.approx(correct, rel=1e-6), f"Expected {correct}, got {result}"
+        assert result != pytest.approx(wrong, rel=0.01), "Got the old fencepost-error value"
+
+    def test_no_timestamp_column_warns(self):
+        """DataFrame without timestamp column returns 365.0 and emits warning."""
+        from cuic_quant.metrics import _compute_periods_per_year
+
+        df = pd.DataFrame({"pnl": [1.0, 2.0, 3.0]})
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = _compute_periods_per_year(df)
+        assert result == 365.0
+        assert any("timestamp" in str(wn.message).lower() for wn in w), \
+            f"Expected warning about missing timestamp, got: {[str(wn.message) for wn in w]}"
+
+    def test_same_timestamp_warns(self):
+        """All bets at identical timestamp returns 365.0 and emits warning."""
+        from cuic_quant.metrics import _compute_periods_per_year
+
+        ts = pd.Timestamp("2025-06-01")
+        df = pd.DataFrame({"timestamp": [ts, ts, ts], "pnl": [1.0] * 3})
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = _compute_periods_per_year(df)
+        assert result == 365.0
+        assert any("timestamp" in str(wn.message).lower() or "same" in str(wn.message).lower()
+                    for wn in w), \
+            f"Expected warning about same timestamps, got: {[str(wn.message) for wn in w]}"
+
+
+class TestAnnualizationIntegration:
+    """Integration tests for Sharpe/Sortino annualization through calculate_all_metrics."""
+
+    def test_periods_per_year_in_metrics(self):
+        """calculate_all_metrics stores computed periods_per_year in output."""
+        from cuic_quant.metrics import calculate_all_metrics
+
+        results = _run_backtest()
+        metrics = calculate_all_metrics(results)
+        assert "periods_per_year" in metrics
+        assert metrics["periods_per_year"] > 0
+        assert math.isfinite(metrics["periods_per_year"])
+
+    def test_sharpe_scales_with_sqrt_frequency(self):
+        """Sharpe with periods_per_year=400 is 2x Sharpe with periods_per_year=100."""
+        from cuic_quant.metrics import calculate_sharpe_ratio
+
+        # Use returns with non-zero mean and non-zero variance
+        returns = pd.Series([0.05, -0.02, 0.03, -0.01, 0.04, -0.03, 0.02, 0.01])
+        sharpe_100 = calculate_sharpe_ratio(returns, periods_per_year=100)
+        sharpe_400 = calculate_sharpe_ratio(returns, periods_per_year=400)
+        # sqrt(400) / sqrt(100) = 20/10 = 2.0
+        if sharpe_100 != 0.0:
+            ratio = sharpe_400 / sharpe_100
+            assert ratio == pytest.approx(2.0, rel=1e-6), \
+                f"Expected ratio 2.0 (sqrt scaling), got {ratio}"
+
+    def test_sortino_scales_with_sqrt_frequency(self):
+        """Sortino with periods_per_year=400 is 2x Sortino with periods_per_year=100."""
+        from cuic_quant.metrics import calculate_sortino_ratio
+
+        # Use returns with some negative values (needed for non-zero downside deviation)
+        returns = pd.Series([0.05, -0.02, 0.03, -0.01, 0.04, -0.03, 0.02, 0.01])
+        sortino_100 = calculate_sortino_ratio(returns, periods_per_year=100)
+        sortino_400 = calculate_sortino_ratio(returns, periods_per_year=400)
+        if sortino_100 != 0.0:
+            ratio = sortino_400 / sortino_100
+            assert ratio == pytest.approx(2.0, rel=1e-6), \
+                f"Expected ratio 2.0 (sqrt scaling), got {ratio}"
+
+    def test_sharpe_default_matches_sortino_default(self):
+        """Both functions use 365.0 as default periods_per_year."""
+        from cuic_quant.metrics import calculate_sharpe_ratio, calculate_sortino_ratio
+
+        returns = pd.Series([0.05, -0.02, 0.03, -0.01, 0.04, -0.03, 0.02, 0.01])
+        # Call without specifying periods_per_year — both should use 365.0
+        sharpe_default = calculate_sharpe_ratio(returns)
+        sharpe_365 = calculate_sharpe_ratio(returns, periods_per_year=365.0)
+        assert sharpe_default == pytest.approx(sharpe_365, rel=1e-10), \
+            "Sharpe default should be 365.0"
+
+        sortino_default = calculate_sortino_ratio(returns)
+        sortino_365 = calculate_sortino_ratio(returns, periods_per_year=365.0)
+        assert sortino_default == pytest.approx(sortino_365, rel=1e-10), \
+            "Sortino default should be 365.0"
