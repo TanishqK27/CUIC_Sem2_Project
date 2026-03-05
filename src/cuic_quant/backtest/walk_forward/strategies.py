@@ -10,8 +10,11 @@ Functions:
 from __future__ import annotations
 
 import itertools
+import logging
 import warnings
 from typing import Any, Callable
+
+logger = logging.getLogger(__name__)
 
 import pandas as pd
 
@@ -103,10 +106,8 @@ def walk_forward_backtest(
         # data with no training is not a valid walk-forward fold and
         # corrupts aggregated OOS metrics.
         if len(train_data) == 0:
-            warnings.warn(
-                f"Walk-forward fold {i} has zero training data — skipping. "
-                f"This typically happens for fold 0.",
-                stacklevel=2,
+            logger.debug(
+                "Walk-forward fold %d has zero training data — skipping.", i,
             )
             continue
 
