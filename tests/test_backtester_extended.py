@@ -166,16 +166,18 @@ class TestLoadBacktestDataDatabase:
         """Mock DATABASE_URL and verify DB path is attempted."""
         monkeypatch.setenv("DATABASE_URL", "postgresql://fake:5432/testdb")
 
-        # Fake price_snapshots rows — two snapshots for one game.
-        # First snapshot = opening odds, last snapshot = closing odds + settlement.
+        # Fake joined result from historical_odds + combined_player_stats.
+        # The DB query returns one row per game with opening/closing ML and outcome.
         fake_raw = pd.DataFrame({
-            "timestamp": pd.to_datetime(["2026-01-15 10:00", "2026-01-15 22:00"]),
-            "game": ["Hawks @ Celtics", "Hawks @ Celtics"],
-            "home": ["Celtics", "Celtics"],
-            "away": ["Hawks", "Hawks"],
-            "pm_home_prob": [0.65, 0.95],  # Settled → home win
-            "sb_home_ml": [-200.0, -250.0],  # → decimal 1.50, 1.40
-            "sb_away_ml": [170.0, 210.0],  # → decimal 2.70, 3.10
+            "timestamp": pd.to_datetime(["2026-01-15 10:00"]),
+            "game": ["ATL vs BOS"],
+            "home_team": ["BOS"],
+            "away_team": ["ATL"],
+            "open_home_ml": [-200.0],    # -> decimal 1.50
+            "open_away_ml": [170.0],     # -> decimal 2.70
+            "closing_home_ml": [-250.0], # -> decimal 1.40
+            "closing_away_ml": [210.0],  # -> decimal 3.10
+            "home_win": [1],
         })
 
         mock_engine = MagicMock()
@@ -194,13 +196,13 @@ class TestLoadBacktestDataDatabase:
         mock_read_sql.assert_called_once()
         assert len(df) == 1
         row = df.iloc[0]
-        assert row["game"] == "Hawks @ Celtics"
-        assert row["home_team"] == "Celtics"
+        assert row["game"] == "ATL vs BOS"
+        assert row["home_team"] == "BOS"
         assert row["home_win"] == 1
-        assert row["home_odds"] == 1.5  # -200 ML → 1.50
-        assert row["away_odds"] == 2.7  # +170 ML → 2.70
-        assert row["closing_home_odds"] == 1.4  # -250 ML → 1.40
-        assert row["closing_away_odds"] == 3.1  # +210 ML → 3.10
+        assert row["home_odds"] == 1.5  # -200 ML -> 1.50
+        assert row["away_odds"] == 2.7  # +170 ML -> 2.70
+        assert row["closing_home_odds"] == 1.4  # -250 ML -> 1.40
+        assert row["closing_away_odds"] == 3.1  # +210 ML -> 3.10
 
     def test_falls_back_on_db_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Should fall back to CSV when DB query fails."""

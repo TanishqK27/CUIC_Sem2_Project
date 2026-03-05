@@ -55,61 +55,95 @@ def _moneyline_to_decimal(ml: float) -> float:
         return 1.0  # Even money
 
 
-def _build_game_rows(raw: pd.DataFrame) -> pd.DataFrame:
-    """Collapse per-snapshot rows into one row per game.
+# ---------------------------------------------------------------------------
+# Database query
+# ---------------------------------------------------------------------------
 
-    For each game:
-    - timestamp: earliest snapshot (game commence time)
-    - home_odds / away_odds: first snapshot's moneyline → decimal
-    - closing_home_odds / closing_away_odds: last snapshot's moneyline → decimal
-    - home_win: derived from final pm_home_prob (≥0.9 → 1, ≤0.1 → 0)
-    """
+# Joins historical_odds (opening/closing moneyline from multiple bookmakers)
+# with combined_player_stats (actual final scores) to get ground-truth outcomes.
+# commence_time is UTC; game_date in stats uses US Eastern, so we subtract
+# 5 hours to align dates for the join.
+_HISTORICAL_ODDS_QUERY = """
+    WITH first_odds AS (
+        SELECT DISTINCT ON (game_id)
+            game_id, home_team_abbr, away_team_abbr,
+            commence_time,
+            (commence_time - interval '5 hours')::date AS game_date_est,
+            avg_home_ml, avg_away_ml
+        FROM historical_odds
+        ORDER BY game_id, snapshot_timestamp ASC
+    ),
+    last_odds AS (
+        SELECT DISTINCT ON (game_id)
+            game_id,
+            avg_home_ml AS closing_home_ml,
+            avg_away_ml AS closing_away_ml
+        FROM historical_odds
+        ORDER BY game_id, snapshot_timestamp DESC
+    ),
+    scores AS (
+        SELECT game_date::date AS gd,
+               MAX(CASE WHEN team_pre_is_home = 1 THEN team_abbr END) AS home_abbr,
+               MAX(CASE WHEN team_pre_is_home = 0 THEN team_abbr END) AS away_abbr,
+               MAX(CASE WHEN team_pre_is_home = 1 THEN team_pts END) AS home_pts,
+               MAX(CASE WHEN team_pre_is_home = 0 THEN team_pts END) AS away_pts
+        FROM combined_player_stats
+        WHERE team_pts IS NOT NULL
+        GROUP BY game_id, game_date
+    )
+    SELECT fo.commence_time AS timestamp,
+           fo.home_team_abbr || ' vs ' || fo.away_team_abbr AS game,
+           fo.home_team_abbr AS home_team,
+           fo.away_team_abbr AS away_team,
+           fo.avg_home_ml AS open_home_ml,
+           fo.avg_away_ml AS open_away_ml,
+           lo.closing_home_ml,
+           lo.closing_away_ml,
+           CASE WHEN s.home_pts > s.away_pts THEN 1 ELSE 0 END AS home_win
+    FROM first_odds fo
+    JOIN last_odds lo ON fo.game_id = lo.game_id
+    JOIN scores s ON fo.home_team_abbr = s.home_abbr
+                  AND fo.game_date_est = s.gd
+    WHERE fo.game_date_est >= :start_date
+      AND fo.game_date_est < :end_date_exclusive
+    ORDER BY fo.commence_time
+"""
+
+
+def _build_db_dataframe(raw: pd.DataFrame) -> pd.DataFrame:
+    """Convert raw DB rows into backtester format with decimal odds."""
     rows: list[dict] = []
 
-    for game_name, grp in raw.groupby("game"):
-        grp = grp.sort_values("timestamp")
-        first = grp.iloc[0]
-        last = grp.iloc[-1]
-
-        # Derive outcome from final Polymarket probability.
-        # Settled markets go to ~1.0 (home win) or ~0.0 (away win).
-        final_prob = last["pm_home_prob"]
-        if pd.isna(final_prob):
-            continue  # Can't determine outcome
-        if final_prob >= 0.9:
-            home_win = 1
-        elif final_prob <= 0.1:
-            home_win = 0
-        else:
-            # Game hasn't settled or ambiguous — skip
+    for _, r in raw.iterrows():
+        open_home_ml = r["open_home_ml"]
+        open_away_ml = r["open_away_ml"]
+        if pd.isna(open_home_ml) or pd.isna(open_away_ml):
             continue
 
-        # Convert moneyline to decimal odds (opening)
-        home_ml = first.get("sb_home_ml")
-        away_ml = first.get("sb_away_ml")
-        if pd.isna(home_ml) or pd.isna(away_ml):
-            continue  # No sportsbook odds available
+        home_odds = _moneyline_to_decimal(float(open_home_ml))
+        away_odds = _moneyline_to_decimal(float(open_away_ml))
 
-        home_odds = _moneyline_to_decimal(float(home_ml))
-        away_odds = _moneyline_to_decimal(float(away_ml))
-
-        # Skip invalid odds (must be > 1.0)
+        # Skip invalid odds (must be > 1.0 and <= 50.0).
+        # Near-zero moneylines (e.g. avg_home_ml = -1.2 from averaging
+        # bookmakers with opposing signs) produce absurd decimal odds.
         if home_odds <= 1.0 or away_odds <= 1.0:
+            continue
+        if home_odds > 50.0 or away_odds > 50.0:
             continue
 
         row = {
-            "timestamp": first["timestamp"],
-            "game": game_name,
-            "home_team": first["home"],
-            "away_team": first["away"],
+            "timestamp": r["timestamp"],
+            "game": r["game"],
+            "home_team": r["home_team"],
+            "away_team": r["away_team"],
             "home_odds": round(home_odds, 4),
             "away_odds": round(away_odds, 4),
-            "home_win": home_win,
+            "home_win": int(r["home_win"]),
         }
 
         # Closing odds for CLV analysis
-        closing_home_ml = last.get("sb_home_ml")
-        closing_away_ml = last.get("sb_away_ml")
+        closing_home_ml = r.get("closing_home_ml")
+        closing_away_ml = r.get("closing_away_ml")
         if not pd.isna(closing_home_ml) and not pd.isna(closing_away_ml):
             row["closing_home_odds"] = round(
                 _moneyline_to_decimal(float(closing_home_ml)), 4
@@ -153,10 +187,10 @@ def load_backtest_data(
     local CSV file (development/testing).
 
     How:
-        1. Try the Railway PostgreSQL database (price_snapshots table).
-           Collapses multiple snapshots per game into one row with opening
-           odds, closing odds, and outcome derived from final Polymarket
-           settlement probability.
+        1. Try the Railway PostgreSQL database. Joins historical_odds
+           (opening/closing moneyline from bookmakers) with
+           combined_player_stats (actual final scores) to get one row
+           per game with ground-truth outcomes — no guesswork.
         2. If the DB is unavailable (IP restriction, timeout, etc.), fall
            back to a local CSV file.
 
@@ -202,30 +236,11 @@ def load_backtest_data(
                 connect_args={"connect_timeout": 10},
             )
 
-            # Query all snapshots for games in the date range.
-            # We collapse them into one row per game in Python (_build_game_rows)
-            # because the aggregation logic (first/last per game, moneyline
-            # conversion, outcome derivation) is complex for raw SQL.
-            query = text("""
-                SELECT
-                    timestamp,
-                    game,
-                    home,
-                    away,
-                    pm_home_prob,
-                    sb_home_ml,
-                    sb_away_ml
-                FROM price_snapshots
-                WHERE game_date >= :start_date
-                  AND game_date < :end_date_exclusive
-                  AND sb_home_ml IS NOT NULL
-                  AND sb_away_ml IS NOT NULL
-                ORDER BY game, timestamp ASC
-            """)
-
             end_date_exclusive = str(
                 pd.Timestamp(end_date) + pd.Timedelta(days=1)
             )
+
+            query = text(_HISTORICAL_ODDS_QUERY)
 
             with engine.connect() as conn:
                 raw = pd.read_sql(
@@ -239,21 +254,21 @@ def load_backtest_data(
             if len(raw) == 0:
                 raise RuntimeError(
                     "Database query returned 0 rows — no games with "
-                    "sportsbook odds in the requested date range."
+                    "odds and scores in the requested date range."
                 )
 
-            df = _build_game_rows(raw)
+            df = _build_db_dataframe(raw)
 
             if len(df) == 0:
                 raise RuntimeError(
-                    f"Found {len(raw)} snapshots but 0 settled games — "
-                    "no games with clear outcomes in the date range."
+                    f"Found {len(raw)} raw rows but 0 valid games after "
+                    "moneyline conversion."
                 )
 
             df = df.sort_values(["timestamp", "game"]).reset_index(drop=True)
             logger.info(
-                "Loaded %d games from Railway database (%d raw snapshots).",
-                len(df), len(raw),
+                "Loaded %d games from database (%s to %s).",
+                len(df), start_date, end_date,
             )
             return df
 

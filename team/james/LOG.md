@@ -15,6 +15,43 @@ Use the `/update-log` skill:
 
 ## Log Entries
 
+### 2026-03-05 — Database Integration: historical_odds + combined_player_stats
+
+**Problem:** The backtester was only using 126 games from `price_snapshots` (Jan-Mar 2026),
+which derives outcomes from Polymarket settlement probabilities. The `historical_odds` table
+has 1,055 NBA games going back to Oct 2024, but has no confirmed outcomes — only sportsbook
+odds. Using inferred outcomes from extreme closing odds would introduce guesswork into the
+backtester, defeating its purpose.
+
+**Solution:** Joined `historical_odds` with `combined_player_stats` (which has actual final
+scores from the NBA API — ground truth, no inference). This gives us **871 games** with
+real moneyline odds AND confirmed outcomes from Oct 2024 to Feb 2026.
+
+**Issues encountered:**
+1. **Timezone mismatch:** `historical_odds.commence_time` is UTC, but
+   `combined_player_stats.game_date` uses US Eastern dates. A game at 23:40 UTC on Oct 22
+   has `game_date = '2024-10-22'` in stats but `commence_time::date = '2024-10-22'` or
+   `'2024-10-23'` depending on timezone. Fix: subtract 5 hours from UTC before casting to
+   date. This increased match rate from 236 to 881 games.
+
+2. **Extreme moneyline from averaging:** When bookmakers disagree on the favorite (some have
+   positive, some negative ML), the average can be near-zero (e.g., `avg_home_ml = -1.2`).
+   The moneyline-to-decimal formula produces absurd odds (84.33x) for these. Fix: cap decimal
+   odds at 50.0 — filters out ~10 bad data points.
+
+3. **Data gap:** `historical_odds` has almost no data from Dec 2024 - Sep 2025 (only 14 games).
+   Coverage is strong for Oct-Nov 2024 and Oct 2025 - Feb 2026.
+
+**Files changed:**
+- `src/cuic_quant/backtest/data_loader.py` — replaced `price_snapshots` query with
+  `historical_odds` + `combined_player_stats` join; added `_build_db_dataframe()`;
+  added odds cap at 50.0
+- `tests/test_backtester_extended.py` — updated mock test for new query output format
+
+**Tests:** 385/385 passing.
+
+---
+
 ### M1: Metrics Audit — bet_frequency fencepost fix + known-value tests
 **Date:** 2026-03-04
 **Commits:** 8562ea0, 2bb3ce0
