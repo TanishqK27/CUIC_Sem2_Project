@@ -218,7 +218,8 @@ data/external/*
 !data/external/.gitkeep
 
 # Cache
-data/cache/
+data/cache/*
+!data/cache/.gitkeep
 
 # Large files
 *.csv
@@ -329,3 +330,13 @@ proxies.txt
 # Node (if any JS tools are used)
 node_modules/
 package-lock.json
+
+# LaTeX build artifacts
+*.aux
+*.out
+*.toc
+*.log
+*.synctex.gz
+
+# Runtime checkpoint files
+data/.nba_checkpoint.json

@@ -11,12 +11,6 @@
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.autoImportCompletions": true,
     "jupyter.notebookFileRoot": "${workspaceFolder}",
-    "jupyter.kernels.filter": [
-        {
-            "path": "${workspaceFolder}/.venv/bin/python",
-            "type": "pythonEnvironment"
-        }
-    ],
     "files.exclude": {
         "**/__pycache__": true,
         "**/.pytest_cache": true,
@@ -24,5 +18,9 @@
     },
     "editor.rulers": [88],
     "files.trimTrailingWhitespace": true,
-    "files.insertFinalNewline": true
+    "files.insertFinalNewline": true,
+    "jupyter.kernels.excludePythonEnvironments": [
+        "${workspaceFolder}/.venv/bin/python"
+    ],
+    "explorer.sortOrder": "foldersNestsFiles"
 }

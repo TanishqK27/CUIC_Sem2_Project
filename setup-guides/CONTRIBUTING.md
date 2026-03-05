@@ -246,7 +246,7 @@ class TestKellyCriterion:
 
 Use a clear, descriptive title:
 
-```
+```text
 feat: Add Polymarket API client
 fix: Correct Kelly criterion edge case
 docs: Update API key setup guide
@@ -293,7 +293,7 @@ Before requesting review:
 
 ### Format
 
-```
+```text
 <type>: <short description>
 
 <optional longer description>
@@ -359,9 +359,11 @@ git commit -m "WIP"
 ### Adding a Research Notebook
 
 1. **Create from template**:
-   ```
+
+   ```text
    /research-template <category> <name>
    ```
+
    Categories: `polymarket`, `kalshi`, `sports`, `exploratory`
 
 2. **Structure your notebook**:
@@ -386,12 +388,14 @@ git commit -m "WIP"
 ## Security
 
 **Never commit:**
+
 - API keys or secrets
 - `.env` files with real values
 - Credentials or passwords
 - Personal access tokens
 
 If you accidentally commit secrets:
+
 1. Immediately rotate the exposed credentials
 2. Contact the team lead
 3. Use `git filter-branch` or BFG Repo-Cleaner to remove from history

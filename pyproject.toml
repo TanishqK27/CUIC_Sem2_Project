@@ -104,7 +104,6 @@ all = [
 Repository = "https://github.com/CUIC/CUIC_Sem2_Project"
 
 [project.scripts]
-sync-logs = "scripts.sync_logs:main"
 cuic-quant = "cuic_quant.cli:main"
 
 [tool.setuptools.packages.find]
