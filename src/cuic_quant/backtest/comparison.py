@@ -194,6 +194,7 @@ def detect_suspicious_results(
     results: pd.DataFrame,
     input_data: pd.DataFrame | None = None,
     n_trades_threshold: int = 20,
+    alpha: float = 0.01,
 ) -> dict[str, Any]:
     """Detect statistically suspicious backtest results (possible data leakage).
 
@@ -260,7 +261,7 @@ def detect_suspicious_results(
 
         checks.append({
             "name": "win_rate_vs_odds",
-            "passed": p_val > 0.001,
+            "passed": p_val > alpha,
             "p_value": p_val,
             "detail": (
                 f"Win rate {win_rate:.1%} vs implied {implied_win_rate:.1%} "
@@ -371,7 +372,7 @@ def detect_suspicious_results(
 
         checks.append({
             "name": "runs_test",
-            "passed": p_runs > 0.01,
+            "passed": p_runs > alpha,
             "p_value": p_runs,
             "detail": (
                 f"{runs} runs observed, ~{expected_runs:.1f} expected "
@@ -464,7 +465,7 @@ def validate_no_leakage_statistical(
     Returns:
         Dict with passed, checks, warnings.
     """
-    detection = detect_suspicious_results(results, input_data)
+    detection = detect_suspicious_results(results, input_data, alpha=alpha)
 
     passed = not detection["is_suspicious"]
     return {

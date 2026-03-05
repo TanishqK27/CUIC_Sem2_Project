@@ -268,7 +268,7 @@ def backtest(
                 )
                 continue
             try:
-                home_win_int = int(home_win_val)
+                home_win_float = float(home_win_val)
             except (TypeError, ValueError):
                 warnings.warn(
                     f"Non-numeric home_win={home_win_val!r} for game "
@@ -276,13 +276,16 @@ def backtest(
                     stacklevel=2,
                 )
                 continue
-            if home_win_int not in (0, 1):
+            # Reject non-binary values (e.g. 0.7) — int() would silently
+            # truncate 0.7 to 0, misclassifying the outcome.
+            if home_win_float not in (0.0, 1.0):
                 warnings.warn(
-                    f"home_win={home_win_int} for game '{row['game']}' is not "
+                    f"home_win={home_win_val!r} for game '{row['game']}' is not "
                     f"0 or 1 — skipping row.",
                     stacklevel=2,
                 )
                 continue
+            home_win_int = int(home_win_float)
 
             # Update context for strategy — deep copies to prevent mutation
             context: dict[str, Any] = {

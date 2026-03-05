@@ -181,11 +181,13 @@ def calculate_half_life(prices: list[float] | np.ndarray) -> float | None:
 
         if beta >= 0:
             return None  # Not mean-reverting
+        if beta <= -1:
+            return None  # Oscillatory / explosive — not OU mean-reverting
 
         # Half-life = -ln(2) / ln(1 + β)
         half_life = -np.log(2) / np.log(1 + beta)
 
-        return max(0, half_life)
+        return max(0.0, half_life)
 
     except (ZeroDivisionError, RuntimeWarning):
         return None
@@ -282,6 +284,8 @@ def rsi(
     avg_gain = np.mean(gains[-period:])
     avg_loss = np.mean(losses[-period:])
 
+    if avg_loss == 0 and avg_gain == 0:
+        return 50.0  # No movement — neutral
     if avg_loss == 0:
         return 100.0
 
