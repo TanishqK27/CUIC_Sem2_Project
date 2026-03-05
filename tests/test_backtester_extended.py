@@ -166,14 +166,16 @@ class TestLoadBacktestDataDatabase:
         """Mock DATABASE_URL and verify DB path is attempted."""
         monkeypatch.setenv("DATABASE_URL", "postgresql://fake:5432/testdb")
 
-        fake_df = pd.DataFrame({
-            "timestamp": pd.to_datetime(["2026-01-15"]),
-            "game": ["A vs B"],
-            "home_team": ["A"],
-            "away_team": ["B"],
-            "home_odds": [1.90],
-            "away_odds": [2.10],
-            "home_win": [1],
+        # Fake price_snapshots rows — two snapshots for one game.
+        # First snapshot = opening odds, last snapshot = closing odds + settlement.
+        fake_raw = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2026-01-15 10:00", "2026-01-15 22:00"]),
+            "game": ["Hawks @ Celtics", "Hawks @ Celtics"],
+            "home": ["Celtics", "Celtics"],
+            "away": ["Hawks", "Hawks"],
+            "pm_home_prob": [0.65, 0.95],  # Settled → home win
+            "sb_home_ml": [-200.0, -250.0],  # → decimal 1.50, 1.40
+            "sb_away_ml": [170.0, 210.0],  # → decimal 2.70, 3.10
         })
 
         mock_engine = MagicMock()
@@ -181,10 +183,8 @@ class TestLoadBacktestDataDatabase:
         mock_engine.connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
         mock_engine.connect.return_value.__exit__ = MagicMock(return_value=False)
 
-        # The function does `from sqlalchemy import create_engine, text` inside the body,
-        # so we patch on the sqlalchemy module itself.
         with (
-            patch("cuic_quant.backtest.data_loader.pd.read_sql", return_value=fake_df) as mock_read_sql,
+            patch("cuic_quant.backtest.data_loader.pd.read_sql", return_value=fake_raw) as mock_read_sql,
             patch("sqlalchemy.create_engine", return_value=mock_engine),
             patch("sqlalchemy.text") as mock_text,
         ):
@@ -193,7 +193,14 @@ class TestLoadBacktestDataDatabase:
         # read_sql was called (DB path was attempted)
         mock_read_sql.assert_called_once()
         assert len(df) == 1
-        assert df.iloc[0]["game"] == "A vs B"
+        row = df.iloc[0]
+        assert row["game"] == "Hawks @ Celtics"
+        assert row["home_team"] == "Celtics"
+        assert row["home_win"] == 1
+        assert row["home_odds"] == 1.5  # -200 ML → 1.50
+        assert row["away_odds"] == 2.7  # +170 ML → 2.70
+        assert row["closing_home_odds"] == 1.4  # -250 ML → 1.40
+        assert row["closing_away_odds"] == 3.1  # +210 ML → 3.10
 
     def test_falls_back_on_db_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Should fall back to CSV when DB query fails."""
