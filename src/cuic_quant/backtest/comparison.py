@@ -140,30 +140,49 @@ def display_comparison(
         print("No strategies to compare.")
         return
 
-    # Select numeric columns for display
-    numeric_cols = comparison_df.select_dtypes(include=[np.number]).columns.tolist()
-    display_df = comparison_df[numeric_cols].copy()
+    # Curated metrics with display formatting
+    _METRICS = [
+        ("total_trades", "Total Trades", lambda v: f"{int(v):>10d}"),
+        ("win_rate", "Win Rate", lambda v: f"{v:>9.1%}"),
+        ("total_pnl", "Total PnL", lambda v: f"${v:>9,.0f}"),
+        ("return_on_capital", "ROI", lambda v: f"{v:>9.1%}"),
+        ("sharpe_ratio", "Sharpe Ratio", lambda v: f"{v:>10.2f}"),
+        ("sortino_ratio", "Sortino Ratio", lambda v: f"{v:>10.2f}"),
+        ("max_drawdown", "Max Drawdown", lambda v: f"{-v:>9.1%}"),
+        ("profit_factor", "Profit Factor", lambda v: f"{v:>10.2f}"),
+        ("clv", "CLV", lambda v: f"{v:>+9.1%}"),
+    ]
 
-    print("=" * 70)
-    print("              STRATEGY COMPARISON")
-    print("=" * 70)
-    print(display_df.to_string(float_format=lambda x: f"{x:>10.4f}"))
-    print("=" * 70)
+    strategies = list(comparison_df.index)
+    col_width = max(14, *(len(s) + 2 for s in strategies))
+    header_width = 18 + col_width * len(strategies)
 
-    if highlight_best and len(display_df) > 1:
-        print("\nBest by metric:")
-        for col in numeric_cols:
-            # Skip columns that are all-NaN to avoid crashes
-            if display_df[col].isna().all():
-                continue
-            if col in ("max_drawdown",):
-                best_idx = display_df[col].idxmin()
-                print(f"  {col}: {best_idx} ({display_df.loc[best_idx, col]:.4f})")
-            elif col in ("total_trades",):
-                continue
-            else:
-                best_idx = display_df[col].idxmax()
-                print(f"  {col}: {best_idx} ({display_df.loc[best_idx, col]:.4f})")
+    print("=" * header_width)
+    print("     STRATEGY COMPARISON")
+    print("=" * header_width)
+
+    # Header row
+    header = " " * 18
+    for s in strategies:
+        header += f"{s:>{col_width}}"
+    print(header)
+
+    # Metric rows
+    for key, label, fmt in _METRICS:
+        if key not in comparison_df.columns:
+            continue
+        row = f"  {label:<16}"
+        for s in strategies:
+            val = comparison_df.loc[s, key]
+            row += f"{fmt(val):>{col_width}}" if not pd.isna(val) else f"{'N/A':>{col_width}}"
+        print(row)
+
+    print("=" * header_width)
+
+    # Single-line winner by Sharpe
+    if highlight_best and len(comparison_df) > 1 and "sharpe_ratio" in comparison_df.columns:
+        best = comparison_df["sharpe_ratio"].idxmax()
+        print(f"\n  Best risk-adjusted: {best} (Sharpe {comparison_df.loc[best, 'sharpe_ratio']:.2f})")
 
 
 # ---------------------------------------------------------------------------

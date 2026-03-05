@@ -68,7 +68,7 @@ def display_extended_metrics(
     print("=" * 45)
     print(f"  Sharpe Ratio:         {metrics['sharpe_ratio']:>10.3f}")
     print(f"  Sortino Ratio:        {sortino:>10.3f}")
-    print(f"  Max Drawdown:         {metrics['max_drawdown']:>9.1%}")
+    print(f"  Max Drawdown:        {-metrics['max_drawdown']:>9.1%}")
     print(f"  Profit Factor:        {metrics['profit_factor']:>10.3f}")
     print(f"  Average Win:          ${avg_win:>9.2f}")
     print(f"  Average Loss:         ${avg_loss:>9.2f}")

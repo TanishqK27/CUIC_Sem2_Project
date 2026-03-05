@@ -29,67 +29,67 @@ def walk_forward_report(results: dict[str, Any]) -> str:
     # Aggregated OOS metrics
     agg = results.get("aggregated_metrics", {})
     lines.append("")
-    lines.append("  Aggregated Out-of-Sample Metrics")
-    lines.append("  " + "-" * 40)
+    lines.append("  Out-of-Sample Performance (aggregated across folds)")
+    lines.append("  " + "-" * 46)
     lines.append(f"  Total Trades:    {agg.get('total_trades', 0):>10}")
-    lines.append(f"  Total PnL:       ${agg.get('total_pnl', 0.0):>10.2f}")
-    lines.append(f"  Win Rate:        {agg.get('win_rate', 0.0):>10.2%}")
-    lines.append(f"  Sharpe Ratio:    {agg.get('sharpe_ratio', 0.0):>10.4f}")
-    lines.append(f"  Sortino Ratio:   {agg.get('sortino_ratio', 0.0):>10.4f}")
-    lines.append(f"  Max Drawdown:    {agg.get('max_drawdown', 0.0):>10.2%}")
-    lines.append(f"  Profit Factor:   {agg.get('profit_factor', 0.0):>10.4f}")
+    lines.append(f"  Win Rate:        {agg.get('win_rate', 0.0):>10.1%}")
+    lines.append(f"  Total PnL:       ${agg.get('total_pnl', 0.0):>9,.0f}")
+    lines.append(f"  Sharpe Ratio:    {agg.get('sharpe_ratio', 0.0):>10.2f}")
+    lines.append(f"  Max Drawdown:    {-agg.get('max_drawdown', 0.0):>9.1%}")
+    lines.append(f"  Profit Factor:   {agg.get('profit_factor', 0.0):>10.2f}")
 
-    # Per-fold breakdown
+    # Per-fold breakdown (compact)
     splits = results.get("splits", [])
     if splits:
         lines.append("")
-        lines.append("  Per-Fold Breakdown")
-        lines.append("  " + "-" * 40)
+        lines.append("  Per-Fold Results")
+        lines.append("  " + "-" * 46)
         for s in splits:
             fold = s.get("fold", "?")
             tm = s.get("test_metrics", {})
-            train_rows = len(s.get("train_data", []))
-            test_rows = len(s.get("test_data", []))
+            n_train = len(s.get("train_data", []))
+            n_test = len(s.get("test_data", []))
+            wr = tm.get("win_rate", 0.0)
+            pnl = tm.get("total_pnl", 0.0)
             lines.append(
-                f"  Fold {fold}: "
-                f"train={train_rows} rows, test={test_rows} rows | "
-                f"OOS trades={tm.get('total_trades', 0)}, "
-                f"PnL=${tm.get('total_pnl', 0.0):.2f}, "
-                f"WR={tm.get('win_rate', 0.0):.1%}"
+                f"  Fold {fold}: {n_train} train / {n_test} test "
+                f"-> {tm.get('total_trades', 0)} bets, "
+                f"{wr:.0%} WR, ${pnl:,.0f} PnL"
             )
 
-    # IS vs OOS comparison
+    # Overfitting check
     is_vs_oos = results.get("in_sample_vs_out_of_sample", [])
-    if is_vs_oos:
-        lines.append("")
-        lines.append("  In-Sample vs Out-of-Sample Comparison")
-        lines.append("  " + "-" * 40)
-        for entry in is_vs_oos:
-            fold = entry.get("fold", "?")
-            is_pnl = entry.get("in_sample_pnl", 0.0)
-            oos_pnl = entry.get("out_of_sample_pnl", 0.0)
-            is_sharpe = entry.get("in_sample_sharpe", 0.0)
-            oos_sharpe = entry.get("out_of_sample_sharpe", 0.0)
-            lines.append(
-                f"  Fold {fold}: "
-                f"IS PnL=${is_pnl:>8.2f}  OOS PnL=${oos_pnl:>8.2f}  |  "
-                f"IS Sharpe={is_sharpe:>6.3f}  OOS Sharpe={oos_sharpe:>6.3f}"
-            )
-
-    # Overfitting signal
     if is_vs_oos:
         is_total = sum(e.get("in_sample_pnl", 0.0) for e in is_vs_oos)
         oos_total = sum(e.get("out_of_sample_pnl", 0.0) for e in is_vs_oos)
+
         lines.append("")
+        lines.append("  Overfitting Check")
+        lines.append("  " + "-" * 46)
+
         if oos_total < 0 < is_total:
             lines.append(
-                "  ** WARNING: In-sample profitable but out-of-sample negative. "
-                "Possible overfitting. **"
+                "  LIKELY OVERFIT: Profitable in-sample but "
+                "negative out-of-sample."
             )
         elif is_total > 0 and oos_total > 0:
             degradation = 1 - (oos_total / is_total) if is_total != 0 else 0
+            if degradation > 0.5:
+                verdict = "HIGH degradation — possible overfitting"
+            elif degradation > 0.25:
+                verdict = "MODERATE degradation — monitor closely"
+            else:
+                verdict = "LOW degradation — looks stable"
             lines.append(
-                f"  Performance degradation IS -> OOS: {degradation:.1%}"
+                f"  IS PnL: ${is_total:,.0f}  ->  OOS PnL: ${oos_total:,.0f}  "
+                f"({degradation:.0%} drop)"
+            )
+            lines.append(f"  Verdict: {verdict}")
+        elif is_total <= 0 and oos_total <= 0:
+            lines.append("  Both IS and OOS negative — no edge detected.")
+        else:
+            lines.append(
+                f"  IS PnL: ${is_total:,.0f}  ->  OOS PnL: ${oos_total:,.0f}"
             )
 
     n_combos = results.get("n_combinations")

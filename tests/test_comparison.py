@@ -203,7 +203,7 @@ class TestDisplayComparison:
         comparison.display_comparison(comp)
         captured = capsys.readouterr()
         assert "STRATEGY COMPARISON" in captured.out
-        assert "Best by metric:" in captured.out
+        assert "Best risk-adjusted:" in captured.out
 
     def test_display_comparison_empty_df(self, capsys: pytest.CaptureFixture) -> None:
         """display_comparison() with empty DataFrame should print message."""
@@ -221,5 +221,5 @@ class TestDisplayComparison:
         comparison.display_comparison(comp)
         captured = capsys.readouterr()
         assert "STRATEGY COMPARISON" in captured.out
-        # With only 1 strategy, "Best by metric" is skipped (needs len > 1)
-        assert "Best by metric:" not in captured.out
+        # With only 1 strategy, best line is skipped (needs len > 1)
+        assert "Best risk-adjusted:" not in captured.out
