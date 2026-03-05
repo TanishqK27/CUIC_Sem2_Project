@@ -238,7 +238,7 @@ def backtest(
     if position_sizing == "kelly":
         from cuic_quant.strategies.kelly_criterion import calculate_kelly_fraction as _calc_kelly
 
-    for row_idx, row in data.iterrows():
+    for row_pos, (row_idx, row) in enumerate(data.iterrows()):
         if bankroll <= 0:
             break
 
@@ -295,7 +295,9 @@ def backtest(
             }
 
             # U3: past_games is a copy with home_win DROPPED to prevent leakage
-            past_games_raw = data.loc[:row_idx].iloc[:-1]
+            # Use positional slicing (iloc) to avoid label-based issues with
+            # duplicate index values that could include current/future rows.
+            past_games_raw = data.iloc[:row_pos]
             _past_drop = ["home_win"]
             if _has_closing_home:
                 _past_drop.append("closing_home_odds")

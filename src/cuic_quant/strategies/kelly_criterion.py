@@ -211,7 +211,10 @@ def kelly_from_american_odds(
     # Convert American to decimal
     if american_odds > 0:
         decimal_odds = (american_odds / 100) + 1
-    else:
+    elif american_odds < 0:
         decimal_odds = (100 / abs(american_odds)) + 1
+    else:
+        # american_odds == 0 is undefined; treat as even money
+        decimal_odds = 2.0
 
     return calculate_kelly_fraction(win_probability, decimal_odds, kelly_fraction)

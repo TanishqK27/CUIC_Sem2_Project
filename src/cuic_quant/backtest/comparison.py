@@ -331,15 +331,16 @@ def detect_suspicious_results(
         else:
             entropy = 0.0
 
-        # Maximum entropy for binary outcome is 1.0
+        # Maximum entropy for binary outcome is 1.0.
+        # Only flag when entropy == 0 (100% or 0% win rate).  The Poisson
+        # binomial test already handles mixed-odds significance; a fixed
+        # entropy threshold produces false positives on legitimate
+        # high-win-rate strategies (e.g. heavy favourites).
         checks.append({
             "name": "outcome_entropy",
-            "passed": entropy > 0.2,  # Very low entropy = suspiciously predictable
+            "passed": entropy > 0.0,
             "p_value": None,
-            "detail": (
-                f"Shannon entropy = {entropy:.4f} "
-                f"(max 1.0, suspicious if < 0.2)"
-            ),
+            "detail": f"Shannon entropy = {entropy:.4f} (max 1.0)",
         })
 
     # Check 5: Run test for randomness of wins/losses

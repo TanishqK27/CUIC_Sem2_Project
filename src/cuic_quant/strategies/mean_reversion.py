@@ -182,8 +182,8 @@ def calculate_half_life(prices: list[float] | np.ndarray) -> float | None:
         if beta >= 0:
             return None  # Not mean-reverting
 
-        # Half-life = -ln(2) / ln(1 + β) ≈ -ln(2) / β for small β
-        half_life = -np.log(2) / beta
+        # Half-life = -ln(2) / ln(1 + β)
+        half_life = -np.log(2) / np.log(1 + beta)
 
         return max(0, half_life)
 

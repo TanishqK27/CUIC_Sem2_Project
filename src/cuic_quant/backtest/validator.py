@@ -171,8 +171,8 @@ def validate_backtest_results(
     running_sum = 0.0
     cum_pnl_errors = []
     for idx, row in results.iterrows():
-        running_sum = round(running_sum + row["pnl"], 2)
-        if abs(row["cumulative_pnl"] - running_sum) > 0.01:
+        running_sum += row["pnl"]
+        if abs(row["cumulative_pnl"] - round(running_sum, 2)) > 0.01:
             cum_pnl_errors.append(
                 f"Row {idx}: cumulative_pnl={row['cumulative_pnl']}, "
                 f"expected={running_sum}"
