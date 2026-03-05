@@ -241,14 +241,20 @@ def detect_suspicious_results(
     # Check 1: Win rate vs implied probability from odds
     if "odds" in results.columns:
         avg_odds = float(results["odds"].mean())
-        # mean(1/odds), not 1/mean(odds) — Jensen's inequality (1/x is convex)
-        implied_win_rate = float((1.0 / results["odds"]).mean())
-        # Binomial test: is win_rate significantly higher than implied?
+        # Per-game implied probabilities (not averaged — each game tested
+        # against its own odds to avoid Poisson-binomial vs binomial error).
+        p_i = (1.0 / results["odds"]).clip(upper=0.999)
+        implied_win_rate = float(p_i.mean())
+        # Normal approximation to Poisson binomial: each game is an
+        # independent Bernoulli with its own p_i = 1/odds_i.
         if n_trades >= 5:
-            test_result = stats.binomtest(
-                wins, n_trades, implied_win_rate, alternative="greater"
-            )
-            p_val = float(test_result.pvalue)
+            expected_wins = float(p_i.sum())
+            variance = float((p_i * (1.0 - p_i)).sum())
+            if variance > 0:
+                z = (wins - expected_wins) / (variance ** 0.5)
+                p_val = float(1.0 - stats.norm.cdf(z))
+            else:
+                p_val = 1.0
         else:
             p_val = 1.0
 
