@@ -241,7 +241,8 @@ def detect_suspicious_results(
     # Check 1: Win rate vs implied probability from odds
     if "odds" in results.columns:
         avg_odds = float(results["odds"].mean())
-        implied_win_rate = 1.0 / avg_odds if avg_odds > 0 else 0.5
+        # mean(1/odds), not 1/mean(odds) — Jensen's inequality (1/x is convex)
+        implied_win_rate = float((1.0 / results["odds"]).mean())
         # Binomial test: is win_rate significantly higher than implied?
         if n_trades >= 5:
             test_result = stats.binomtest(
