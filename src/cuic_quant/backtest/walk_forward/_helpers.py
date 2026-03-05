@@ -84,8 +84,56 @@ def _aggregate_metrics(
     Returns:
         Aggregated metrics dict.
     """
-    total_trades = sum(s[key]["total_trades"] for s in splits)
-    total_pnl = sum(s[key]["total_pnl"] for s in splits)
+    # Concatenate all OOS results
+    all_oos_results = []
+    for s in splits:
+        results_df = s.get("results")
+        if results_df is not None and len(results_df) > 0:
+            all_oos_results.append(results_df)
+
+    combined: pd.DataFrame | None = None
+    if all_oos_results:
+        combined = pd.concat(all_oos_results, ignore_index=True)
+
+        # CPCV deduplication: each game appears in C(n-1, k-1) test folds.
+        # Average PnL per unique game so metrics (Sharpe, Sortino, trade
+        # counts, total PnL) aren't inflated by duplicated rows.
+        if (
+            "game" in combined.columns
+            and "timestamp" in combined.columns
+            and combined.duplicated(subset=["timestamp", "game"]).any()
+        ):
+            agg_spec: dict[str, str | tuple[str, str]] = {
+                "pnl": "mean",
+                "bet_size": "mean",
+            }
+            for col in ("odds", "bankroll", "confidence", "closing_odds"):
+                if col in combined.columns:
+                    agg_spec[col] = "mean"
+            for col in ("outcome", "action"):
+                if col in combined.columns:
+                    agg_spec[col] = "first"
+
+            combined = (
+                combined.groupby(["timestamp", "game"], as_index=False, sort=False)
+                .agg(agg_spec)
+                .sort_values("timestamp")
+                .reset_index(drop=True)
+            )
+
+        # Recompute cumulative_pnl so metrics (max_drawdown) see a
+        # continuous equity curve, not artificial drops at fold boundaries.
+        if "pnl" in combined.columns:
+            combined["cumulative_pnl"] = combined["pnl"].cumsum()
+
+    # Derive totals from deduplicated combined results when available,
+    # otherwise fall back to per-fold sums (regular walk-forward).
+    if combined is not None and len(combined) > 0:
+        total_trades = len(combined)
+        total_pnl = float(combined["pnl"].sum())
+    else:
+        total_trades = sum(s[key]["total_trades"] for s in splits)
+        total_pnl = sum(s[key]["total_pnl"] for s in splits)
 
     if total_trades == 0:
         return {
@@ -103,25 +151,17 @@ def _aggregate_metrics(
         "total_pnl": round(total_pnl, 2),
     }
 
-    # Trade-weighted average for win_rate
-    weighted_sum = sum(
-        s[key]["win_rate"] * s[key]["total_trades"] for s in splits
-    )
-    aggregated["win_rate"] = round(weighted_sum / total_trades, 4) if total_trades else 0.0
+    # Win rate from deduplicated combined, else trade-weighted average
+    if combined is not None and "outcome" in combined.columns and len(combined) > 0:
+        wins = (combined["outcome"] == "WIN").sum()
+        aggregated["win_rate"] = round(wins / len(combined), 4)
+    else:
+        weighted_sum = sum(
+            s[key]["win_rate"] * s[key]["total_trades"] for s in splits
+        )
+        aggregated["win_rate"] = round(weighted_sum / total_trades, 4) if total_trades else 0.0
 
-    # Concatenate all OOS results for Sharpe, Sortino, profit_factor, max_drawdown
-    all_oos_results = []
-    for s in splits:
-        results_df = s.get("results")
-        if results_df is not None and len(results_df) > 0:
-            all_oos_results.append(results_df)
-
-    if all_oos_results:
-        combined = pd.concat(all_oos_results, ignore_index=True)
-        # Recompute cumulative_pnl across all folds so metrics (max_drawdown)
-        # see a continuous equity curve, not artificial drops at fold boundaries.
-        if "pnl" in combined.columns:
-            combined["cumulative_pnl"] = combined["pnl"].cumsum()
+    if combined is not None and len(combined) > 0:
         combined_metrics = calculate_all_metrics(combined)
         aggregated["sharpe_ratio"] = round(combined_metrics.get("sharpe_ratio", 0.0), 4)
         aggregated["sortino_ratio"] = round(combined_metrics.get("sortino_ratio", 0.0), 4)
