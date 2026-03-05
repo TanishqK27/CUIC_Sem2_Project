@@ -20,14 +20,13 @@ import pytest
 
 from cuic_quant.backtest.backtester_backend import (
     OUTPUT_COLUMNS,
-    backtest,
     always_bet_home,
+    backtest,
     display_extended_metrics,
     load_backtest_data,
     plot_performance,
     validate_backtest_results,
 )
-
 
 # ============================================================================
 # Helpers — reusable data builders
@@ -43,15 +42,17 @@ def _make_input_data(
     if home_wins is None:
         home_wins = [1, 0] * ((n // 2) + 1)
     home_wins = home_wins[:n]
-    return pd.DataFrame({
-        "timestamp": pd.date_range("2026-01-01", periods=n, freq="D"),
-        "game": [f"Team{i}A vs Team{i}B" for i in range(n)],
-        "home_team": [f"Team{i}A" for i in range(n)],
-        "away_team": [f"Team{i}B" for i in range(n)],
-        "home_odds": [odds] * n,
-        "away_odds": [odds] * n,
-        "home_win": home_wins,
-    })
+    return pd.DataFrame(
+        {
+            "timestamp": pd.date_range("2026-01-01", periods=n, freq="D"),
+            "game": [f"Team{i}A vs Team{i}B" for i in range(n)],
+            "home_team": [f"Team{i}A" for i in range(n)],
+            "away_team": [f"Team{i}B" for i in range(n)],
+            "home_odds": [odds] * n,
+            "away_odds": [odds] * n,
+            "home_win": home_wins,
+        }
+    )
 
 
 def _make_results(
@@ -73,12 +74,14 @@ def _make_results(
 class TestDisplayExtendedMetrics:
     """Tests for display_extended_metrics()."""
 
-    def test_prints_output_for_valid_results(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_prints_output_for_valid_results(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         """Should print formatted metrics table."""
         results = _make_results(n=10, home_wins=[1, 0, 1, 1, 0, 0, 1, 0, 1, 1])
         display_extended_metrics(results)
         captured = capsys.readouterr()
-        assert "EXTENDED PERFORMANCE METRICS" in captured.out
+        assert "BACKTEST FULL REPORT" in captured.out
         assert "Sharpe Ratio" in captured.out
         assert "Max Drawdown" in captured.out
         assert "Profit Factor" in captured.out
@@ -95,7 +98,7 @@ class TestDisplayExtendedMetrics:
         results = _make_results(n=5, home_wins=[1, 1, 1, 1, 1])
         display_extended_metrics(results)
         captured = capsys.readouterr()
-        assert "EXTENDED PERFORMANCE METRICS" in captured.out
+        assert "BACKTEST FULL REPORT" in captured.out
         # Average loss should be $0.00 since there are no losses
         assert "Average Loss" in captured.out
 
@@ -104,7 +107,7 @@ class TestDisplayExtendedMetrics:
         results = _make_results(n=5, home_wins=[0, 0, 0, 0, 0])
         display_extended_metrics(results)
         captured = capsys.readouterr()
-        assert "EXTENDED PERFORMANCE METRICS" in captured.out
+        assert "BACKTEST FULL REPORT" in captured.out
         assert "Average Win" in captured.out
 
 
@@ -168,17 +171,19 @@ class TestLoadBacktestDataDatabase:
 
         # Fake joined result from historical_odds + combined_player_stats.
         # The DB query returns one row per game with opening/closing ML and outcome.
-        fake_raw = pd.DataFrame({
-            "timestamp": pd.to_datetime(["2026-01-15 10:00"]),
-            "game": ["ATL vs BOS"],
-            "home_team": ["BOS"],
-            "away_team": ["ATL"],
-            "open_home_ml": [-200.0],    # -> decimal 1.50
-            "open_away_ml": [170.0],     # -> decimal 2.70
-            "closing_home_ml": [-250.0], # -> decimal 1.40
-            "closing_away_ml": [210.0],  # -> decimal 3.10
-            "home_win": [1],
-        })
+        fake_raw = pd.DataFrame(
+            {
+                "timestamp": pd.to_datetime(["2026-01-15 10:00"]),
+                "game": ["ATL vs BOS"],
+                "home_team": ["BOS"],
+                "away_team": ["ATL"],
+                "open_home_ml": [-200.0],  # -> decimal 1.50
+                "open_away_ml": [170.0],  # -> decimal 2.70
+                "closing_home_ml": [-250.0],  # -> decimal 1.40
+                "closing_away_ml": [210.0],  # -> decimal 3.10
+                "home_win": [1],
+            }
+        )
 
         mock_engine = MagicMock()
         mock_conn = MagicMock()
@@ -186,9 +191,11 @@ class TestLoadBacktestDataDatabase:
         mock_engine.connect.return_value.__exit__ = MagicMock(return_value=False)
 
         with (
-            patch("cuic_quant.backtest.data_loader.pd.read_sql", return_value=fake_raw) as mock_read_sql,
+            patch(
+                "cuic_quant.backtest.data_loader.pd.read_sql", return_value=fake_raw
+            ) as mock_read_sql,
             patch("sqlalchemy.create_engine", return_value=mock_engine),
-            patch("sqlalchemy.text") as mock_text,
+            patch("sqlalchemy.text"),
         ):
             df = load_backtest_data("2026-01-01", "2026-01-31")
 
@@ -211,9 +218,10 @@ class TestLoadBacktestDataDatabase:
         mock_engine = MagicMock()
         mock_engine.connect.side_effect = Exception("Connection refused")
 
-        with patch("sqlalchemy.create_engine", return_value=mock_engine):
-            with pytest.raises(RuntimeError, match="US VPN"):
-                load_backtest_data("2026-01-01", "2026-01-31")
+        with patch("sqlalchemy.create_engine", return_value=mock_engine), pytest.raises(
+            RuntimeError, match="US VPN"
+        ):
+            load_backtest_data("2026-01-01", "2026-01-31")
 
     def test_schema_mismatch_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """DB query error should raise RuntimeError with VPN message."""
@@ -225,13 +233,15 @@ class TestLoadBacktestDataDatabase:
         mock_engine.connect.return_value.__exit__ = MagicMock(return_value=False)
 
         with (
-            patch("cuic_quant.backtest.data_loader.pd.read_sql",
-                  side_effect=Exception('column "closing_home_odds" does not exist')),
+            patch(
+                "cuic_quant.backtest.data_loader.pd.read_sql",
+                side_effect=Exception('column "closing_home_odds" does not exist'),
+            ),
             patch("sqlalchemy.create_engine", return_value=mock_engine),
             patch("sqlalchemy.text"),
+            pytest.raises(RuntimeError, match="US VPN"),
         ):
-            with pytest.raises(RuntimeError, match="US VPN"):
-                load_backtest_data("2026-01-01", "2026-01-31")
+            load_backtest_data("2026-01-01", "2026-01-31")
 
 
 # ============================================================================
@@ -311,7 +321,9 @@ class TestStrategyExceptionHandling:
         """Return a strategy that raises on a specific row number."""
         call_count = {"n": 0}
 
-        def strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        def strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             call_count["n"] += 1
             if call_count["n"] == fail_on_row:
                 raise ValueError(f"Strategy crashed on row {fail_on_row}")
@@ -337,11 +349,12 @@ class TestStrategyExceptionHandling:
 
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
-            results = backtest(data, strategy, initial_bankroll=10000.0)
+            backtest(data, strategy, initial_bankroll=10000.0)
 
         # At least one warning should mention the strategy exception
         strategy_warnings = [
-            w for w in caught
+            w
+            for w in caught
             if "strategy" in str(w.message).lower()
             or "exception" in str(w.message).lower()
             or "crashed" in str(w.message).lower()
@@ -355,7 +368,9 @@ class TestStrategyExceptionHandling:
         """If every row raises, should return empty DF with correct columns."""
         data = _make_input_data(n=3, home_wins=[1, 1, 1])
 
-        def always_crash(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        def always_crash(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             raise RuntimeError("Always fails")
 
         results = backtest(data, always_crash, initial_bankroll=10000.0)
@@ -381,7 +396,9 @@ class TestNaNPropagation:
         """Strategy returning size=float('nan') should skip the trade."""
         call_count = {"n": 0}
 
-        def nan_size_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        def nan_size_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             call_count["n"] += 1
             if call_count["n"] == 2:
                 return {"action": "BUY_HOME", "confidence": 0.5, "size": float("nan")}
@@ -398,12 +415,16 @@ class TestNaNPropagation:
 
     def test_nan_confidence_handled(self) -> None:
         """NaN confidence with Kelly should fall back to raw size."""
-        def nan_confidence_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+
+        def nan_confidence_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             return {"action": "BUY_HOME", "confidence": float("nan"), "size": 100.0}
 
         data = _make_input_data(n=1, home_wins=[1])
         results = backtest(
-            data, nan_confidence_strategy,
+            data,
+            nan_confidence_strategy,
             initial_bankroll=10000.0,
             position_sizing="kelly",
         )
@@ -416,7 +437,9 @@ class TestNaNPropagation:
         """After a NaN-size row, subsequent trades should have valid PnL."""
         call_count = {"n": 0}
 
-        def nan_then_normal(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        def nan_then_normal(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             call_count["n"] += 1
             if call_count["n"] == 1:
                 return {"action": "BUY_HOME", "confidence": 0.5, "size": float("nan")}
@@ -449,7 +472,8 @@ class TestEdgeCaseCosts:
         """Should produce no trades when flat cost exceeds bankroll."""
         data = _make_input_data(n=3, home_wins=[1, 1, 1])
         results = backtest(
-            data, always_bet_home,
+            data,
+            always_bet_home,
             initial_bankroll=50.0,
             cost_flat=100.0,  # flat fee exceeds bankroll
         )
@@ -462,7 +486,8 @@ class TestEdgeCaseCosts:
         """Edge case: flat cost exactly equals bankroll."""
         data = _make_input_data(n=3, home_wins=[1, 1, 1])
         results = backtest(
-            data, always_bet_home,
+            data,
+            always_bet_home,
             initial_bankroll=100.0,
             cost_flat=100.0,  # flat fee equals bankroll
         )
@@ -482,7 +507,10 @@ class TestSignalKeyTypoDetection:
 
     def test_capital_action_triggers_warning(self) -> None:
         """Strategy returning 'Action' instead of 'action' should warn."""
-        def bad_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+
+        def bad_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             return {"Action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
 
         data = _make_input_data(n=1, home_wins=[1])
@@ -492,13 +520,18 @@ class TestSignalKeyTypoDetection:
 
         # Should warn about typo AND about missing 'action' key
         typo_warnings = [w for w in caught if "'Action'" in str(w.message)]
-        assert len(typo_warnings) >= 1, f"Expected typo warning, got: {[str(w.message) for w in caught]}"
+        assert (
+            len(typo_warnings) >= 1
+        ), f"Expected typo warning, got: {[str(w.message) for w in caught]}"
         # Trade should be skipped (no 'action' key after warning)
         assert len(results) == 0
 
     def test_wrong_size_key_triggers_warning(self) -> None:
         """Strategy returning 'bet_size' instead of 'size' should warn."""
-        def bad_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+
+        def bad_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             return {"action": "BUY_HOME", "confidence": 0.5, "bet_size": 100.0}
 
         data = _make_input_data(n=1, home_wins=[1])
@@ -507,22 +540,38 @@ class TestSignalKeyTypoDetection:
             results = backtest(data, bad_strategy, initial_bankroll=10000.0)
 
         typo_warnings = [w for w in caught if "'bet_size'" in str(w.message)]
-        assert len(typo_warnings) >= 1, f"Expected bet_size typo warning, got: {[str(w.message) for w in caught]}"
+        assert (
+            len(typo_warnings) >= 1
+        ), f"Expected bet_size typo warning, got: {[str(w.message) for w in caught]}"
         # Trade should be skipped (size defaults to 0 since 'size' key is missing)
         assert len(results) == 0
 
     def test_correct_and_typo_both_present_no_warning(self) -> None:
         """If both correct key and typo are present, no warning should fire."""
-        def dual_key_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
-            return {"action": "BUY_HOME", "Action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
+
+        def dual_key_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
+            return {
+                "action": "BUY_HOME",
+                "Action": "BUY_HOME",
+                "confidence": 0.5,
+                "size": 100.0,
+            }
 
         data = _make_input_data(n=1, home_wins=[1])
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             results = backtest(data, dual_key_strategy, initial_bankroll=10000.0)
 
-        typo_warnings = [w for w in caught if "'Action'" in str(w.message) and "instead of" in str(w.message)]
-        assert len(typo_warnings) == 0, f"Should NOT warn when correct key is present, got: {[str(w.message) for w in caught]}"
+        typo_warnings = [
+            w
+            for w in caught
+            if "'Action'" in str(w.message) and "instead of" in str(w.message)
+        ]
+        assert (
+            len(typo_warnings) == 0
+        ), f"Should NOT warn when correct key is present, got: {[str(w.message) for w in caught]}"
         assert len(results) == 1  # Trade should proceed normally
 
 
@@ -538,12 +587,16 @@ class TestLookbackHistory:
         """context['history'] should contain all prior trades."""
         captured_contexts: list[dict] = []
 
-        def capturing_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        def capturing_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             if context:
-                captured_contexts.append({
-                    "trade_count": context["trade_count"],
-                    "history_len": len(context["history"]),
-                })
+                captured_contexts.append(
+                    {
+                        "trade_count": context["trade_count"],
+                        "history_len": len(context["history"]),
+                    }
+                )
             return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
 
         data = _make_input_data(n=3, home_wins=[1, 1, 1])
@@ -564,7 +617,9 @@ class TestLookbackHistory:
         """context['past_games'] should have all data rows before current."""
         past_games_lengths: list[int] = []
 
-        def capturing_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        def capturing_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             if context and context["past_games"] is not None:
                 past_games_lengths.append(len(context["past_games"]))
             else:
@@ -587,7 +642,9 @@ class TestLookbackHistory:
         """Mutating context['history'] list should not affect engine trades."""
         call_count = {"n": 0}
 
-        def mutating_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        def mutating_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             call_count["n"] += 1
             if context and context["history"]:
                 # Try to corrupt the history list
@@ -611,19 +668,23 @@ class TestDeterministicOrdering:
 
     def test_same_timestamp_sorted_by_game(self) -> None:
         """Rows with same timestamp should be sorted by game name."""
-        data = pd.DataFrame({
-            "timestamp": pd.to_datetime(["2026-01-01"] * 3),
-            "game": ["Zebras vs Lions", "Ants vs Bears", "Cats vs Dogs"],
-            "home_team": ["Zebras", "Ants", "Cats"],
-            "away_team": ["Lions", "Bears", "Dogs"],
-            "home_odds": [2.0, 2.0, 2.0],
-            "away_odds": [2.0, 2.0, 2.0],
-            "home_win": [1, 0, 1],
-        })
+        data = pd.DataFrame(
+            {
+                "timestamp": pd.to_datetime(["2026-01-01"] * 3),
+                "game": ["Zebras vs Lions", "Ants vs Bears", "Cats vs Dogs"],
+                "home_team": ["Zebras", "Ants", "Cats"],
+                "away_team": ["Lions", "Bears", "Dogs"],
+                "home_odds": [2.0, 2.0, 2.0],
+                "away_odds": [2.0, 2.0, 2.0],
+                "home_win": [1, 0, 1],
+            }
+        )
 
         game_order: list[str] = []
 
-        def order_tracking_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        def order_tracking_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             game_order.append(row["game"])
             return {"action": "BUY_HOME", "confidence": 0.5, "size": 100.0}
 
@@ -645,7 +706,10 @@ class TestNoneAndInfSize:
 
     def test_none_size_is_skipped(self) -> None:
         """Strategy returning size=None should skip the trade."""
-        def none_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+
+        def none_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             return {"action": "BUY_HOME", "confidence": 0.5, "size": None}
 
         data = _make_input_data(n=2, home_wins=[1, 1])
@@ -655,8 +719,10 @@ class TestNoneAndInfSize:
 
     def test_inf_size_skipped_with_warning(self) -> None:
         """Strategy returning size=inf should be skipped with a UserWarning (strict policy)."""
+
         def inf_strategy(row: Any, ctx: Any = None) -> dict:
             return {"action": "BUY_HOME", "confidence": 0.5, "size": float("inf")}
+
         data = _make_input_data(n=1, home_wins=[1])
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -739,10 +805,12 @@ class TestCLV:
         """CLV should be positive when bet odds > closing odds (got better price)."""
         from cuic_quant.metrics import calculate_clv
 
-        results = pd.DataFrame({
-            "odds": [2.00, 1.90, 2.10],
-            "closing_odds": [1.85, 1.80, 2.00],  # closing < opening
-        })
+        results = pd.DataFrame(
+            {
+                "odds": [2.00, 1.90, 2.10],
+                "closing_odds": [1.85, 1.80, 2.00],  # closing < opening
+            }
+        )
         clv = calculate_clv(results)
         assert clv > 0, f"Expected positive CLV, got {clv}"
 
@@ -750,25 +818,28 @@ class TestCLV:
         """CLV should be negative when bet odds < closing odds (got worse price)."""
         from cuic_quant.metrics import calculate_clv
 
-        results = pd.DataFrame({
-            "odds": [1.80, 1.85, 1.90],
-            "closing_odds": [1.95, 2.00, 2.05],  # closing > opening
-        })
+        results = pd.DataFrame(
+            {
+                "odds": [1.80, 1.85, 1.90],
+                "closing_odds": [1.95, 2.00, 2.05],  # closing > opening
+            }
+        )
         clv = calculate_clv(results)
         assert clv < 0, f"Expected negative CLV, got {clv}"
 
     def test_clv_nan_without_column(self) -> None:
         """CLV should be NaN when closing_odds column is missing."""
-        from cuic_quant.metrics import calculate_clv
         import math
+
+        from cuic_quant.metrics import calculate_clv
 
         results = pd.DataFrame({"odds": [2.0], "pnl": [100.0]})
         assert math.isnan(calculate_clv(results))
 
     def test_clv_in_calculate_all_metrics(self) -> None:
         """CLV should appear in calculate_all_metrics when closing_odds present."""
+        from cuic_quant.backtest.backtester_backend import DUMMY_CSV, load_backtest_data
         from cuic_quant.metrics import calculate_all_metrics
-        from cuic_quant.backtest.backtester_backend import load_backtest_data, DUMMY_CSV
 
         data = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
         results = backtest(data, always_bet_home)
@@ -793,7 +864,10 @@ class TestConfidenceInOutput:
 
     def test_confidence_nan_when_not_provided(self) -> None:
         """Strategies that don't return confidence should have NaN."""
-        def no_conf_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+
+        def no_conf_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             return {"action": "BUY_HOME", "size": 100.0}
 
         data = _make_input_data(n=2, home_wins=[1, 1])
@@ -805,7 +879,9 @@ class TestConfidenceInOutput:
         """Some trades with confidence, some without."""
         call_count = {"n": 0}
 
-        def mixed_strategy(row: pd.Series, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        def mixed_strategy(
+            row: pd.Series, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             call_count["n"] += 1
             if call_count["n"] == 1:
                 return {"action": "BUY_HOME", "confidence": 0.7, "size": 100.0}
@@ -824,10 +900,12 @@ class TestBrierScore:
         """Perfect confidence = perfect predictions -> Brier = 0."""
         from cuic_quant.metrics import calculate_brier_score
 
-        results = pd.DataFrame({
-            "confidence": [1.0, 0.0, 1.0],
-            "outcome": ["WIN", "LOSS", "WIN"],
-        })
+        results = pd.DataFrame(
+            {
+                "confidence": [1.0, 0.0, 1.0],
+                "outcome": ["WIN", "LOSS", "WIN"],
+            }
+        )
         brier = calculate_brier_score(results)
         assert abs(brier) < 1e-10
 
@@ -835,10 +913,12 @@ class TestBrierScore:
         """Completely wrong predictions -> Brier = 1.0."""
         from cuic_quant.metrics import calculate_brier_score
 
-        results = pd.DataFrame({
-            "confidence": [0.0, 1.0, 0.0],
-            "outcome": ["WIN", "LOSS", "WIN"],
-        })
+        results = pd.DataFrame(
+            {
+                "confidence": [0.0, 1.0, 0.0],
+                "outcome": ["WIN", "LOSS", "WIN"],
+            }
+        )
         brier = calculate_brier_score(results)
         assert abs(brier - 1.0) < 1e-10
 
@@ -846,17 +926,20 @@ class TestBrierScore:
         """p=0.5 for all -> Brier = 0.25."""
         from cuic_quant.metrics import calculate_brier_score
 
-        results = pd.DataFrame({
-            "confidence": [0.5, 0.5, 0.5, 0.5],
-            "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
-        })
+        results = pd.DataFrame(
+            {
+                "confidence": [0.5, 0.5, 0.5, 0.5],
+                "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
+            }
+        )
         brier = calculate_brier_score(results)
         assert abs(brier - 0.25) < 1e-10
 
     def test_nan_without_confidence(self) -> None:
         """Should return NaN when confidence column missing."""
-        from cuic_quant.metrics import calculate_brier_score
         import math
+
+        from cuic_quant.metrics import calculate_brier_score
 
         results = pd.DataFrame({"outcome": ["WIN", "LOSS"]})
         assert math.isnan(calculate_brier_score(results))
@@ -875,13 +958,16 @@ class TestLogLoss:
 
     def test_random_predictions(self) -> None:
         """p=0.5 for all -> Log Loss ≈ 0.693 (ln(2))."""
-        from cuic_quant.metrics import calculate_log_loss
         import math
 
-        results = pd.DataFrame({
-            "confidence": [0.5, 0.5, 0.5, 0.5],
-            "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
-        })
+        from cuic_quant.metrics import calculate_log_loss
+
+        results = pd.DataFrame(
+            {
+                "confidence": [0.5, 0.5, 0.5, 0.5],
+                "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
+            }
+        )
         ll = calculate_log_loss(results)
         assert abs(ll - math.log(2)) < 1e-10
 
@@ -889,20 +975,25 @@ class TestLogLoss:
         """Good predictions should have lower log loss than random."""
         from cuic_quant.metrics import calculate_log_loss
 
-        good = pd.DataFrame({
-            "confidence": [0.8, 0.2, 0.9, 0.1],
-            "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
-        })
-        random_pred = pd.DataFrame({
-            "confidence": [0.5, 0.5, 0.5, 0.5],
-            "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
-        })
+        good = pd.DataFrame(
+            {
+                "confidence": [0.8, 0.2, 0.9, 0.1],
+                "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
+            }
+        )
+        random_pred = pd.DataFrame(
+            {
+                "confidence": [0.5, 0.5, 0.5, 0.5],
+                "outcome": ["WIN", "LOSS", "WIN", "LOSS"],
+            }
+        )
         assert calculate_log_loss(good) < calculate_log_loss(random_pred)
 
     def test_nan_without_confidence(self) -> None:
         """Should return NaN when confidence column missing."""
-        from cuic_quant.metrics import calculate_log_loss
         import math
+
+        from cuic_quant.metrics import calculate_log_loss
 
         results = pd.DataFrame({"outcome": ["WIN", "LOSS"]})
         assert math.isnan(calculate_log_loss(results))

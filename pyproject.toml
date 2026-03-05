@@ -179,6 +179,20 @@ disallow_untyped_defs = false
 module = "research.*"
 ignore_errors = true
 
+# Pre-existing mypy errors from james_branch merge — to be fixed separately
+[[tool.mypy.overrides]]
+module = [
+    "cuic_quant.strategies.mean_reversion",
+    "cuic_quant.backtest.engine",
+    "cuic_quant.backtest.data_loader",
+    "cuic_quant.backtest.statistics",
+    "cuic_quant.backtest.comparison",
+    "cuic_quant.backtest.walk_forward._helpers",
+    "cuic_quant.data.odds_api",
+    "cuic_quant.data.kalshi_client",
+]
+ignore_errors = true
+
 # ============================================================================
 # Pytest Configuration
 # ============================================================================
