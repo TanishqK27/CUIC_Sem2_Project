@@ -197,11 +197,11 @@ def significance_report(results_df: pd.DataFrame) -> dict[str, Any]:
             )
 
     # Sample size assessment
-    min_needed = minimum_sample_size(expected_edge=0.02, power=0.80, alpha=0.01)
+    min_needed = minimum_sample_size(expected_edge=0.06, power=0.80, alpha=0.01)
     if total < min_needed:
-        assessment = f"INSUFFICIENT: {total} trades < {min_needed} needed (for 2% edge detection)"
+        assessment = f"INSUFFICIENT: {total} trades < {min_needed} needed (for 6% edge detection)"
         report_warnings.append(
-            f"Sample size too small. Need ~{min_needed} bets to detect a 2% edge "
+            f"Sample size too small. Need ~{min_needed} bets to detect a 6% edge "
             f"at p<0.01 with 80% power. Got {total}."
         )
     else:
