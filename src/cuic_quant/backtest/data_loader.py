@@ -137,8 +137,8 @@ def _build_game_rows(raw: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_backtest_data(
-    start_date: str,
-    end_date: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
     csv_path: str | Path | None = None,
     strict: bool = False,
 ) -> pd.DataFrame:
@@ -162,7 +162,9 @@ def load_backtest_data(
 
     Args:
         start_date: Start of date range, inclusive. Format: "YYYY-MM-DD".
+            Defaults to 2 years ago from today.
         end_date: End of date range, inclusive. Format: "YYYY-MM-DD".
+            Defaults to today.
         csv_path: Path to fallback CSV file. If None, defaults to
             data/dummy_backtest_input.csv.
         strict: If True, raise RuntimeError when the database query fails
@@ -181,6 +183,14 @@ def load_backtest_data(
             at the specified path.
         RuntimeError: If strict=True and the database query fails.
     """
+    # Default date range: 2 years back → today
+    if end_date is None:
+        end_date = str(pd.Timestamp.now().normalize().date())
+    if start_date is None:
+        start_date = str(
+            (pd.Timestamp(end_date) - pd.DateOffset(years=2)).date()
+        )
+
     database_url = os.environ.get("DATABASE_URL", "")
 
     if database_url:
