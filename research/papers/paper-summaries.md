@@ -270,22 +270,7 @@ This paper models betting exchanges where participants hold different beliefs ye
 
 Add phase-of-game segmentation (pre-match, early in-play, late in-play) to strategy logic and evaluate role-specific execution rules. This can improve when to provide vs take liquidity on exchange-style markets.
 
-# Bias Research
-
 # Biases in Sports Betting Markets
-
-## Quant Fund Research – NBA Betting Model
-
-This document summarises key behavioural biases observed in sports betting markets.
-Understanding these biases helps us:
-
-1. Identify potential **market inefficiencies**
-2. Design **features for predictive models**
-3. Avoid **systematic errors when interpreting bookmaker odds**
-
-Each section summarises an academic paper supporting the bias and explains how the finding can be applied to our NBA betting model.
-
----
 
 # 1. Favourite–Longshot Bias (FLB)
 
@@ -673,24 +658,3 @@ market spreads overweight recent performance
 If recency bias exists, our model can incorporate **mean-reversion adjustments**.
 
 ---
-
-# Summary
-
-| Bias | Paper | Core Insight | Model Application |
-|-----|-----|-----|-----|
-| Favourite-Longshot Bias | Snowberg & Wolfers (2010) | Bettors overweight small probabilities | Probability calibration tests |
-| Insider Information Bias | Shin (1993) | Odds reflect protection against informed bettors | Use Shin implied probabilities |
-| Sentiment Bias | Feddersen et al. (2013) | Popular teams attract excess betting demand | Add popularity features |
-| Recency Bias | Durand (2021) | Markets overreact to recent results | Include mean-reversion variables |
-
----
-
-# Next Research Steps
-
-Future work should include:
-
-- Testing these biases specifically in **NBA betting markets**
-- Evaluating **closing line efficiency**
-- Measuring **model edge vs bookmaker prices**
-
-These tests will inform whether the biases provide **exploitable predictive signals** for our betting model.
