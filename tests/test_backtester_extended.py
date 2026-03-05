@@ -204,40 +204,19 @@ class TestLoadBacktestDataDatabase:
         assert row["closing_home_odds"] == 1.4  # -250 ML -> 1.40
         assert row["closing_away_odds"] == 3.1  # +210 ML -> 3.10
 
-    def test_falls_back_on_db_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Should fall back to CSV when DB query fails."""
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake:5432/testdb")
-
-        mock_engine = MagicMock()
-        mock_engine.connect.side_effect = Exception("Connection refused")
-
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            with patch("sqlalchemy.create_engine", return_value=mock_engine):
-                df = load_backtest_data("2026-01-01", "2026-01-31")
-
-        # Should have fallen back to CSV
-        assert len(df) > 0
-        # Should have emitted a RuntimeWarning about fallback
-        runtime_warnings = [w for w in caught if issubclass(w.category, RuntimeWarning)]
-        assert len(runtime_warnings) >= 1
-        assert "falling back" in str(runtime_warnings[0].message).lower()
-
-    def test_strict_mode_raises_on_db_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """strict=True should raise RuntimeError on DB failure."""
+    def test_raises_on_db_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Should raise RuntimeError with VPN message when DB fails."""
         monkeypatch.setenv("DATABASE_URL", "postgresql://fake:5432/testdb")
 
         mock_engine = MagicMock()
         mock_engine.connect.side_effect = Exception("Connection refused")
 
         with patch("sqlalchemy.create_engine", return_value=mock_engine):
-            with pytest.raises(RuntimeError, match="strict=True"):
-                load_backtest_data(
-                    "2026-01-01", "2026-01-31", strict=True,
-                )
+            with pytest.raises(RuntimeError, match="US VPN"):
+                load_backtest_data("2026-01-01", "2026-01-31")
 
-    def test_schema_mismatch_falls_back_to_csv(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """DB query raising ProgrammingError (missing column) should fall back to CSV."""
+    def test_schema_mismatch_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """DB query error should raise RuntimeError with VPN message."""
         monkeypatch.setenv("DATABASE_URL", "postgresql://fake:5432/testdb")
 
         mock_engine = MagicMock()
@@ -245,23 +224,14 @@ class TestLoadBacktestDataDatabase:
         mock_engine.connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
         mock_engine.connect.return_value.__exit__ = MagicMock(return_value=False)
 
-        from cuic_quant.backtest.backtester_backend import DUMMY_CSV
-
-        # Simulate ProgrammingError from missing closing_home_odds column
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            with (
-                patch("cuic_quant.backtest.data_loader.pd.read_sql",
-                      side_effect=Exception('column "closing_home_odds" does not exist')),
-                patch("sqlalchemy.create_engine", return_value=mock_engine),
-                patch("sqlalchemy.text"),
-            ):
-                df = load_backtest_data("2026-01-01", "2026-01-31")
-
-        assert len(df) > 0  # Fell back to CSV
-        runtime_warnings = [w for w in caught if issubclass(w.category, RuntimeWarning)]
-        assert len(runtime_warnings) >= 1
-        assert "falling back" in str(runtime_warnings[0].message).lower()
+        with (
+            patch("cuic_quant.backtest.data_loader.pd.read_sql",
+                  side_effect=Exception('column "closing_home_odds" does not exist')),
+            patch("sqlalchemy.create_engine", return_value=mock_engine),
+            patch("sqlalchemy.text"),
+        ):
+            with pytest.raises(RuntimeError, match="US VPN"):
+                load_backtest_data("2026-01-01", "2026-01-31")
 
 
 # ============================================================================

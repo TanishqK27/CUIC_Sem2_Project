@@ -174,35 +174,27 @@ def load_backtest_data(
     start_date: str | None = None,
     end_date: str | None = None,
     csv_path: str | Path | None = None,
-    strict: bool = False,
 ) -> pd.DataFrame:
     """Load historical game data for backtesting.
 
-    What: Loads a DataFrame of completed games with odds and outcomes,
-    filtered to a date range and sorted chronologically.
+    Connects to the Railway PostgreSQL database and joins historical_odds
+    (opening/closing moneyline from bookmakers) with combined_player_stats
+    (actual final scores) to get one row per game with ground-truth
+    outcomes — no guesswork.
 
-    Why: The backtester needs historical game data to simulate strategy
-    performance. This function abstracts the data source — it tries the
-    Railway PostgreSQL database first (production), then falls back to a
-    local CSV file (development/testing).
+    The database is IP-restricted to US servers. Connect to a US VPN
+    before calling this function.
 
-    How:
-        1. Try the Railway PostgreSQL database. Joins historical_odds
-           (opening/closing moneyline from bookmakers) with
-           combined_player_stats (actual final scores) to get one row
-           per game with ground-truth outcomes — no guesswork.
-        2. If the DB is unavailable (IP restriction, timeout, etc.), fall
-           back to a local CSV file.
+    If ``csv_path`` is provided, loads from that CSV instead (used by
+    tests only).
 
     Args:
         start_date: Start of date range, inclusive. Format: "YYYY-MM-DD".
             Defaults to 2 years ago from today.
         end_date: End of date range, inclusive. Format: "YYYY-MM-DD".
             Defaults to today.
-        csv_path: Path to fallback CSV file. If None, defaults to
-            data/dummy_backtest_input.csv.
-        strict: If True, raise RuntimeError when the database query fails
-            instead of falling back to CSV. Default False.
+        csv_path: Path to a CSV file to load instead of the database.
+            Only used for testing. When None (default), loads from DB.
 
     Returns:
         DataFrame with columns: timestamp (datetime), game (str),
@@ -213,9 +205,8 @@ def load_backtest_data(
         Sorted by timestamp ascending.
 
     Raises:
-        FileNotFoundError: If no database is available and no CSV exists
-            at the specified path.
-        RuntimeError: If strict=True and the database query fails.
+        RuntimeError: If the database connection or query fails.
+            Connect to a US VPN and try again.
     """
     # Default date range: 2 years back → today
     if end_date is None:
@@ -225,83 +216,72 @@ def load_backtest_data(
             (pd.Timestamp(end_date) - pd.DateOffset(years=2)).date()
         )
 
+    # If caller explicitly passed a CSV path, load from file (tests only).
+    if csv_path is not None:
+        csv_path = Path(csv_path)
+        if not csv_path.exists():
+            raise FileNotFoundError(f"No CSV found at {csv_path}")
+
+        df = pd.read_csv(csv_path, parse_dates=["timestamp"])
+        end_ts = pd.Timestamp(end_date) + pd.Timedelta(days=1)
+        mask = (df["timestamp"] >= start_date) & (df["timestamp"] < end_ts)
+        df = df.loc[mask].sort_values(["timestamp", "game"]).reset_index(drop=True)
+        logger.info("Loaded %d rows from %s.", len(df), csv_path.name)
+        return df
+
+    # Load from Railway PostgreSQL database
     database_url = os.environ.get("DATABASE_URL", "") or _RAILWAY_URL
 
-    # If caller explicitly passed a CSV path, skip the database entirely.
-    if database_url and csv_path is None:
-        try:
-            from sqlalchemy import create_engine, text
+    try:
+        from sqlalchemy import create_engine, text
 
-            engine = create_engine(
-                database_url,
-                connect_args={"connect_timeout": 10},
+        engine = create_engine(
+            database_url,
+            connect_args={"connect_timeout": 10},
+        )
+
+        end_date_exclusive = str(
+            pd.Timestamp(end_date) + pd.Timedelta(days=1)
+        )
+
+        query = text(_HISTORICAL_ODDS_QUERY)
+
+        with engine.connect() as conn:
+            raw = pd.read_sql(
+                query, conn,
+                params={
+                    "start_date": start_date,
+                    "end_date_exclusive": end_date_exclusive,
+                },
             )
 
-            end_date_exclusive = str(
-                pd.Timestamp(end_date) + pd.Timedelta(days=1)
+        if len(raw) == 0:
+            raise RuntimeError(
+                "Database query returned 0 rows — no games with "
+                "odds and scores in the requested date range."
             )
 
-            query = text(_HISTORICAL_ODDS_QUERY)
+        df = _build_db_dataframe(raw)
 
-            with engine.connect() as conn:
-                raw = pd.read_sql(
-                    query, conn,
-                    params={
-                        "start_date": start_date,
-                        "end_date_exclusive": end_date_exclusive,
-                    },
-                )
-
-            if len(raw) == 0:
-                raise RuntimeError(
-                    "Database query returned 0 rows — no games with "
-                    "odds and scores in the requested date range."
-                )
-
-            df = _build_db_dataframe(raw)
-
-            if len(df) == 0:
-                raise RuntimeError(
-                    f"Found {len(raw)} raw rows but 0 valid games after "
-                    "moneyline conversion."
-                )
-
-            df = df.sort_values(["timestamp", "game"]).reset_index(drop=True)
-            logger.info(
-                "Loaded %d games from database (%s to %s).",
-                len(df), start_date, end_date,
-            )
-            return df
-
-        except Exception as e:
-            if strict:
-                raise RuntimeError(
-                    f"Database query failed and strict=True: {e}"
-                ) from e
-            warnings.warn(
-                f"Database query failed ({e}). "
-                f"Falling back to local CSV — results may use synthetic data.",
-                RuntimeWarning,
-                stacklevel=2,
+        if len(df) == 0:
+            raise RuntimeError(
+                f"Found {len(raw)} raw rows but 0 valid games after "
+                "moneyline conversion."
             )
 
-    # Fallback to CSV
-    if csv_path is None:
-        csv_path = DUMMY_CSV
-    csv_path = Path(csv_path)
+        df = df.sort_values(["timestamp", "game"]).reset_index(drop=True)
+        logger.info(
+            "Loaded %d games from database (%s to %s).",
+            len(df), start_date, end_date,
+        )
+        return df
 
-    if not csv_path.exists():
-        raise FileNotFoundError(f"No CSV found at {csv_path}")
-
-    df = pd.read_csv(csv_path, parse_dates=["timestamp"])
-
-    # Filter by date range (use < end + 1 day so intra-day rows are included)
-    end_ts = pd.Timestamp(end_date) + pd.Timedelta(days=1)
-    mask = (df["timestamp"] >= start_date) & (df["timestamp"] < end_ts)
-    df = df.loc[mask].sort_values(["timestamp", "game"]).reset_index(drop=True)
-
-    logger.info("Loaded %d rows from %s.", len(df), csv_path.name)
-    return df
+    except Exception as e:
+        raise RuntimeError(
+            f"Database connection failed: {e}\n\n"
+            "The Railway database is IP-restricted to US servers.\n"
+            "Connect to a US VPN and try again."
+        ) from e
 
 
 __all__ = [
