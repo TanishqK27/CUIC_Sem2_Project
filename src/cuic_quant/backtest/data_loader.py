@@ -225,7 +225,7 @@ def load_backtest_data(
             (pd.Timestamp(end_date) - pd.DateOffset(years=2)).date()
         )
 
-    database_url = os.environ.get("DATABASE_URL", "")
+    database_url = os.environ.get("DATABASE_URL", "") or _RAILWAY_URL
 
     if database_url:
         try:
