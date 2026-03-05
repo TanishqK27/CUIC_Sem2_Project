@@ -435,7 +435,7 @@ def backtest(
                     )
 
             # Cap bet at bankroll minus flat fee to prevent negative bankroll
-            bet_size = min(bet_size, max(0.0, bankroll - cost_flat))
+            bet_size = round(min(bet_size, max(0.0, bankroll - cost_flat)), 2)
             if bet_size <= 0:
                 continue
 
