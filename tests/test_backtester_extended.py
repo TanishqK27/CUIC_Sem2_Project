@@ -211,12 +211,10 @@ class TestLoadBacktestDataDatabase:
         mock_engine = MagicMock()
         mock_engine.connect.side_effect = Exception("Connection refused")
 
-        from cuic_quant.backtest.backtester_backend import DUMMY_CSV
-
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             with patch("sqlalchemy.create_engine", return_value=mock_engine):
-                df = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+                df = load_backtest_data("2026-01-01", "2026-01-31")
 
         # Should have fallen back to CSV
         assert len(df) > 0
@@ -258,7 +256,7 @@ class TestLoadBacktestDataDatabase:
                 patch("sqlalchemy.create_engine", return_value=mock_engine),
                 patch("sqlalchemy.text"),
             ):
-                df = load_backtest_data("2026-01-01", "2026-01-31", csv_path=DUMMY_CSV)
+                df = load_backtest_data("2026-01-01", "2026-01-31")
 
         assert len(df) > 0  # Fell back to CSV
         runtime_warnings = [w for w in caught if issubclass(w.category, RuntimeWarning)]

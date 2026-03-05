@@ -89,12 +89,15 @@ def bootstrap_confidence_interval(
     rng = np.random.default_rng(seed)
     point_estimate = metric_fn(pd.Series(data))
 
-    bootstrap_stats = []
-    for _ in range(n_bootstrap):
-        sample = rng.choice(data, size=len(data), replace=True)
-        bootstrap_stats.append(metric_fn(pd.Series(sample)))
-
-    bootstrap_stats = np.array(bootstrap_stats)
+    if metric_fn.__name__ == "<lambda>" or metric_fn is np.mean:
+        # Fast path: vectorized bootstrap for mean
+        idx = rng.integers(0, len(data), size=(n_bootstrap, len(data)))
+        bootstrap_stats = data[idx].mean(axis=1)
+    else:
+        bootstrap_stats = np.empty(n_bootstrap)
+        for i in range(n_bootstrap):
+            sample = rng.choice(data, size=len(data), replace=True)
+            bootstrap_stats[i] = metric_fn(pd.Series(sample))
     alpha = 1 - confidence_level
     lower = float(np.percentile(bootstrap_stats, 100 * alpha / 2))
     upper = float(np.percentile(bootstrap_stats, 100 * (1 - alpha / 2)))
@@ -170,7 +173,7 @@ def significance_report(results_df: pd.DataFrame) -> dict[str, Any]:
             null_h = implied_mean
     p_value = calculate_p_value(win_rate, total, null_hypothesis=null_h)
 
-    # Bootstrap CIs
+    # Bootstrap CIs (vectorized for speed)
     pnl = results_df["pnl"]
     pnl_ci = bootstrap_confidence_interval(pnl, confidence_level=0.95)
     roi_ci = (0.0, 0.0, 0.0)
@@ -179,14 +182,14 @@ def significance_report(results_df: pd.DataFrame) -> dict[str, Any]:
         if total_wagered > 0:
             pnl_arr = pnl.values
             bet_arr = results_df["bet_size"].values
+            n = len(pnl_arr)
             rng = np.random.default_rng(42)
-            roi_boot = []
-            for _ in range(10_000):
-                idx = rng.integers(0, len(pnl_arr), size=len(pnl_arr))
-                wager = bet_arr[idx].sum()
-                if wager > 0:
-                    roi_boot.append(pnl_arr[idx].sum() / wager)
-            roi_boot = np.array(roi_boot)
+            # Generate all bootstrap indices at once: (10000, n)
+            idx_matrix = rng.integers(0, n, size=(10_000, n))
+            pnl_sums = pnl_arr[idx_matrix].sum(axis=1)
+            wager_sums = bet_arr[idx_matrix].sum(axis=1)
+            valid = wager_sums > 0
+            roi_boot = pnl_sums[valid] / wager_sums[valid]
             roi_ci = (
                 float(np.percentile(roi_boot, 2.5)),
                 float(pnl_arr.sum() / total_wagered),

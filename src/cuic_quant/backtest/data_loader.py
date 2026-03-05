@@ -227,7 +227,8 @@ def load_backtest_data(
 
     database_url = os.environ.get("DATABASE_URL", "") or _RAILWAY_URL
 
-    if database_url:
+    # If caller explicitly passed a CSV path, skip the database entirely.
+    if database_url and csv_path is None:
         try:
             from sqlalchemy import create_engine, text
 
