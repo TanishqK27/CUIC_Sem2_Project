@@ -269,3 +269,428 @@ This paper models betting exchanges where participants hold different beliefs ye
 ### How We Could Use This
 
 Add phase-of-game segmentation (pre-match, early in-play, late in-play) to strategy logic and evaluate role-specific execution rules. This can improve when to provide vs take liquidity on exchange-style markets.
+
+# Bias Research
+
+# Biases in Sports Betting Markets
+
+## Quant Fund Research – NBA Betting Model
+
+This document summarises key behavioural biases observed in sports betting markets.
+Understanding these biases helps us:
+
+1. Identify potential **market inefficiencies**
+2. Design **features for predictive models**
+3. Avoid **systematic errors when interpreting bookmaker odds**
+
+Each section summarises an academic paper supporting the bias and explains how the finding can be applied to our NBA betting model.
+
+---
+
+# 1. Favourite–Longshot Bias (FLB)
+
+## Paper
+
+**Authors:** Eric Snowberg, Justin Wolfers
+**Year:** 2010
+**Title:** *Explaining the Favorite-Longshot Bias: Is it Risk-Love or Misperceptions?*
+**Source:** Journal of Political Economy / NBER Working Paper 15923
+**Link:** <https://www.nber.org/papers/w15923>
+
+---
+
+## Key Idea
+
+The **Favourite–Longshot Bias (FLB)** refers to a systematic pattern in betting markets where:
+
+- **Longshots (low probability outcomes)** are overpriced
+- **Favorites (high probability outcomes)** are slightly underpriced
+
+This occurs because bettors **overestimate the probability of rare events**.
+
+Example:
+
+| True Probability | Bettor Perception |
+|---|---|
+| 5% | perceived as ~10% |
+
+This behavioural bias is consistent with **Prospect Theory probability weighting**, where individuals overweight small probabilities.
+
+---
+
+## Methodology
+
+The authors analyse a **large horse-racing dataset** covering multiple betting pools.
+
+They test two competing explanations for FLB:
+
+1. **Risk-Loving Preferences**
+   - Bettors prefer high payoff bets.
+
+2. **Probability Misperception**
+   - Bettors incorrectly perceive probabilities.
+
+Using demand models, they test which explanation better matches observed betting behaviour.
+
+---
+
+## Relevant Findings
+
+Key results from the paper:
+
+- Evidence strongly supports **probability misperception**, not risk-loving behaviour.
+- Bettors systematically **overweight small probabilities**.
+- Longshots therefore receive **excess betting demand**.
+- This pushes bookmakers to **inflate prices on longshots**.
+
+Empirically:
+
+- **Longshots produce negative expected returns**
+- **Favorites perform closer to break-even**
+
+This produces the characteristic **favorite-longshot return curve**.
+
+---
+
+## Relevance to Our Project
+
+If FLB exists in basketball betting markets, then:
+
+- Longshot teams (large underdogs) may be **systematically overpriced**
+- Favorites may be **slightly underpriced**
+
+This creates predictable **probability calibration errors**.
+
+---
+
+## Implementation in Our Model
+
+### Calibration Testing
+
+Group games by **implied probability buckets**
+
+Example buckets:
+
+```text
+0–20%
+20–40%
+40–60%
+60–80%
+80–100%
+```
+
+Then compare:
+
+```text
+Actual win frequency vs implied probability
+```
+
+Expected FLB pattern:
+
+```text
+Longshots win less often than implied
+Favorites win slightly more often than implied
+```
+
+---
+
+### Feature Engineering
+
+Include variables such as:
+
+- Spread magnitude
+- Underdog indicator
+- Moneyline probability
+
+These allow the model to learn **systematic distortions in market pricing**.
+
+---
+
+# 2. Insider Information / Bookmaker Protection Bias
+
+## Paper
+
+**Author:** Hyun Song Shin
+**Year:** 1993
+**Title:** *Measuring the Incidence of Insider Trading in a Market for State-Contingent Claims*
+**Source:** The Economic Journal
+**Link:** <https://academic.oup.com/ej/article/103/420/1141/5157258>
+
+---
+
+## Key Idea
+
+Bookmakers may assume that **some bettors possess superior information**.
+
+To protect against these informed bettors, bookmakers adjust odds.
+
+Therefore:
+
+```text
+Observed betting odds ≠ true probabilities + bookmaker margin
+```
+
+Instead, odds incorporate a correction for **asymmetric information risk**.
+
+---
+
+## Methodology
+
+Shin develops a structural model where:
+
+- A fraction of bettors are **informed traders**
+- The rest are **uninformed bettors**
+
+The model estimates:
+
+```text
+z = proportion of informed bettors
+```
+
+Using observed odds and market spreads, Shin derives a method for estimating the **true probability distribution**.
+
+---
+
+## Relevant Findings
+
+The model shows that:
+
+- Betting odds reflect **information asymmetry**
+- Markets price in protection against **informed bettors**
+- Standard normalization of odds produces **biased probability estimates**
+
+Shin’s probability extraction method produces **more accurate probability estimates**.
+
+---
+
+## Relevance to Our Project
+
+Most models convert bookmaker odds using **naive normalization**:
+
+```text
+p_i = (1 / odds_i) / Σ(1 / odds_i)
+```
+
+However, this ignores insider risk.
+
+Using naive probabilities may lead to:
+
+- incorrect calibration
+- biased training targets
+
+---
+
+## Implementation in Our Model
+
+We should compute **Shin-implied probabilities**.
+
+Process:
+
+1. Input bookmaker odds
+2. Estimate insider parameter **z**
+3. Derive corrected probabilities
+
+These probabilities should be used for:
+
+- model calibration
+- probability comparisons
+- detecting mispricing
+
+This produces a more accurate baseline for **market probability estimates**.
+
+---
+
+# 3. Sentiment / Popular Team Bias
+
+## Paper
+
+**Authors:** Timothy Feddersen, Devin Pope, and others
+**Year:** 2013
+**Title:** *Sentiment Bias in National Basketball Association Betting*
+**Link:** <https://findresearcher.sdu.dk/ws/files/153177361/Sentiment_bias_in_national_basketball_association_betting.pdf>
+
+---
+
+## Key Idea
+
+Bettors often prefer betting on **popular teams**.
+
+Examples include:
+
+- historically successful teams
+- teams with star players
+- teams from large media markets
+
+This leads sportsbooks to **shade lines against popular teams**, because they know the public will bet them regardless.
+
+---
+
+## Methodology
+
+The paper analyses over:
+
+```text
+33,000 NBA games
+```
+
+The authors construct measures of **team popularity**, including:
+
+- attendance levels
+- fan engagement proxies
+- team prestige indicators
+
+They then test whether betting lines are **systematically biased** when popular teams are involved.
+
+---
+
+## Relevant Findings
+
+The study finds that:
+
+- Popular teams attract **disproportionate betting demand**
+- Sportsbooks respond by **worsening the betting price** on those teams
+- This leads to **inflated spreads or odds**
+
+Example:
+
+```text
+True spread: Lakers -4
+Market spread: Lakers -5
+```
+
+This allows bookmakers to profit from **sentiment-driven betting**.
+
+---
+
+## Relevance to Our Project
+
+Popular teams may be **overbet**, causing:
+
+- spreads to be inflated
+- implied probabilities to be biased
+
+This may create value opportunities **betting against heavily supported teams**.
+
+---
+
+## Implementation in Our Model
+
+Introduce **team popularity feature variables**.
+
+Possible proxies include:
+
+- Social media following
+- Market size
+- Number of All-Star players
+- Historical team success
+- National TV appearances
+
+Testing approach:
+
+1. Compute model prediction vs market spread
+2. Condition results on **team popularity indicators**
+
+If sentiment bias exists, we should observe **systematic pricing distortions**.
+
+---
+
+# 4. Recency Bias
+
+## Paper
+
+**Author:** Gregory Durand
+**Year:** 2021
+**Title:** *Recency Bias in Sports Betting Markets*
+**Source:** Journal of Behavioral and Experimental Finance
+**Link:** <https://www.sciencedirect.com/science/article/pii/S2214635021000666>
+
+---
+
+## Key Idea
+
+Bettors tend to overweight **recent performance** when forming expectations.
+
+Examples:
+
+- Teams on winning streaks become **overvalued**
+- Teams on losing streaks become **undervalued**
+
+However, sports performance often **regresses toward long-term averages**.
+
+---
+
+## Methodology
+
+The study analyses betting markets to determine whether:
+
+- recent game outcomes
+- winning streaks
+- short-term performance indicators
+
+affect betting prices more than they should.
+
+---
+
+## Relevant Findings
+
+The results suggest that betting markets:
+
+- **overreact to recent performance**
+- adjust prices excessively after winning or losing streaks
+
+This creates **temporary mispricing**.
+
+---
+
+## Relevance to Our Project
+
+Market odds may overweight:
+
+- recent wins
+- recent point differentials
+- narrative-driven performance trends
+
+This means market prices may diverge from **true team strength**.
+
+---
+
+## Implementation in Our Model
+
+Include variables measuring **recent form**, such as:
+
+```text
+last_5_games_win_percentage
+recent_ATS_performance
+recent_point_differential
+```
+
+Then test whether:
+
+```text
+market spreads overweight recent performance
+```
+
+If recency bias exists, our model can incorporate **mean-reversion adjustments**.
+
+---
+
+# Summary
+
+| Bias | Paper | Core Insight | Model Application |
+|-----|-----|-----|-----|
+| Favourite-Longshot Bias | Snowberg & Wolfers (2010) | Bettors overweight small probabilities | Probability calibration tests |
+| Insider Information Bias | Shin (1993) | Odds reflect protection against informed bettors | Use Shin implied probabilities |
+| Sentiment Bias | Feddersen et al. (2013) | Popular teams attract excess betting demand | Add popularity features |
+| Recency Bias | Durand (2021) | Markets overreact to recent results | Include mean-reversion variables |
+
+---
+
+# Next Research Steps
+
+Future work should include:
+
+- Testing these biases specifically in **NBA betting markets**
+- Evaluating **closing line efficiency**
+- Measuring **model edge vs bookmaker prices**
+
+These tests will inform whether the biases provide **exploitable predictive signals** for our betting model.
