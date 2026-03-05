@@ -22,6 +22,13 @@ Add papers using this format:
 
 ---
 
+## Further bias and CLV paper summaries
+
+- [Further Bias and CLV Paper Summaries](./verified-betting-clv-volume_summary.md)
+- [FLB NBA Betting Market Bias Summary](./flb-nba-betting-market-bias_summary.md)
+
+---
+
 ## Prediction Markets
 
 ### The Promise of Prediction Markets
